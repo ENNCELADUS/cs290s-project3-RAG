@@ -19,6 +19,7 @@ from typing import Protocol, Self
 from .chunking import normalize_text
 from .html import extract_html
 from .io import write_jsonl, write_manifest
+from .office import OFFICE_CONTENT_TYPES, OFFICE_EXTENSIONS, extract_office_text
 from .pdf import extract_pdf_text
 from .quality import quality_flags, write_quality_report
 from .seeds import load_seed_urls
@@ -26,6 +27,20 @@ from .structured import extract_structured_records
 from .urls import SeedUrl, canonicalize_url, infer_category, infer_language, is_official_url
 
 USER_AGENT = "cs290s-rag-collector/0.1 (+official-source student project)"
+SUPPORTED_TEXT_EXTENSIONS = {".html", ".htm", ".psp", ".txt", ".text", ".csv", ".md"}
+UNSUPPORTED_BINARY_EXTENSIONS = {
+    ".7z",
+    ".bmp",
+    ".gif",
+    ".jpeg",
+    ".jpg",
+    ".png",
+    ".rar",
+    ".svg",
+    ".webp",
+    ".zip",
+}
+UNSUPPORTED_BINARY_CONTENT_PREFIXES = ("image/", "audio/", "video/")
 
 
 class ProgressReporter(Protocol):
@@ -302,12 +317,28 @@ class OfficialCollector:
                 "title": None,
                 "text": text,
                 "links": [],
-                "category": seed_category,
+                "category": infer_category(str(fetched["url"]), seed_category=seed_category),
                 "language": infer_language(text),
                 "parser": result.parser,
                 "ocr_used": result.ocr_used,
                 "flags": result.flags,
                 "extension": ".pdf",
+            }
+
+        if content_type in OFFICE_CONTENT_TYPES or extension in OFFICE_EXTENSIONS:
+            temp_path = self.config.run_dir / "raw" / f"{sha256}{extension}.tmp"
+            result = extract_office_text(body, extension, temp_path)
+            text = result.text
+            return {
+                "title": None,
+                "text": text,
+                "links": [],
+                "category": infer_category(str(fetched["url"]), seed_category=seed_category),
+                "language": infer_language(text),
+                "parser": result.parser,
+                "ocr_used": False,
+                "flags": result.flags,
+                "extension": extension,
             }
 
         if content_type in {"text/html", "application/xhtml+xml"} or extension in {".html", ".htm"}:
@@ -316,7 +347,7 @@ class OfficialCollector:
                 "title": title,
                 "text": text,
                 "links": links,
-                "category": infer_category("", title, seed_category),
+                "category": infer_category(str(fetched["url"]), title, seed_category),
                 "language": infer_language(text),
                 "parser": "html",
                 "ocr_used": False,
@@ -324,12 +355,25 @@ class OfficialCollector:
                 "extension": ".html",
             }
 
+        if _is_unsupported_binary_response(content_type, extension):
+            return {
+                "title": None,
+                "text": "",
+                "links": [],
+                "category": infer_category(str(fetched["url"]), seed_category=seed_category),
+                "language": "unknown",
+                "parser": "unsupported_binary",
+                "ocr_used": False,
+                "flags": ["unsupported_binary"],
+                "extension": extension or ".bin",
+            }
+
         text = normalize_text(body.decode("utf-8", errors="replace"))
         return {
             "title": None,
             "text": text,
             "links": [],
-            "category": seed_category,
+            "category": infer_category(str(fetched["url"]), seed_category=seed_category),
             "language": infer_language(text),
             "parser": "text",
             "ocr_used": False,
@@ -429,14 +473,25 @@ def _chunk_document(document: dict[str, object], text: str, max_chars: int, over
 
 def _extension_for_response(url: str, content_type: str) -> str:
     path_suffix = Path(urllib.parse.urlsplit(url).path).suffix.lower()
-    if path_suffix in {".pdf", ".html", ".htm", ".txt", ".psp"}:
+    if path_suffix in {
+        ".pdf",
+        *SUPPORTED_TEXT_EXTENSIONS,
+        *OFFICE_EXTENSIONS,
+        *UNSUPPORTED_BINARY_EXTENSIONS,
+    }:
         return path_suffix
+    if content_type in OFFICE_CONTENT_TYPES:
+        return OFFICE_CONTENT_TYPES[content_type]
     if content_type == "application/pdf":
         return ".pdf"
     if content_type in {"text/html", "application/xhtml+xml"}:
         return ".html"
     guessed = mimetypes.guess_extension(content_type)
     return guessed or ".bin"
+
+
+def _is_unsupported_binary_response(content_type: str, extension: str) -> bool:
+    return extension in UNSUPPORTED_BINARY_EXTENSIONS or content_type.startswith(UNSUPPORTED_BINARY_CONTENT_PREFIXES)
 
 
 def _relative_to_run(path: Path, run_dir: Path) -> str:

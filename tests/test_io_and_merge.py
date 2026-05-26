@@ -1,8 +1,9 @@
 from pathlib import Path
 
 from rag_collection.cli import _load_known_urls
-from rag_collection.io import prepare_run_dir, read_jsonl, write_jsonl
+from rag_collection.io import prepare_run_dir, read_jsonl, write_jsonl, write_manifest
 from rag_collection.merge import merge_existing_with_run
+from rag_collection.reparse import reparse_run
 
 
 def test_prepare_run_dir_is_append_only(tmp_path: Path) -> None:
@@ -75,3 +76,68 @@ def test_load_known_urls_ignores_current_run(tmp_path: Path) -> None:
     known_urls = _load_known_urls(existing, tmp_path / "data" / "collection_runs", current_run)
 
     assert known_urls == {"https://old.example/", "https://previous.example/"}
+
+
+def test_reparse_run_writes_append_only_outputs_for_flagged_docs(tmp_path: Path) -> None:
+    seeds = tmp_path / "seeds.csv"
+    seeds.write_text(
+        "url,category,depth_limit,priority,notes\n"
+        "https://www.shanghaitech.edu.cn/,school_info,1,1,test\n",
+        encoding="utf-8",
+    )
+    source_run = tmp_path / "collection_runs" / "source"
+    output_run = tmp_path / "collection_runs" / "reparse"
+    for run_dir in (source_run, output_run):
+        run_dir.joinpath("raw").mkdir(parents=True)
+        run_dir.joinpath("texts").mkdir()
+        run_dir.joinpath("jsonl").mkdir()
+
+    raw_name = "sample.html"
+    source_run.joinpath("raw", raw_name).write_bytes(
+        b"<html><head><title>Fixed</title></head><body><main>Fixed parsed body with enough text.</main></body></html>"
+    )
+    write_jsonl(
+        source_run / "jsonl" / "documents.jsonl",
+        [
+            {
+                "id": 7,
+                "run_id": "source",
+                "url": "https://www.shanghaitech.edu.cn/test/",
+                "canonical_url": "https://www.shanghaitech.edu.cn/test/",
+                "title": "Old",
+                "host": "www.shanghaitech.edu.cn",
+                "category": "school_info",
+                "language": "unknown",
+                "content_type": "text/html",
+                "status_code": 200,
+                "fetched_at": "2026-05-26T00:00:00+00:00",
+                "raw_path": f"raw/{raw_name}",
+                "text_path": "texts/old.txt",
+                "sha256": "old",
+                "depth": 0,
+                "parent_url": None,
+                "text_chars": 0,
+                "parser": "html",
+                "ocr_used": False,
+            }
+        ],
+    )
+    write_manifest(
+        source_run / "source_manifest.csv",
+        [
+            {
+                "url": "https://www.shanghaitech.edu.cn/test/",
+                "canonical_url": "https://www.shanghaitech.edu.cn/test/",
+                "quality_flags": ["empty_text"],
+            }
+        ],
+    )
+
+    stats = reparse_run(source_run, output_run, seeds_path=seeds, only_flags={"empty_text"})
+
+    documents = read_jsonl(output_run / "jsonl" / "documents.jsonl")
+    chunks = read_jsonl(output_run / "jsonl" / "chunks.jsonl")
+    assert stats["documents"] == 1
+    assert documents[0]["title"] == "Fixed"
+    assert documents[0]["reparsed_from_run"] == "source"
+    assert "Fixed parsed body with enough text." in chunks[0]["text"]

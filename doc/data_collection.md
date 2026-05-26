@@ -28,6 +28,25 @@ Merge an accepted run with the existing snapshot for downstream RAG indexing:
 python3 scripts/collect_data.py merge --run-jsonl data/collection_runs/<run-name>/jsonl
 ```
 
+Reparse saved raw files from a prior run without re-fetching:
+
+```bash
+python3 scripts/collect_data.py reparse \
+  --source-run data/collection_runs/<run-name> \
+  --only-flag empty_text \
+  --only-flag possibly_garbled \
+  --run-name <run-name>-reparse
+```
+
+If you already know the affected URLs, put one URL per line in a text file and use:
+
+```bash
+python3 scripts/collect_data.py reparse \
+  --source-run data/collection_runs/<run-name> \
+  --url-file data/reparse_urls.txt \
+  --run-name <run-name>-targeted-reparse
+```
+
 ## Outputs
 
 Each run writes:
@@ -40,6 +59,10 @@ Each run writes:
 - `source_manifest.csv`: source audit table.
 - `quality_report.md`: coverage, quality, and manual audit notes.
 - `eval_seed_candidates.jsonl`: evidence-backed question themes for the later evaluation set.
+
+Reparse runs have the same structure and add `reparsed_at`, `reparsed_from_run`, and
+`reparsed_from_document_id` to `documents.jsonl`. They are still append-only and can
+be merged the same way as collection runs.
 
 ## OCR Requirement
 

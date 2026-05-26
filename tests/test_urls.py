@@ -1,4 +1,4 @@
-from rag_collection.urls import canonicalize_url, infer_language, is_official_url
+from rag_collection.urls import canonicalize_url, infer_category, infer_language, is_official_url
 
 
 def test_canonicalize_url_drops_fragments_and_tracking_params() -> None:
@@ -21,6 +21,22 @@ def test_official_url_accepts_subdomains_only() -> None:
     assert not is_official_url("https://shanghaitech.edu.cn.evil.example/")
 
 
+def test_official_url_rejects_non_http_schemes() -> None:
+    assert not is_official_url("hhttps://jobs.shanghaitech.edu.cn/main.htm")
+    assert not is_official_url("mailto:contact@shanghaitech.edu.cn")
+
+
 def test_infer_language_prefers_chinese_when_present() -> None:
     assert infer_language("信息科学与技术学院负责本科生和研究生培养。") == "zh"
     assert infer_language("School of Information Science and Technology") == "en"
+
+
+def test_infer_category_uses_url_signals_before_seed_fallback() -> None:
+    assert (
+        infer_category(
+            "https://faculty.sist.shanghaitech.edu.cn/office/Academics/Graduate/Courses/Schedule.htm",
+            seed_category="faculty",
+        )
+        == "courses"
+    )
+    assert infer_category("https://jobs.shanghaitech.edu.cn/main.htm", seed_category="program") == "career"

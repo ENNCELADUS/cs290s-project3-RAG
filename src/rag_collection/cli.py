@@ -9,8 +9,11 @@ from tqdm import tqdm
 from .crawler import CollectorConfig, OfficialCollector
 from .io import prepare_run_dir
 from .merge import merge_existing_with_run
+from .office import office_environment_status
 from .pdf import ocr_environment_status
+from .reparse import reparse_run
 from .seeds import load_seed_urls
+from .urls import canonicalize_url
 
 DEFAULT_SEEDS = Path("config/official_seed_urls.csv")
 DEFAULT_COLLECTION_RUNS = Path("data/collection_runs")
@@ -47,6 +50,22 @@ def main(argv: list[str] | None = None) -> int:
     merge_parser.add_argument("--run-jsonl", type=Path, required=True)
     merge_parser.add_argument("--output", type=Path, default=DEFAULT_MERGED)
 
+    reparse_parser = subparsers.add_parser("reparse", help="Reparse saved raw files from a previous run")
+    reparse_parser.add_argument("--source-run", type=Path, required=True)
+    reparse_parser.add_argument("--seeds", type=Path, default=DEFAULT_SEEDS)
+    reparse_parser.add_argument("--collection-runs", type=Path, default=DEFAULT_COLLECTION_RUNS)
+    reparse_parser.add_argument("--run-name", default=None)
+    reparse_parser.add_argument(
+        "--only-flag",
+        action="append",
+        default=[],
+        help="Only reparse documents whose source manifest quality_flags contains this flag. Repeatable.",
+    )
+    reparse_parser.add_argument("--url-file", type=Path, help="Optional newline-delimited list of URLs to reparse")
+    reparse_parser.add_argument("--limit", type=int, default=None)
+    reparse_parser.add_argument("--chunk-chars", type=int, default=1200)
+    reparse_parser.add_argument("--chunk-overlap", type=int, default=120)
+
     args = parser.parse_args(argv)
     if args.command == "doctor":
         return _doctor(args.seeds)
@@ -54,17 +73,25 @@ def main(argv: list[str] | None = None) -> int:
         return _collect(args)
     if args.command == "merge":
         return _merge(args)
+    if args.command == "reparse":
+        return _reparse(args)
     return 2
 
 
 def _doctor(seeds_path: Path) -> int:
     seeds = load_seed_urls(seeds_path)
     ocr_status = ocr_environment_status()
+    office_status = office_environment_status()
     print(f"seed_count={len(seeds)}")
     for key, value in ocr_status.items():
         print(f"{key}={value}")
+    for key, value in office_status.items():
+        print(f"{key}={value}")
     if not ocr_status["has_chi_sim"]:
         print("warning=tesseract chi_sim language data is missing; Chinese OCR fallback will be disabled")
+    missing_office = [key for key, value in office_status.items() if not value]
+    if missing_office:
+        print(f"warning=office extraction dependency missing: {', '.join(missing_office)}")
     return 0
 
 
@@ -104,6 +131,24 @@ def _merge(args: argparse.Namespace) -> int:
     return 0
 
 
+def _reparse(args: argparse.Namespace) -> int:
+    run_dir = prepare_run_dir(args.collection_runs, args.run_name)
+    stats = reparse_run(
+        args.source_run,
+        run_dir,
+        seeds_path=args.seeds,
+        only_flags=set(args.only_flag) if args.only_flag else None,
+        url_filter=_load_url_filter(args.url_file) if args.url_file else None,
+        limit=args.limit,
+        chunk_chars=args.chunk_chars,
+        chunk_overlap=args.chunk_overlap,
+    )
+    print(f"run_dir={run_dir}")
+    for key, value in stats.items():
+        print(f"{key}={value}")
+    return 0
+
+
 def _tqdm_progress(total: int) -> tqdm:
     return tqdm(total=total, desc="collecting pages", unit="page")
 
@@ -122,3 +167,8 @@ def _load_known_urls(existing_jsonl: Path, collection_runs: Path, current_run_di
                 if isinstance(url, str) and url:
                     known_urls.add(url)
     return known_urls
+
+
+def _load_url_filter(path: Path) -> set[str]:
+    with path.open(encoding="utf-8") as handle:
+        return {canonicalize_url(line.strip()) for line in handle if line.strip() and not line.startswith("#")}

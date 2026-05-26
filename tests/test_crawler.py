@@ -2,18 +2,20 @@ from __future__ import annotations
 
 import http.client
 import urllib.request
+import zipfile
+from io import BytesIO
 from pathlib import Path
 
 from rag_collection.crawler import CollectorConfig, OfficialCollector
-from rag_collection.io import prepare_run_dir
+from rag_collection.io import prepare_run_dir, read_jsonl
 
 
 class FakeResponse:
     status = 200
 
-    def __init__(self, body: bytes):
+    def __init__(self, body: bytes, content_type: str = "text/html; charset=utf-8"):
         self._body = body
-        self.headers = {"Content-Type": "text/html; charset=utf-8"}
+        self.headers = {"Content-Type": content_type}
 
     def __enter__(self) -> FakeResponse:
         return self
@@ -114,3 +116,99 @@ def test_collector_records_invalid_url_fetch_errors(tmp_path: Path, monkeypatch)
 
     assert stats["documents"] == 0
     assert "bad url" in (config.run_dir / "quality_report.md").read_text(encoding="utf-8")
+
+
+def test_collector_extracts_docx_text_without_garbled_quality_flags(tmp_path: Path, monkeypatch) -> None:
+    seeds_path = tmp_path / "seeds.csv"
+    seeds_path.write_text(
+        "\n".join(
+            [
+                "url,category,depth_limit,priority,notes",
+                "https://sist.shanghaitech.edu.cn/office/Academics/course.docx,courses,0,1,",
+            ]
+        ),
+        encoding="utf-8",
+    )
+    body = _minimal_docx(
+        [
+            "CS101 Introduction to Computer Science",
+            "Instructor: ShanghaiTech SIST",
+        ]
+    )
+
+    def fake_urlopen(request: urllib.request.Request, timeout: float) -> FakeResponse:
+        return FakeResponse(
+            body,
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        )
+
+    monkeypatch.setattr(urllib.request, "urlopen", fake_urlopen)
+    config = CollectorConfig(
+        seeds_path=seeds_path,
+        run_dir=prepare_run_dir(tmp_path / "runs", "docx"),
+        max_pages=1,
+        request_delay_seconds=0,
+        respect_robots=False,
+    )
+
+    stats = OfficialCollector(config).run()
+
+    assert stats["documents"] == 1
+    documents = read_jsonl(config.run_dir / "jsonl" / "documents.jsonl")
+    manifest = (config.run_dir / "source_manifest.csv").read_text(encoding="utf-8")
+    text = (config.run_dir / documents[0]["text_path"]).read_text(encoding="utf-8")
+    assert "CS101 Introduction to Computer Science" in text
+    assert documents[0]["parser"] == "docx"
+    assert "replacement_chars" not in manifest
+    assert "possibly_garbled" not in manifest
+
+
+def test_collector_marks_image_binary_as_unsupported_without_garbled_text(tmp_path: Path, monkeypatch) -> None:
+    seeds_path = tmp_path / "seeds.csv"
+    seeds_path.write_text(
+        "\n".join(
+            [
+                "url,category,depth_limit,priority,notes",
+                "https://sist.shanghaitech.edu.cn/_upload/article/images/example.jpg,program,0,1,",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    def fake_urlopen(request: urllib.request.Request, timeout: float) -> FakeResponse:
+        return FakeResponse(b"\xff\xd8\xff\xe0\x00\x10JFIF\x00\x01\x02", "image/jpeg")
+
+    monkeypatch.setattr(urllib.request, "urlopen", fake_urlopen)
+    config = CollectorConfig(
+        seeds_path=seeds_path,
+        run_dir=prepare_run_dir(tmp_path / "runs", "image"),
+        max_pages=1,
+        request_delay_seconds=0,
+        respect_robots=False,
+    )
+
+    stats = OfficialCollector(config).run()
+
+    assert stats["documents"] == 1
+    documents = read_jsonl(config.run_dir / "jsonl" / "documents.jsonl")
+    manifest = (config.run_dir / "source_manifest.csv").read_text(encoding="utf-8")
+    text = (config.run_dir / documents[0]["text_path"]).read_text(encoding="utf-8")
+    assert documents[0]["parser"] == "unsupported_binary"
+    assert text == ""
+    assert "unsupported_binary" in manifest
+    assert "replacement_chars" not in manifest
+    assert "possibly_garbled" not in manifest
+
+
+def _minimal_docx(paragraphs: list[str]) -> bytes:
+    xml = "".join(f"<w:p><w:r><w:t>{paragraph}</w:t></w:r></w:p>" for paragraph in paragraphs)
+    document = (
+        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+        '<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">'
+        f"<w:body>{xml}</w:body>"
+        "</w:document>"
+    )
+    buffer = BytesIO()
+    with zipfile.ZipFile(buffer, "w") as archive:
+        archive.writestr("word/document.xml", document)
+    return buffer.getvalue()

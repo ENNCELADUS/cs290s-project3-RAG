@@ -36,7 +36,10 @@ def canonicalize_url(url: str) -> str:
 
 
 def is_official_url(url: str) -> bool:
-    host = urlsplit(url).netloc.lower().split("@")[-1].split(":")[0]
+    parts = urlsplit(url)
+    if parts.scheme not in {"http", "https"}:
+        return False
+    host = parts.netloc.lower().split("@")[-1].split(":")[0]
     return host == "shanghaitech.edu.cn" or host.endswith(".shanghaitech.edu.cn")
 
 
@@ -47,12 +50,7 @@ def same_or_subdomain(url: str, base_host: str) -> bool:
 
 
 def infer_category(url: str, title: str | None = None, seed_category: str | None = None) -> str:
-    if seed_category:
-        return seed_category
-
     haystack = f"{url} {title or ''}".lower()
-    if any(token in haystack for token in ("faculty", "szdw", "professor", "teacher")):
-        return "faculty"
     if any(token in haystack for token in ("course", "bkjx", "yjsjx", "curriculum")):
         return "courses"
     if any(token in haystack for token in ("pyfa", "training", "培养方案", "degree")):
@@ -67,8 +65,12 @@ def infer_category(url: str, title: str | None = None, seed_category: str | None
         return "news"
     if any(token in haystack for token in ("event", "tzgg", "notice", "lecture")):
         return "events"
+    if any(token in haystack for token in ("faculty", "szdw", "professor", "teacher")):
+        return "faculty"
     if any(token in haystack for token in ("academics", "school", "college")):
         return "program"
+    if seed_category:
+        return seed_category
     return "general"
 
 
