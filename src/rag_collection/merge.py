@@ -1,0 +1,93 @@
+from __future__ import annotations
+
+from pathlib import Path
+
+from .io import read_jsonl, write_jsonl
+
+STRUCTURED_FILES = ["courses.jsonl", "faculty_members.jsonl", "program_requirements.jsonl", "events.jsonl"]
+
+
+def merge_existing_with_run(existing_jsonl_dir: Path, run_jsonl_dir: Path, output_dir: Path) -> dict[str, int]:
+    output_dir.mkdir(parents=True, exist_ok=True)
+    stats: dict[str, int] = {}
+
+    existing_documents = read_jsonl(existing_jsonl_dir / "documents.jsonl")
+    run_documents = read_jsonl(run_jsonl_dir / "documents.jsonl")
+    run_url_keys = {_document_url_key(document) for document in run_documents}
+    kept_existing_documents = [
+        document for document in existing_documents if _document_url_key(document) not in run_url_keys
+    ]
+
+    existing_id_map: dict[int, int] = {}
+    document_id_map: dict[int, int] = {}
+    merged_documents: list[dict[str, object]] = []
+
+    for document in kept_existing_documents:
+        old_id = int(document.get("id", len(merged_documents) + 1))
+        new_id = len(merged_documents) + 1
+        existing_id_map[old_id] = new_id
+        merged_documents.append({**document, "id": new_id})
+
+    normalized_run_documents: list[dict[str, object]] = []
+    for document in run_documents:
+        old_id = int(document.get("id", len(normalized_run_documents) + 1))
+        new_id = len(merged_documents) + len(normalized_run_documents) + 1
+        document_id_map[old_id] = new_id
+        normalized = {**document, "id": new_id}
+        normalized_run_documents.append(normalized)
+
+    merged_documents.extend(normalized_run_documents)
+    stats["documents"] = write_jsonl(output_dir / "documents.jsonl", merged_documents)
+
+    existing_chunks = read_jsonl(existing_jsonl_dir / "chunks.jsonl")
+    existing_chunks = [
+        _remap_document_id(row, existing_id_map)
+        for row in existing_chunks
+        if int(row.get("document_id", 0)) in existing_id_map
+    ]
+    run_chunks = [
+        _remap_document_id(row, document_id_map)
+        for row in read_jsonl(run_jsonl_dir / "chunks.jsonl")
+        if int(row.get("document_id", 0)) in document_id_map
+    ]
+    merged_chunks = [*existing_chunks, *run_chunks]
+    for index, chunk in enumerate(merged_chunks, start=1):
+        chunk["id"] = index
+    stats["chunks"] = write_jsonl(output_dir / "chunks.jsonl", merged_chunks)
+
+    for filename in STRUCTURED_FILES:
+        existing_rows = [
+            _remap_source_document_id(row, existing_id_map)
+            for row in read_jsonl(existing_jsonl_dir / filename)
+            if _keeps_structured_row(row, existing_id_map)
+        ]
+        run_rows = [
+            _remap_source_document_id(row, document_id_map)
+            for row in read_jsonl(run_jsonl_dir / filename)
+            if _keeps_structured_row(row, document_id_map)
+        ]
+        stats[filename] = write_jsonl(output_dir / filename, [*existing_rows, *run_rows])
+
+    return stats
+
+
+def _remap_document_id(row: dict[str, object], document_id_map: dict[int, int]) -> dict[str, object]:
+    document_id = int(row.get("document_id", 0))
+    return {**row, "document_id": document_id_map.get(document_id, document_id)}
+
+
+def _remap_source_document_id(row: dict[str, object], document_id_map: dict[int, int]) -> dict[str, object]:
+    source_document_id = row.get("source_document_id")
+    if source_document_id is None:
+        return row
+    old_id = int(source_document_id)
+    return {**row, "source_document_id": document_id_map.get(old_id, old_id)}
+
+
+def _keeps_structured_row(row: dict[str, object], document_id_map: dict[int, int]) -> bool:
+    source_document_id = row.get("source_document_id")
+    return source_document_id is None or int(source_document_id) in document_id_map
+
+
+def _document_url_key(document: dict[str, object]) -> str:
+    return str(document.get("canonical_url") or document.get("url") or "")

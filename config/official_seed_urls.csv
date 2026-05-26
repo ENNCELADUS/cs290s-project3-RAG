@@ -1,0 +1,21 @@
+url,category,depth_limit,priority,notes
+https://www.shanghaitech.edu.cn/,school_info,1,1,ShanghaiTech home page
+https://www.shanghaitech.edu.cn/eng/,school_info,1,2,ShanghaiTech English home page
+https://www.shanghaitech.edu.cn/about/,school_info,1,1,University overview
+https://www.shanghaitech.edu.cn/academics/,program,1,1,Schools and academic units
+https://admission.shanghaitech.edu.cn/,admission,1,1,Undergraduate admissions
+https://gadmission.shanghaitech.edu.cn/,admission,1,1,Graduate admissions
+https://www.shanghaitech.edu.cn/news/,news,1,2,University news
+https://www.shanghaitech.edu.cn/events/,events,1,2,University events
+https://sist.shanghaitech.edu.cn/,program,2,1,SIST Chinese home
+https://sist.shanghaitech.edu.cn/sist_en/,program,2,1,SIST English home
+https://sist.shanghaitech.edu.cn/pyfa/list.htm,program_requirements,2,1,SIST training plans
+https://sist.shanghaitech.edu.cn/bkjx/list.htm,courses,2,1,SIST undergraduate teaching
+https://sist.shanghaitech.edu.cn/yjsjx/list.htm,courses,2,1,SIST graduate teaching
+https://sist.shanghaitech.edu.cn/szdw/list.htm,faculty,2,1,SIST faculty
+https://faculty.sist.shanghaitech.edu.cn/,faculty,2,1,SIST faculty profiles
+https://sist.shanghaitech.edu.cn/kxyj/list.htm,research,2,2,SIST research
+https://sist.shanghaitech.edu.cn/zs/list.htm,admission,2,1,SIST admissions
+https://sist.shanghaitech.edu.cn/sxjy/list.htm,career,2,2,SIST internship and career
+https://sist.shanghaitech.edu.cn/xw/list.htm,news,2,2,SIST news
+https://sist.shanghaitech.edu.cn/tzgg/list.htm,events,2,1,SIST notices
