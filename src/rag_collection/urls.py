@@ -25,7 +25,9 @@ def canonicalize_url(url: str) -> str:
     parts = urlsplit(url.strip())
     scheme = (parts.scheme or "https").lower()
     host = parts.netloc.lower()
-    path = quote(parts.path or "/", safe="/:@!$&'()*+,;=%")
+    if _is_official_host(host):
+        scheme = "https"
+    path = _canonical_path(parts.path or "/")
     query_pairs = [
         (key, value)
         for key, value in parse_qsl(parts.query, keep_blank_values=True)
@@ -40,7 +42,19 @@ def is_official_url(url: str) -> bool:
     if parts.scheme not in {"http", "https"}:
         return False
     host = parts.netloc.lower().split("@")[-1].split(":")[0]
+    return _is_official_host(host)
+
+
+def _is_official_host(host: str) -> bool:
+    host = host.lower().split("@")[-1].split(":")[0]
     return host == "shanghaitech.edu.cn" or host.endswith(".shanghaitech.edu.cn")
+
+
+def _canonical_path(path: str) -> str:
+    path = quote(path or "/", safe="/:@!$&'()*+,;=%")
+    if path.endswith("/main.htm"):
+        path = path[: -len("main.htm")]
+    return path or "/"
 
 
 def same_or_subdomain(url: str, base_host: str) -> bool:

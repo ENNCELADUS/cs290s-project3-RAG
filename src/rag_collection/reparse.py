@@ -53,6 +53,7 @@ def reparse_run(
 
     for source_document in selected:
         source_url = str(source_document.get("canonical_url") or source_document.get("url") or "")
+        source_url = canonicalize_url(source_url) if source_url else ""
         raw_path_value = source_document.get("raw_path")
         if not source_url or not isinstance(raw_path_value, str) or not raw_path_value:
             failures.append(f"missing source url or raw_path for document {source_document.get('id')}")

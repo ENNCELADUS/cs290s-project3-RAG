@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import http.client
 import mimetypes
+import re
 import time
 import urllib.error
 import urllib.parse
@@ -27,6 +28,7 @@ from .structured import extract_structured_records
 from .urls import SeedUrl, canonicalize_url, infer_category, infer_language, is_official_url
 
 USER_AGENT = "cs290s-rag-collector/0.1 (+official-source student project)"
+CHARSET_RE = re.compile(r"charset=([A-Za-z0-9._-]+)", re.I)
 SUPPORTED_TEXT_EXTENSIONS = {".html", ".htm", ".psp", ".txt", ".text", ".csv", ".md"}
 UNSUPPORTED_BINARY_EXTENSIONS = {
     ".7z",
@@ -280,12 +282,14 @@ class OfficialCollector:
             try:
                 with urllib.request.urlopen(request, timeout=self.config.timeout_seconds) as response:
                     body = response.read()
+                    raw_content_type = response.headers.get("Content-Type", "")
                     self.last_request_at[host] = time.monotonic()
                     return {
                         "url": url,
                         "body": body,
                         "status_code": getattr(response, "status", 200),
-                        "content_type": response.headers.get("Content-Type", "").split(";")[0].lower(),
+                        "content_type": raw_content_type.split(";")[0].lower(),
+                        "encoding": _encoding_from_content_type(raw_content_type),
                         "fetched_at": datetime.now(UTC).isoformat(timespec="seconds"),
                         "sha256": hashlib.sha256(body).hexdigest(),
                     }
@@ -342,7 +346,12 @@ class OfficialCollector:
             }
 
         if content_type in {"text/html", "application/xhtml+xml"} or extension in {".html", ".htm"}:
-            title, text, links = extract_html(body, base_url=str(fetched["url"]))
+            encoding = fetched.get("encoding")
+            title, text, links = extract_html(
+                body,
+                base_url=str(fetched["url"]),
+                encoding=encoding if isinstance(encoding, str) else None,
+            )
             return {
                 "title": title,
                 "text": text,
@@ -492,6 +501,11 @@ def _extension_for_response(url: str, content_type: str) -> str:
 
 def _is_unsupported_binary_response(content_type: str, extension: str) -> bool:
     return extension in UNSUPPORTED_BINARY_EXTENSIONS or content_type.startswith(UNSUPPORTED_BINARY_CONTENT_PREFIXES)
+
+
+def _encoding_from_content_type(content_type: str) -> str | None:
+    match = CHARSET_RE.search(content_type)
+    return match.group(1) if match else None
 
 
 def _relative_to_run(path: Path, run_dir: Path) -> str:

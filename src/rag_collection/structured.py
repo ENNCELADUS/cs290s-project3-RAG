@@ -6,7 +6,7 @@ from datetime import UTC, datetime
 
 DATE_RE = re.compile(r"(?P<date>20\d{2}[-/.年]\d{1,2}[-/.月]\d{1,2}日?)")
 EMAIL_RE = re.compile(r"[\w.\-+]+@[\w.\-]+\.\w+")
-COURSE_RE = re.compile(r"\b(?P<code>[A-Z]{2,5}\d{2,4}[A-Z]?)\b")
+COURSE_RE = re.compile(r"\b(?P<code>(?:CS|EE|SI|AI|MATH|BIO)\d{2,4}[A-Z]?)\b")
 CREDIT_RE = re.compile(r"(?P<credits>\d+(?:\.\d+)?)\s*(?:credits?|学分)")
 TITLE_RE = re.compile(r"\b(Professor|Associate Professor|Assistant Professor|Research Professor|Lecturer)\b", re.I)
 
@@ -34,9 +34,13 @@ def extract_structured_records(document: dict[str, object], text: str) -> dict[s
     }
     lines = [line.strip() for line in text.splitlines() if line.strip()]
     return {
-        "courses": _extract_courses(lines, base),
-        "faculty_members": _extract_faculty(lines, base),
-        "program_requirements": _extract_program_requirements(lines, base),
+        "courses": _extract_courses(lines, base) if _allows_structured_kind(document, "courses") else [],
+        "faculty_members": _extract_faculty(lines, base) if _allows_structured_kind(document, "faculty") else [],
+        "program_requirements": (
+            _extract_program_requirements(lines, base)
+            if _allows_structured_kind(document, "program_requirements")
+            else []
+        ),
         "events": _extract_events(lines, base, str(document.get("category") or "")),
     }
 
@@ -48,8 +52,6 @@ def _extract_courses(lines: list[str], base: dict[str, object]) -> list[dict[str
         if not match:
             continue
         code = match.group("code")
-        if not any(prefix in code for prefix in ("CS", "EE", "SI", "AI", "MATH", "BIO")):
-            continue
         credit_match = CREDIT_RE.search(line)
         records.append(
             {
@@ -70,7 +72,9 @@ def _extract_faculty(lines: list[str], base: dict[str, object]) -> list[dict[str
     for index, line in enumerate(lines):
         emails = EMAIL_RE.findall(line)
         title_match = TITLE_RE.search(line)
-        if not emails and not title_match:
+        if not title_match:
+            continue
+        if not emails and not any(keyword in line.lower() for keyword in ("professor", "lecturer", "faculty")):
             continue
         context = _context(lines, index, radius=2)
         records.append(
@@ -96,7 +100,7 @@ def _extract_program_requirements(lines: list[str], base: dict[str, object]) -> 
         if not any(keyword in lowered or keyword in line for keyword in REQUIREMENT_KEYWORDS):
             continue
         credit_match = CREDIT_RE.search(line)
-        if not credit_match and not any(keyword in line for keyword in ("培养方案", "必修", "选修", "毕业", "学位")):
+        if not credit_match and not any(keyword in line for keyword in ("必修", "选修", "毕业要求", "学位要求")):
             continue
         context = _context(lines, index, radius=1)
         records.append(
@@ -145,6 +149,20 @@ def _extract_events(lines: list[str], base: dict[str, object], category: str) ->
             }
         )
     return _dedupe(records, ("title", "published_at", "source_url"))
+
+
+def _allows_structured_kind(document: dict[str, object], kind: str) -> bool:
+    category = str(document.get("category") or "")
+    url = str(document.get("url") or "").lower()
+    if kind == "courses":
+        return category == "courses" or any(token in url for token in ("course", "courses", "bkjx", "yjsjx"))
+    if kind == "faculty":
+        return category == "faculty" or "faculty.sist" in url or any(token in url for token in ("szdw", "teacher"))
+    if kind == "program_requirements":
+        return category == "program_requirements" or any(
+            token in url for token in ("pyfa", "training", "培养方案", "degree")
+        )
+    return False
 
 
 def _context(lines: list[str], index: int, radius: int) -> str:

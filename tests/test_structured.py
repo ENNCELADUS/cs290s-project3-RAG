@@ -36,3 +36,32 @@ def test_courses_extract_code_and_credits() -> None:
 
     assert records["courses"][0]["course_code"] == "CS101"
     assert records["courses"][0]["credits"] == 4.0
+
+
+def test_structured_extraction_does_not_promote_unrelated_page_snippets() -> None:
+    admission_document = {
+        "id": 3,
+        "url": "https://admission.shanghaitech.edu.cn/",
+        "category": "admission",
+        "fetched_at": "2026-05-26T00:00:00+00:00",
+    }
+    homepage_document = {
+        "id": 4,
+        "url": "https://sist.shanghaitech.edu.cn/",
+        "category": "school_info",
+        "fetched_at": "2026-05-26T00:00:00+00:00",
+    }
+    news_document = {
+        "id": 5,
+        "url": "https://www.shanghaitech.edu.cn/2026/0525/c1001a1122931/page.htm",
+        "category": "news",
+        "fetched_at": "2026-05-26T00:00:00+00:00",
+    }
+
+    admission_records = extract_structured_records(admission_document, "咨询邮箱：admission@shanghaitech.edu.cn")
+    homepage_records = extract_structured_records(homepage_document, "研究生培养\n毕业答辩流程\n培养方案")
+    news_records = extract_structured_records(news_document, "ICECS2023 conference was held at ShanghaiTech")
+
+    assert admission_records["faculty_members"] == []
+    assert homepage_records["program_requirements"] == []
+    assert news_records["courses"] == []

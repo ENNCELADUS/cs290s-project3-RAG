@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from html.parser import HTMLParser
 from urllib.parse import urljoin
 
@@ -51,10 +52,33 @@ class TextAndLinkParser(HTMLParser):
         return any(tag in {"script", "style", "noscript", "svg"} for tag in self._tag_stack)
 
 
+CHARSET_RE = re.compile(rb"""charset=["']?\s*([A-Za-z0-9._-]+)""", re.I)
+
+
 def extract_html(html_bytes: bytes, base_url: str, encoding: str | None = None) -> tuple[str | None, str, list[str]]:
-    text = html_bytes.decode(encoding or "utf-8", errors="replace")
+    text = html_bytes.decode(_detect_encoding(html_bytes, encoding), errors="replace")
     parser = TextAndLinkParser(base_url)
     parser.feed(text)
     title = normalize_text(" ".join(parser.title_parts)) or None
     body = normalize_text("\n".join(parser.text_parts))
     return title, body, parser.links
+
+
+def _detect_encoding(html_bytes: bytes, encoding: str | None) -> str:
+    declared = encoding or _declared_charset(html_bytes)
+    if not declared:
+        return "utf-8"
+    declared = declared.lower()
+    if declared in {"gb2312", "gbk", "gb18030"}:
+        return "gb18030"
+    return declared
+
+
+def _declared_charset(html_bytes: bytes) -> str | None:
+    match = CHARSET_RE.search(html_bytes[:4096])
+    if not match:
+        return None
+    try:
+        return match.group(1).decode("ascii")
+    except UnicodeDecodeError:
+        return None

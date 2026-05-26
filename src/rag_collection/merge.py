@@ -5,6 +5,13 @@ from pathlib import Path
 from .io import read_jsonl, write_jsonl
 
 STRUCTURED_FILES = ["courses.jsonl", "faculty_members.jsonl", "program_requirements.jsonl", "events.jsonl"]
+NON_INDEXABLE_PARSERS = {
+    "unsupported_binary",
+    "doc_unsupported",
+    "xls_unsupported",
+    "ppt_unsupported",
+    "office_unsupported",
+}
 
 
 def merge_existing_with_run(existing_jsonl_dir: Path, run_jsonl_dir: Path, output_dir: Path) -> dict[str, int]:
@@ -12,7 +19,9 @@ def merge_existing_with_run(existing_jsonl_dir: Path, run_jsonl_dir: Path, outpu
     stats: dict[str, int] = {}
 
     existing_documents = read_jsonl(existing_jsonl_dir / "documents.jsonl")
-    run_documents = read_jsonl(run_jsonl_dir / "documents.jsonl")
+    run_documents = _dedupe_run_documents(
+        [document for document in read_jsonl(run_jsonl_dir / "documents.jsonl") if _is_indexable(document)]
+    )
     run_url_keys = {_document_url_key(document) for document in run_documents}
     kept_existing_documents = [
         document for document in existing_documents if _document_url_key(document) not in run_url_keys
@@ -91,3 +100,23 @@ def _keeps_structured_row(row: dict[str, object], document_id_map: dict[int, int
 
 def _document_url_key(document: dict[str, object]) -> str:
     return str(document.get("canonical_url") or document.get("url") or "")
+
+
+def _is_indexable(document: dict[str, object]) -> bool:
+    parser = str(document.get("parser") or "")
+    text_chars = int(document.get("text_chars") or 0)
+    return parser not in NON_INDEXABLE_PARSERS and (not parser or text_chars > 0)
+
+
+def _dedupe_run_documents(documents: list[dict[str, object]]) -> list[dict[str, object]]:
+    best_by_url: dict[str, dict[str, object]] = {}
+    order: list[str] = []
+    for document in documents:
+        key = _document_url_key(document)
+        if key not in best_by_url:
+            best_by_url[key] = document
+            order.append(key)
+            continue
+        if int(document.get("text_chars") or 0) > int(best_by_url[key].get("text_chars") or 0):
+            best_by_url[key] = document
+    return [best_by_url[key] for key in order]

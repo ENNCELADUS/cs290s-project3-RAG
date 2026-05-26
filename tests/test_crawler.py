@@ -118,6 +118,42 @@ def test_collector_records_invalid_url_fetch_errors(tmp_path: Path, monkeypatch)
     assert "bad url" in (config.run_dir / "quality_report.md").read_text(encoding="utf-8")
 
 
+def test_collector_uses_html_charset_from_content_type(tmp_path: Path, monkeypatch) -> None:
+    seeds_path = tmp_path / "seeds.csv"
+    seeds_path.write_text(
+        "\n".join(
+            [
+                "url,category,depth_limit,priority,notes",
+                "https://sist.shanghaitech.edu.cn/gbk.htm,program,0,1,",
+            ]
+        ),
+        encoding="utf-8",
+    )
+    body = "<html><title>学院新闻</title><body>信息科学与技术学院</body></html>".encode("gb18030")
+
+    def fake_urlopen(request: urllib.request.Request, timeout: float) -> FakeResponse:
+        return FakeResponse(body, "text/html; charset=gb2312")
+
+    monkeypatch.setattr(urllib.request, "urlopen", fake_urlopen)
+    config = CollectorConfig(
+        seeds_path=seeds_path,
+        run_dir=prepare_run_dir(tmp_path / "runs", "gbk"),
+        max_pages=1,
+        request_delay_seconds=0,
+        respect_robots=False,
+    )
+
+    stats = OfficialCollector(config).run()
+
+    documents = read_jsonl(config.run_dir / "jsonl" / "documents.jsonl")
+    text = (config.run_dir / documents[0]["text_path"]).read_text(encoding="utf-8")
+    manifest = (config.run_dir / "source_manifest.csv").read_text(encoding="utf-8")
+    assert stats["documents"] == 1
+    assert documents[0]["title"] == "学院新闻"
+    assert "信息科学与技术学院" in text
+    assert "replacement_chars" not in manifest
+
+
 def test_collector_extracts_docx_text_without_garbled_quality_flags(tmp_path: Path, monkeypatch) -> None:
     seeds_path = tmp_path / "seeds.csv"
     seeds_path.write_text(

@@ -11,7 +11,14 @@ def test_canonicalize_url_percent_encodes_path_control_characters() -> None:
     url = "http://sist.shanghaitech.edu.cn/office/Share/Entropy-SIST Yearbook,2020.pdf"
 
     assert canonicalize_url(url) == (
-        "http://sist.shanghaitech.edu.cn/office/Share/Entropy-SIST%20Yearbook,2020.pdf"
+        "https://sist.shanghaitech.edu.cn/office/Share/Entropy-SIST%20Yearbook,2020.pdf"
+    )
+
+
+def test_canonicalize_url_collapses_official_homepage_variants() -> None:
+    assert canonicalize_url("http://sist.shanghaitech.edu.cn/main.htm") == "https://sist.shanghaitech.edu.cn/"
+    assert canonicalize_url("https://sist.shanghaitech.edu.cn/sist_en/main.htm") == (
+        "https://sist.shanghaitech.edu.cn/sist_en/"
     )
 
 
