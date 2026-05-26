@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import http.client
 import urllib.request
 from pathlib import Path
 
@@ -83,3 +84,33 @@ def test_collector_progress_updates_once_per_collected_document(tmp_path: Path, 
     assert progress.total == 2
     assert progress.updates == [1, 1]
     assert progress.closed
+
+
+def test_collector_records_invalid_url_fetch_errors(tmp_path: Path, monkeypatch) -> None:
+    seeds_path = tmp_path / "seeds.csv"
+    seeds_path.write_text(
+        "\n".join(
+            [
+                "url,category,depth_limit,priority,notes",
+                "https://sist.shanghaitech.edu.cn/bad.htm,program,0,1,",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    def fake_urlopen(request: urllib.request.Request, timeout: float) -> FakeResponse:
+        raise http.client.InvalidURL("bad url")
+
+    monkeypatch.setattr(urllib.request, "urlopen", fake_urlopen)
+    config = CollectorConfig(
+        seeds_path=seeds_path,
+        run_dir=prepare_run_dir(tmp_path / "runs", "invalid"),
+        max_pages=1,
+        request_delay_seconds=0,
+        respect_robots=False,
+    )
+
+    stats = OfficialCollector(config).run()
+
+    assert stats["documents"] == 0
+    assert "bad url" in (config.run_dir / "quality_report.md").read_text(encoding="utf-8")

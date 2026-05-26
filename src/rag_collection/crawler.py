@@ -274,7 +274,13 @@ class OfficialCollector:
                         "fetched_at": datetime.now(UTC).isoformat(timespec="seconds"),
                         "sha256": hashlib.sha256(body).hexdigest(),
                     }
-            except (urllib.error.URLError, TimeoutError, OSError, http.client.RemoteDisconnected) as error:
+            except (
+                urllib.error.URLError,
+                TimeoutError,
+                OSError,
+                http.client.InvalidURL,
+                http.client.RemoteDisconnected,
+            ) as error:
                 last_error = error
                 time.sleep(0.5)
         raise RuntimeError(str(last_error))
