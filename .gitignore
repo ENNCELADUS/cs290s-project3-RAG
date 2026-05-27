@@ -25,5 +25,6 @@ data/raw/
 data/texts/
 data/collection_runs/
 data/merged/
+data/rag/
 data/*.sqlite
 data/*.sqlite-*
