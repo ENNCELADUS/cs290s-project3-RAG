@@ -1,0 +1,117 @@
+url,category,depth_limit,priority,notes
+https://sist.shanghaitech.edu.cn/,school_info,2,1,SIST zh home and navigation
+https://sist.shanghaitech.edu.cn/sist_en/,school_info,2,2,SIST en home and navigation
+https://sist.shanghaitech.edu.cn/2710/list.htm,school_info,2,1,学院概况
+https://sist.shanghaitech.edu.cn/2722/list.htm,school_info,1,1,使命和愿景
+https://sist.shanghaitech.edu.cn/2723/list.htm,school_info,1,1,学院介绍
+https://sist.shanghaitech.edu.cn/yzjy/list.htm,school_info,1,1,院长寄语
+https://sist.shanghaitech.edu.cn/2724/list.htm,school_info,1,2,顾问委员会
+https://sist.shanghaitech.edu.cn/2725/list.htm,school_info,1,2,院务委员会
+https://sist.shanghaitech.edu.cn/sist_en/2710/list.htm,school_info,2,2,About US
+https://sist.shanghaitech.edu.cn/sist_en/2723/list.htm,school_info,1,2,Vision and Mission
+https://sist.shanghaitech.edu.cn/sist_en/2724/list.htm,school_info,1,2,About SIST
+https://sist.shanghaitech.edu.cn/sist_en/2725/list.htm,school_info,1,2,Advisory Committee
+https://sist.shanghaitech.edu.cn/sist_en/2727/list.htm,school_info,1,2,SIST Committees
+https://sist.shanghaitech.edu.cn/sist_en/DeanwsWelcome/list.htm,school_info,1,2,Dean Welcome
+https://sist.shanghaitech.edu.cn/2715/list.htm,research,2,1,科学研究
+https://sist.shanghaitech.edu.cn/2848/list.htm,research,2,1,研究中心
+https://sist.shanghaitech.edu.cn/2849/list.htm,research,2,1,联合实验室
+https://sist.shanghaitech.edu.cn/sbjyjzx/list.htm,research,2,1,省部级研究中心
+https://sist.shanghaitech.edu.cn/2854/list.htm,research,2,2,科研规章制度
+https://sist.shanghaitech.edu.cn/cggg/list.htm,research,3,2,采购公告
+https://sist.shanghaitech.edu.cn/zxdx/list.htm,research,3,2,EHS latest updates
+https://sist.shanghaitech.edu.cn/gzzd/list.htm,research,2,2,EHS rules
+https://sist.shanghaitech.edu.cn/cywd/list.htm,research,2,2,EHS documents
+https://sist.shanghaitech.edu.cn/kysb/list.htm,research,2,2,科研设备
+https://sist.shanghaitech.edu.cn/sist_en/2715/list.htm,research,2,2,Research
+https://sist.shanghaitech.edu.cn/sist_en/2848/list.htm,research,2,2,Research Centers
+https://sist.shanghaitech.edu.cn/sist_en/2849/list.htm,research,2,2,Joint Laboratories
+https://vdi.sist.shanghaitech.edu.cn/,research,2,1,VDI center
+https://nice.sist.shanghaitech.edu.cn/,research,2,1,NICE center
+https://pmicc.sist.shanghaitech.edu.cn/,research,2,1,PMICC center
+https://pmicc.sist.shanghaitech.edu.cn/research.html,research,1,1,PMICC research
+https://pmicc.sist.shanghaitech.edu.cn/faculty.html,faculty,1,1,PMICC faculty
+https://pmicc.sist.shanghaitech.edu.cn/publication.html,research,1,2,PMICC publications
+https://cipes.sist.shanghaitech.edu.cn/,research,2,1,CiPES center
+https://ssc.sist.shanghaitech.edu.cn/,research,2,1,SSC center
+https://smirc.sist.shanghaitech.edu.cn/zh/,research,2,1,SMIRC zh
+https://smirc.sist.shanghaitech.edu.cn/en/,research,2,2,SMIRC en
+https://star-center.shanghaitech.edu.cn/,research,2,2,STAR center
+https://sist.shanghaitech.edu.cn/szdwx/list.htm?col=0,faculty,2,1,常任教授
+https://sist.shanghaitech.edu.cn/szdwx/list.htm?col=1,faculty,2,1,特聘教授
+https://sist.shanghaitech.edu.cn/szdwx/list.htm?col=3,faculty,2,1,研究人员
+https://sist.shanghaitech.edu.cn/szdwx/list.htm?col=4,faculty,2,2,支撑人员
+https://sist.shanghaitech.edu.cn/szdwx/list.htm?col=5,faculty,2,2,行政人员
+https://sist.shanghaitech.edu.cn/sist_en/szdwx/list.htm?col=0,faculty,2,2,Professors
+https://sist.shanghaitech.edu.cn/sist_en/szdwx/list.htm?col=1,faculty,2,2,Distinguished Adjunct Professors
+https://sist.shanghaitech.edu.cn/sist_en/szdwx/list.htm?col=2,faculty,2,2,Visiting Professors
+https://sist.shanghaitech.edu.cn/sist_en/szdwx/list.htm?col=3,faculty,2,2,Research Staff
+https://sist.shanghaitech.edu.cn/sist_en/szdwx/list.htm?col=4,faculty,2,2,Supporting Staff
+https://sist.shanghaitech.edu.cn/sist_en/szdwx/list.htm?col=5,faculty,2,2,Administrative Staff
+https://faculty.sist.shanghaitech.edu.cn/,faculty,3,2,SIST faculty subsite
+https://sist.shanghaitech.edu.cn/2712/list.htm,program,2,1,学生培养
+https://sist.shanghaitech.edu.cn/2833/list.htm,program,2,1,本科生培养
+https://sist.shanghaitech.edu.cn/2834/list.htm,program,2,1,研究生培养
+https://sist.shanghaitech.edu.cn/bydblc/list.htm,program_requirements,2,1,毕业答辩流程
+https://sist.shanghaitech.edu.cn/pyfa/list.htm,program_requirements,2,1,培养方案
+https://sist.shanghaitech.edu.cn/pyyxwsyxgxz/list.htm,program_requirements,2,1,培养与学位授予相关细则
+https://sist.shanghaitech.edu.cn/ycdbgs/list.htm,events,3,2,远程答辩公示
+https://sist.shanghaitech.edu.cn/2835/list.htm,courses,2,1,本硕博课程体系
+https://sist.shanghaitech.edu.cn/2836/list.htm,courses,2,1,本科生教学教务
+https://sist.shanghaitech.edu.cn/2837/list.htm,courses,2,1,研究生教学教务
+https://sist.shanghaitech.edu.cn/jnpx/list.htm,courses,2,2,技能培训
+https://sist.shanghaitech.edu.cn/xsfc/list.htm,news,3,2,学生风采
+https://sist.shanghaitech.edu.cn/2842/list.htm,program_requirements,2,2,学生培养规章制度
+https://sist.shanghaitech.edu.cn/2843/list.htm,program_requirements,2,2,资料下载
+https://sist.shanghaitech.edu.cn/sist_en/2712/list.htm,program,2,2,Academics
+https://sist.shanghaitech.edu.cn/sist_en/3905/list.htm,courses,2,2,SIST Curriculum
+https://sist.shanghaitech.edu.cn/sist_en/3906/list.htm,courses,2,2,Undergraduate Teaching Affairs
+https://sist.shanghaitech.edu.cn/sist_en/3907/list.htm,courses,2,2,Graduate Teaching Affairs
+https://sist.shanghaitech.edu.cn/sist_en/UndergraduatePrograms/list.htm,program_requirements,1,2,CS Undergraduate Program
+https://sist.shanghaitech.edu.cn/sist_en/EEUndergraduateProgram/list.htm,program_requirements,1,2,EE Undergraduate Program
+https://sist.shanghaitech.edu.cn/sist_en/MasterProgram/list.htm,program_requirements,1,2,CS Master Program
+https://sist.shanghaitech.edu.cn/sist_en/EEMasterProgram/list.htm,program_requirements,1,2,EE Master Program
+https://sist.shanghaitech.edu.cn/sist_en/DoctorialwCSwProgram/list.htm,program_requirements,1,2,CS PhD Program
+https://sist.shanghaitech.edu.cn/sist_en/EEPhwDProgram/list.htm,program_requirements,1,2,EE PhD Program
+https://sist.shanghaitech.edu.cn/sist_en/SummerProgram_5345/list.htm,admission,2,2,Summer Program
+https://sist.shanghaitech.edu.cn/sist_en/StudentStyle_7744/list.htm,news,3,2,Our Students
+https://sist.shanghaitech.edu.cn/2711/list.htm,admission,2,1,招生工作
+https://sist.shanghaitech.edu.cn/bkszs/list.htm,admission,2,1,本科生招生
+https://sist.shanghaitech.edu.cn/yjszs/,admission,2,1,研究生招生介绍一览
+https://sist.shanghaitech.edu.cn/2825/list.htm,admission,2,1,硕士研究生招生
+https://sist.shanghaitech.edu.cn/tzgg/list.htm,admission,3,1,招生通知公告
+https://sist.shanghaitech.edu.cn/bkzn/list.htm,admission,2,1,报考指南
+https://sist.shanghaitech.edu.cn/zsxc/list.htm,admission,3,2,招生宣传
+https://sist.shanghaitech.edu.cn/msfc/list.htm,admission,3,2,师生风采
+https://sist.shanghaitech.edu.cn/2826/list.htm,admission,2,1,博士研究生招生
+https://sist.shanghaitech.edu.cn/2827/list.htm,admission,2,1,招生 Q&A
+https://sist.shanghaitech.edu.cn/sqxm/list.htm,admission,3,2,暑期项目
+https://sist.shanghaitech.edu.cn/2713/list.htm,career,2,1,实习就业
+https://sist.shanghaitech.edu.cn/2844/list.htm,career,3,1,实习信息
+https://sist.shanghaitech.edu.cn/zpxx/list.htm,career,3,1,招聘信息
+https://sist.shanghaitech.edu.cn/xjh/list.htm,career,3,1,宣讲会
+https://sist.shanghaitech.edu.cn/2847/list.htm,career,2,2,企业导师
+https://sist.shanghaitech.edu.cn/2858/list.htm,news,3,1,新闻
+https://sist.shanghaitech.edu.cn/xyhd/list.htm,events,3,1,学院活动
+https://sist.shanghaitech.edu.cn/2862/list.htm,events,3,2,国际会议
+https://sist.shanghaitech.edu.cn/Newsletter/list.htm,news,3,2,Newsletter
+https://sist.shanghaitech.edu.cn/2863/list.htm,events,3,1,通知公告
+https://sist.shanghaitech.edu.cn/2864/list.htm,events,3,2,国际交流
+https://sist.shanghaitech.edu.cn/nb/list.htm,school_info,2,2,年报
+https://sist.shanghaitech.edu.cn/zyjz/list.htm,events,3,1,卓越讲座
+https://sist.shanghaitech.edu.cn/sist_en/2858/list.htm,news,3,2,News
+https://sist.shanghaitech.edu.cn/sist_en/2859/list.htm,events,3,2,Events
+https://sist.shanghaitech.edu.cn/sist_en/Newsletter/list.htm,news,3,2,Newsletter en
+https://sist.shanghaitech.edu.cn/sist_en/2862/list.htm,events,3,2,Symposia
+https://sist.shanghaitech.edu.cn/sist_en/InternationalExchange/list.htm,events,3,2,International Exchange
+https://sist.shanghaitech.edu.cn/2717/list.htm,career,2,1,人才招聘
+https://sist.shanghaitech.edu.cn/2865/list.htm,career,3,1,全职教授
+https://sist.shanghaitech.edu.cn/2866/list.htm,career,3,1,科研人员
+https://sist.shanghaitech.edu.cn/2867/list.htm,career,3,1,科研助理
+https://sist.shanghaitech.edu.cn/2868/list.htm,career,3,1,支撑岗位
+https://sist.shanghaitech.edu.cn/2869/list.htm,career,3,1,管理岗位
+https://sist.shanghaitech.edu.cn/2870/list.htm,career,2,2,招聘资料下载
+https://sist.shanghaitech.edu.cn/qnlt/list.htm,career,3,2,青年论坛
+https://sist.shanghaitech.edu.cn/sist_en/2717/list.htm,career,2,2,Job Opportunities
+https://sist.shanghaitech.edu.cn/sist_en/2865/list.htm,career,3,2,Faculty Recruitment
+https://sist.shanghaitech.edu.cn/sist_en/2866/list.htm,career,3,2,Researcher Recruitment

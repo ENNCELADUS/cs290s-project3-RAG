@@ -96,6 +96,53 @@ def test_faculty_extracts_person_name_from_inline_center_listing() -> None:
     assert records["faculty_members"][0]["name"] == "Wenhan Cao"
 
 
+def test_faculty_extraction_ignores_advisor_lines_in_cv_context() -> None:
+    document = {
+        "id": 4,
+        "url": "https://faculty.sist.shanghaitech.edu.cn/chenjh",
+        "category": "faculty",
+        "fetched_at": "2026-05-26T00:00:00+00:00",
+    }
+    text = "\n".join(
+        [
+            "Chen, Jiahao 陈 嘉豪 Assistant Professor",
+            "ShanghaiTech University",
+            "Biography of the PI",
+            "Advisor: Professor Christopher H. T. Lee",
+            "Advisor: Professor Jin Huang",
+        ]
+    )
+
+    records = extract_structured_records(document, text)
+
+    assert [(record["name"], record["title"]) for record in records["faculty_members"]] == [
+        ("Chen Jiahao", "Assistant Professor")
+    ]
+
+
+def test_events_on_archive_list_pages_skip_stale_rows() -> None:
+    document = {
+        "id": 6,
+        "url": "https://sist.shanghaitech.edu.cn/2713/list3.htm",
+        "category": "career",
+        "fetched_at": "2026-05-26T00:00:00+00:00",
+    }
+    text = "\n".join(
+        [
+            "紫光展锐2020年实习生/应届生招聘",
+            "2019-09-12",
+            "2026届春季招聘信息",
+            "2026-03-01",
+        ]
+    )
+
+    records = extract_structured_records(document, text)
+
+    assert [(record["title"], record["published_at"]) for record in records["events"]] == [
+        ("2026届春季招聘信息", "2026-03-01")
+    ]
+
+
 def test_structured_extraction_does_not_promote_unrelated_page_snippets() -> None:
     admission_document = {
         "id": 3,

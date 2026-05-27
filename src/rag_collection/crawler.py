@@ -29,6 +29,8 @@ from .urls import SeedUrl, canonicalize_url, infer_category, infer_language, is_
 
 USER_AGENT = "cs290s-rag-collector/0.1 (+official-source student project)"
 CHARSET_RE = re.compile(r"charset=([A-Za-z0-9._-]+)", re.I)
+PAGE_COUNT_RE = re.compile(r"(?:页码|page)\s*\d+\s*/\s*(\d+)", re.I)
+LIST_PAGE_RE = re.compile(r"^(?P<prefix>.*/)(?:list|list1)\.htm$")
 SUPPORTED_TEXT_EXTENSIONS = {".html", ".htm", ".psp", ".txt", ".text", ".csv", ".md"}
 UNSUPPORTED_BINARY_EXTENSIONS = {
     ".7z",
@@ -75,6 +77,8 @@ class CollectorConfig:
     chunk_overlap: int = 120
     known_urls: frozenset[str] = frozenset()
     same_host_only: bool = False
+    allowed_hosts: frozenset[str] = frozenset()
+    expand_list_pages: bool = False
     progress_factory: ProgressFactory | None = None
 
 
@@ -110,7 +114,7 @@ class OfficialCollector:
             while queue and len(documents) < self.config.max_pages:
                 seed, url, depth, parent_url = queue.popleft()
                 canonical_url = canonicalize_url(url)
-                if canonical_url in seen or not is_official_url(canonical_url):
+                if canonical_url in seen or not self._url_allowed(canonical_url):
                     continue
                 seen.add(canonical_url)
 
@@ -127,7 +131,7 @@ class OfficialCollector:
                 parsed = self._parse_response(fetched, seed.category)
                 if canonical_url in self.config.known_urls:
                     if depth < seed.depth_limit:
-                        self._enqueue_links(queue, seed, parsed["links"], depth, canonical_url, seen)
+                        self._enqueue_links(queue, seed, parsed, depth, canonical_url, seen)
                     continue
 
                 document_id = next_document_id
@@ -207,7 +211,7 @@ class OfficialCollector:
                     structured[name].extend(rows)
 
                 if depth < seed.depth_limit:
-                    self._enqueue_links(queue, seed, parsed["links"], depth, canonical_url, seen)
+                    self._enqueue_links(queue, seed, parsed, depth, canonical_url, seen)
 
         self._write_outputs(documents, chunks, manifest_rows, structured)
         return {"documents": len(documents), "chunks": len(chunks), "manifest_rows": len(manifest_rows)}
@@ -227,7 +231,14 @@ class OfficialCollector:
             structured_counts[f"{name}.jsonl"] = write_jsonl(jsonl_dir / f"{name}.jsonl", rows)
         write_jsonl(self.config.run_dir / "eval_seed_candidates.jsonl", build_eval_seed_candidates(documents))
         write_manifest(self.config.run_dir / "source_manifest.csv", manifest_rows)
-        write_quality_report(self.config.run_dir, documents, manifest_rows, structured_counts, self.failures)
+        write_quality_report(
+            self.config.run_dir,
+            documents,
+            manifest_rows,
+            structured_counts,
+            self.failures,
+            expected_categories={seed.category for seed in self.seeds},
+        )
 
     def _progress(self) -> ProgressReporter:
         if self.config.progress_factory is None:
@@ -238,18 +249,31 @@ class OfficialCollector:
         self,
         queue: deque[tuple[SeedUrl, str, int, str | None]],
         seed: SeedUrl,
-        links: list[str],
+        parsed: dict[str, object],
         depth: int,
         parent_url: str,
         seen: set[str],
     ) -> None:
+        links = list(parsed["links"]) if isinstance(parsed["links"], list) else []
+        if self.config.expand_list_pages:
+            links.extend(_expanded_list_page_links(parent_url, str(parsed.get("text") or ""), links))
         for link in links:
             link_url = canonicalize_url(link)
+            if _is_unindexable_discovered_url(link_url):
+                continue
             seed_host = urllib.parse.urlsplit(canonicalize_url(seed.url)).netloc.lower()
             if self.config.same_host_only and not same_or_subdomain(link_url, seed_host):
                 continue
-            if link_url not in seen and is_official_url(link_url):
+            if link_url not in seen and self._url_allowed(link_url):
                 queue.append((seed, link_url, depth + 1, parent_url))
+
+    def _url_allowed(self, url: str) -> bool:
+        if not is_official_url(url):
+            return False
+        if not self.config.allowed_hosts:
+            return True
+        host = urllib.parse.urlsplit(url).netloc.lower().split(":")[0]
+        return host in self.config.allowed_hosts
 
     def _dry_manifest_row(self, seed: SeedUrl) -> dict[str, object]:
         canonical_url = canonicalize_url(seed.url)
@@ -467,6 +491,54 @@ def build_eval_seed_candidates(documents: list[dict[str, object]]) -> list[dict[
     return candidates
 
 
+def _expanded_list_page_links(current_url: str, text: str, links: list[str]) -> list[str]:
+    parts = urllib.parse.urlsplit(canonicalize_url(current_url))
+    if parts.query:
+        return []
+    path_match = LIST_PAGE_RE.match(parts.path)
+    if path_match is None:
+        return []
+
+    page_count = _page_count_from_text(text) or _page_count_from_links(parts, links)
+    if page_count is None or page_count < 2:
+        return []
+
+    prefix = path_match.group("prefix")
+    return [
+        urllib.parse.urlunsplit((parts.scheme, parts.netloc, f"{prefix}list{page}.htm", "", ""))
+        for page in range(2, page_count + 1)
+    ]
+
+
+def _page_count_from_text(text: str) -> int | None:
+    match = PAGE_COUNT_RE.search(text)
+    if match is None:
+        return None
+    return int(match.group(1))
+
+
+def _page_count_from_links(current_parts: urllib.parse.SplitResult, links: list[str]) -> int | None:
+    current_match = LIST_PAGE_RE.match(current_parts.path)
+    if current_match is None:
+        return None
+    current_prefix = current_match.group("prefix")
+    page_numbers = [1]
+    for link in links:
+        link_parts = urllib.parse.urlsplit(canonicalize_url(link))
+        if link_parts.netloc != current_parts.netloc or link_parts.query:
+            continue
+        if not link_parts.path.startswith(current_prefix):
+            continue
+        suffix = link_parts.path.removeprefix(current_prefix)
+        if suffix == "list.htm":
+            page_numbers.append(1)
+            continue
+        page_match = re.fullmatch(r"list(\d+)\.htm", suffix)
+        if page_match:
+            page_numbers.append(int(page_match.group(1)))
+    return max(page_numbers) if len(page_numbers) > 1 else None
+
+
 def _chunk_document(document: dict[str, object], text: str, max_chars: int, overlap: int) -> list[dict[str, object]]:
     from .chunking import iter_chunk_records
 
@@ -505,6 +577,16 @@ def _extension_for_response(url: str, content_type: str) -> str:
 
 def _is_unsupported_binary_response(content_type: str, extension: str) -> bool:
     return extension in UNSUPPORTED_BINARY_EXTENSIONS or content_type.startswith(UNSUPPORTED_BINARY_CONTENT_PREFIXES)
+
+
+def _is_unindexable_discovered_url(url: str) -> bool:
+    parts = urllib.parse.urlsplit(url)
+    path = urllib.parse.unquote(parts.path)
+    suffix = Path(path).suffix.lower()
+    if suffix in UNSUPPORTED_BINARY_EXTENSIONS:
+        return True
+    lowered_path = path.lower()
+    return "http:/" in lowered_path or "https:/" in lowered_path
 
 
 def _encoding_from_content_type(content_type: str) -> str | None:

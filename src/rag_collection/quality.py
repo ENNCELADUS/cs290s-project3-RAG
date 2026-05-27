@@ -48,7 +48,9 @@ def write_quality_report(
     manifest_rows: list[dict[str, object]],
     structured_counts: dict[str, int],
     failures: list[str],
+    expected_categories: set[str] | None = None,
 ) -> None:
+    coverage_categories = expected_categories or CORE_CATEGORIES
     category_counts = Counter(str(doc.get("category") or "unknown") for doc in documents)
     host_counts = Counter(str(row.get("host") or "unknown") for row in manifest_rows)
     language_counts = Counter(str(doc.get("language") or "unknown") for doc in documents)
@@ -61,7 +63,7 @@ def write_quality_report(
         )
     ]
     duplicate_sha = _duplicate_count(manifest_rows, "sha256")
-    missing_categories = sorted(CORE_CATEGORIES - set(category_counts))
+    missing_categories = sorted(coverage_categories - set(category_counts))
     ocr_count = sum(1 for row in manifest_rows if str(row.get("ocr_used", "")).lower() == "true")
 
     lines = [
@@ -82,7 +84,7 @@ def write_quality_report(
         "| category | documents | status |",
         "| --- | ---: | --- |",
     ]
-    for category in sorted(CORE_CATEGORIES):
+    for category in sorted(coverage_categories):
         count = category_counts.get(category, 0)
         status = "covered" if count else "missing"
         lines.append(f"| {category} | {count} | {status} |")

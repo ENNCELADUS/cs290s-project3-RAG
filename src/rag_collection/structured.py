@@ -3,6 +3,7 @@ from __future__ import annotations
 import re
 from collections.abc import Iterable
 from datetime import UTC, datetime
+from urllib.parse import urlsplit
 
 DATE_RE = re.compile(r"(?P<date>20\d{2}[-/.年]\d{1,2}[-/.月]\d{1,2}日?)")
 EMAIL_RE = re.compile(r"[\w.\-+]+@[\w.\-]+\.\w+")
@@ -38,6 +39,11 @@ FACULTY_NAME_STOPWORDS = {
     "研究人员",
     "支撑人员",
     "行政人员",
+    "email",
+    "group",
+    "tenure",
+    "track",
+    "tenure-track",
 }
 
 
@@ -89,6 +95,8 @@ def _extract_courses(lines: list[str], base: dict[str, object]) -> list[dict[str
 def _extract_faculty(lines: list[str], base: dict[str, object]) -> list[dict[str, object]]:
     records: list[dict[str, object]] = []
     for index, line in enumerate(lines):
+        if _is_faculty_relationship_line(line):
+            continue
         emails = EMAIL_RE.findall(line)
         title_match = TITLE_RE.search(line)
         if not title_match:
@@ -96,11 +104,14 @@ def _extract_faculty(lines: list[str], base: dict[str, object]) -> list[dict[str
         if not emails and not any(keyword in line.lower() for keyword in ("professor", "lecturer", "faculty")):
             continue
         context = _context(lines, index, radius=2)
+        name = _guess_name(context)
+        if not name:
+            continue
         records.append(
             {
                 **base,
                 "school": "School of Information Science and Technology",
-                "name": _guess_name(context),
+                "name": name,
                 "title": title_match.group(1) if title_match else None,
                 "email": emails[0] if emails else None,
                 "evidence": _trim_evidence(context),
@@ -141,9 +152,14 @@ def _extract_events(lines: list[str], base: dict[str, object], category: str) ->
     if category not in {"events", "news", "admission", "career", "general"}:
         return []
     records: list[dict[str, object]] = []
+    source_url = str(base.get("source_url") or "")
+    observed_at = str(base.get("observed_at") or "")
     for index, line in enumerate(lines):
         date_match = DATE_RE.search(line)
         if not date_match:
+            continue
+        published_at = _normalize_date(date_match.group("date"))
+        if _is_stale_list_page_event(source_url, published_at, observed_at):
             continue
         previous = lines[index - 1] if index > 0 else ""
         next_line = lines[index + 1] if index + 1 < len(lines) else ""
@@ -161,7 +177,7 @@ def _extract_events(lines: list[str], base: dict[str, object], category: str) ->
                 "org": org,
                 "event_type": category,
                 "title": title,
-                "published_at": _normalize_date(date_match.group("date")),
+                "published_at": published_at,
                 "language": "zh" if any("\u4e00" <= char <= "\u9fff" for char in title) else "en",
                 "evidence": _trim_evidence(_context(lines, index, radius=1)),
                 "confidence": 0.7,
@@ -208,7 +224,11 @@ def _name_before_title(line: str) -> str | None:
     if not match:
         return None
     prefix = line[: match.start()].strip(" -:：|")
-    words = [word for word in prefix.split() if word.lower() not in FACULTY_NAME_STOPWORDS]
+    words = [
+        word
+        for word in re.findall(r"[A-Za-z]+(?:-[A-Za-z]+)?", prefix)
+        if word.lower() not in FACULTY_NAME_STOPWORDS
+    ]
     if len(words) < 2:
         return None
     candidate = " ".join(words[-2:])
@@ -227,6 +247,11 @@ def _is_plausible_faculty_name(value: str) -> bool:
     return True
 
 
+def _is_faculty_relationship_line(line: str) -> bool:
+    lowered = line.lower()
+    return any(token in lowered for token in ("advisor:", "supervisor:", "导师：", "指导教师"))
+
+
 def _guess_program_name(context: str) -> str | None:
     for candidate in ("计算机科学与技术", "电子信息", "信息科学与技术", "Computer Science", "Electronic Information"):
         if candidate in context:
@@ -236,6 +261,17 @@ def _guess_program_name(context: str) -> str | None:
 
 def _normalize_date(value: str) -> str:
     return value.replace("年", "-").replace("月", "-").replace("日", "").replace("/", "-").replace(".", "-")
+
+
+def _is_stale_list_page_event(source_url: str, published_at: str, observed_at: str) -> bool:
+    if not re.search(r"/list\d*\.htm$", urlsplit(source_url).path):
+        return False
+    try:
+        published_year = int(published_at.split("-", 1)[0])
+        observed_year = int(observed_at.split("-", 1)[0])
+    except (ValueError, IndexError):
+        return False
+    return published_year < observed_year - 1
 
 
 def _trim_evidence(value: str, limit: int = 500) -> str:

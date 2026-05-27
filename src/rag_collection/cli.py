@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import urllib.parse
 from pathlib import Path
 
 from tqdm import tqdm
@@ -42,6 +43,16 @@ def main(argv: list[str] | None = None) -> int:
         "--same-host-only",
         action="store_true",
         help="Only follow links on the seed host or its subdomains.",
+    )
+    collect_parser.add_argument(
+        "--allowed-hosts",
+        default="",
+        help="Comma-separated host allowlist for link discovery and seed fetching.",
+    )
+    collect_parser.add_argument(
+        "--expand-list-pages",
+        action="store_true",
+        help="Expand WebPlus list.htm pagination into list2.htm, list3.htm, and later pages.",
     )
     collect_parser.add_argument(
         "--skip-known",
@@ -118,6 +129,8 @@ def _collect(args: argparse.Namespace) -> int:
         respect_robots=not args.ignore_robots,
         known_urls=frozenset(known_urls),
         same_host_only=args.same_host_only,
+        allowed_hosts=frozenset(_parse_allowed_hosts(args.allowed_hosts)),
+        expand_list_pages=args.expand_list_pages,
         progress_factory=None if args.dry_run else _tqdm_progress,
     )
     stats = OfficialCollector(config).run()
@@ -173,6 +186,18 @@ def _load_known_urls(existing_jsonl: Path, collection_runs: Path, current_run_di
                 if isinstance(url, str) and url:
                     known_urls.add(url)
     return known_urls
+
+
+def _parse_allowed_hosts(raw_hosts: str) -> set[str]:
+    allowed_hosts: set[str] = set()
+    for raw_host in raw_hosts.split(","):
+        raw_host = raw_host.strip()
+        if not raw_host:
+            continue
+        if "://" in raw_host:
+            raw_host = urllib.parse.urlsplit(raw_host).netloc
+        allowed_hosts.add(raw_host.lower().split(":")[0])
+    return allowed_hosts
 
 
 def _load_url_filter(path: Path) -> set[str]:

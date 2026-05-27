@@ -24,5 +24,6 @@ dist/
 data/raw/
 data/texts/
 data/collection_runs/
+data/merged/
 data/*.sqlite
 data/*.sqlite-*
