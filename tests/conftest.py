@@ -10,19 +10,22 @@ from rag.io import write_jsonl
 
 
 def pytest_configure(config: pytest.Config) -> None:
-    explicit_paths = [arg for arg in config.invocation_params.args if str(arg).startswith("tests/")]
-    if explicit_paths:
+    if _is_scoped_test_run(config):
         _disable_subset_coverage_gate(config)
 
 
 def pytest_sessionstart(session: pytest.Session) -> None:
-    explicit_paths = [arg for arg in session.config.invocation_params.args if str(arg).startswith("tests/")]
-    if explicit_paths:
+    if _is_scoped_test_run(session.config):
         _disable_subset_coverage_gate(session.config)
 
 
+def _is_scoped_test_run(config: pytest.Config) -> bool:
+    explicit_paths = [arg for arg in config.invocation_params.args if str(arg).startswith("tests/")]
+    return bool(explicit_paths or config.option.markexpr)
+
+
 def _disable_subset_coverage_gate(config: pytest.Config) -> None:
-    # Full-suite pytest enforces coverage. Path-scoped runs keep the report but should stay usable during development.
+    # Full-suite pytest enforces coverage. Scoped runs keep the report but should stay usable during development.
     config.option.cov_fail_under = 0
     cov_plugin = config.pluginmanager.getplugin("_cov")
     if cov_plugin is not None and hasattr(cov_plugin, "options"):
