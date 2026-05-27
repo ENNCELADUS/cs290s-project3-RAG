@@ -2,9 +2,11 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import pickle
 import re
 import sqlite3
+import sys
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -163,6 +165,7 @@ def _build_faiss(
     max_seq_length: int | None,
     require_cuda: bool,
 ) -> dict[str, object]:
+    _allow_duplicate_openmp_on_macos()
     import faiss
     import torch
     from sentence_transformers import SentenceTransformer
@@ -210,6 +213,11 @@ def _load_report(path: Path) -> dict[str, Any]:
         return {}
     with path.open(encoding="utf-8") as handle:
         return json.load(handle)
+
+
+def _allow_duplicate_openmp_on_macos() -> None:
+    if sys.platform == "darwin":
+        os.environ.setdefault("KMP_DUPLICATE_LIB_OK", "TRUE")
 
 
 def main(argv: list[str] | None = None) -> int:

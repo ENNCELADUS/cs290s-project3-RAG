@@ -4,7 +4,6 @@ import pickle
 import sqlite3
 from pathlib import Path
 
-import faiss
 import numpy as np
 import pytest
 
@@ -34,6 +33,8 @@ def test_real_sqlite_artifact_has_expected_counts_and_clean_foreign_keys(real_ra
 
 
 def test_real_faiss_artifact_matches_chunk_mapping(real_rag_artifacts: dict[str, Path]) -> None:
+    import faiss
+
     index = faiss.read_index(str(real_rag_artifacts["faiss"]))
     chunk_mapping = read_jsonl(real_rag_artifacts["chunk_index"])
 

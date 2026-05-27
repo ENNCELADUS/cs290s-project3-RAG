@@ -1,13 +1,16 @@
+import json
 import sys
 import types
 from pathlib import Path
 
-import faiss
+import numpy as np
 import pytest
 
 from rag.index import DEFAULT_MODEL, build_indexes
 from rag.ingest import build_database
-from rag.io import read_jsonl, write_jsonl
+from rag.io import atomic_json_dump, read_jsonl, write_jsonl
+from rag.retrieve import Retriever
+from rag.retrieve import main as retrieve_main
 
 
 def test_build_database_preserves_ids_and_filters_invalid_chunks(tmp_path: Path, merged_input_dir: Path) -> None:
@@ -83,6 +86,32 @@ def test_build_bm25_index_returns_stable_chunk_ids(tmp_path: Path, merged_input_
     assert deep_learning_hits[0]["chunk_id"] == 100
 
 
+def test_bm25_retrieval_returns_cited_chunks(tmp_path: Path, merged_input_dir: Path) -> None:
+    db_path = tmp_path / "rag.sqlite"
+    bm25_path = tmp_path / "bm25.pkl"
+    chunk_index_path = tmp_path / "chunk_index.jsonl"
+    report_path = tmp_path / "report.json"
+    build_database(merged_input_dir, db_path, report_path)
+    build_indexes(
+        db_path,
+        bm25_path,
+        tmp_path / "faiss.index",
+        chunk_index_path,
+        report_path,
+        skip_faiss=True,
+    )
+
+    retriever = Retriever.from_paths(db_path=db_path, bm25_path=bm25_path)
+    hits = retriever.retrieve("深度学习 任课老师", mode="bm25", top_k=1)
+
+    assert hits[0].rank == 1
+    assert hits[0].chunk_id == 100
+    assert hits[0].title == "Deep Learning"
+    assert hits[0].url == "https://example.edu/a"
+    assert hits[0].mode == "bm25"
+    assert "Alice" in hits[0].snippet
+
+
 def test_faiss_mapping_length_matches_vector_count(
     tmp_path: Path, merged_input_dir: Path, fake_sentence_transformer_module
 ) -> None:
@@ -103,11 +132,136 @@ def test_faiss_mapping_length_matches_vector_count(
         batch_size=2,
     )
 
+    import faiss
+
     index = faiss.read_index(str(faiss_path))
     mapping = read_jsonl(chunk_index_path)
     assert index.ntotal == len(mapping) == 1
     assert report["faiss"]["model_id"] == DEFAULT_MODEL
     assert report["faiss"]["model_path"] == "/models/hub/snapshots/bge-m3-local"
+
+
+def test_dense_retrieval_returns_cited_chunks(
+    tmp_path: Path, merged_input_dir: Path, fake_sentence_transformer_module
+) -> None:
+    import faiss
+
+    db_path = tmp_path / "rag.sqlite"
+    faiss_path = tmp_path / "faiss.index"
+    chunk_index_path = tmp_path / "chunk_index.jsonl"
+    report_path = tmp_path / "report.json"
+    build_database(merged_input_dir, db_path, report_path)
+    index = faiss.IndexFlatIP(3)
+    index.add(np.ones((1, 3), dtype="float32"))
+    faiss.write_index(index, str(faiss_path))
+    write_jsonl(
+        chunk_index_path,
+        [
+            {
+                "row_index": 0,
+                "chunk_id": 100,
+                "document_id": 10,
+                "title": "Deep Learning",
+                "url": "https://example.edu/a",
+                "category": None,
+                "language": None,
+                "char_count": 18,
+            }
+        ],
+    )
+    atomic_json_dump(
+        report_path,
+        {"index": {"faiss": {"model_path": "/models/hub/snapshots/bge-m3-local", "model_id": DEFAULT_MODEL}}},
+    )
+
+    retriever = Retriever.from_paths(
+        db_path=db_path,
+        faiss_path=faiss_path,
+        chunk_index_path=chunk_index_path,
+        report_path=report_path,
+    )
+    hits = retriever.retrieve("SIST faculty robotics", mode="dense", top_k=1)
+
+    assert hits[0].rank == 1
+    assert hits[0].chunk_id == 100
+    assert hits[0].url == "https://example.edu/a"
+    assert hits[0].mode == "dense"
+
+
+def test_dense_retrieval_reports_missing_dense_index(tmp_path: Path, merged_input_dir: Path) -> None:
+    db_path = tmp_path / "rag.sqlite"
+    report_path = tmp_path / "report.json"
+    build_database(merged_input_dir, db_path, report_path)
+
+    retriever = Retriever.from_paths(db_path=db_path)
+
+    with pytest.raises(FileNotFoundError, match="faiss_path"):
+        retriever.retrieve("SIST faculty robotics", mode="dense")
+
+
+def test_retrieval_cli_prints_cited_bm25_hits(
+    tmp_path: Path, merged_input_dir: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    db_path = tmp_path / "rag.sqlite"
+    bm25_path = tmp_path / "bm25.pkl"
+    report_path = tmp_path / "report.json"
+    build_database(merged_input_dir, db_path, report_path)
+    build_indexes(
+        db_path,
+        bm25_path,
+        tmp_path / "faiss.index",
+        tmp_path / "chunk_index.jsonl",
+        report_path,
+        skip_faiss=True,
+    )
+
+    exit_code = retrieve_main(
+        ["--query", "深度学习 任课老师", "--mode", "bm25", "--db", str(db_path), "--bm25", str(bm25_path)]
+    )
+
+    output = capsys.readouterr().out
+    assert exit_code == 0
+    assert "1. Deep Learning" in output
+    assert "https://example.edu/a" in output
+    assert "score=" in output
+
+
+def test_retrieval_cli_outputs_json_hits(
+    tmp_path: Path, merged_input_dir: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    db_path = tmp_path / "rag.sqlite"
+    bm25_path = tmp_path / "bm25.pkl"
+    report_path = tmp_path / "report.json"
+    build_database(merged_input_dir, db_path, report_path)
+    build_indexes(
+        db_path,
+        bm25_path,
+        tmp_path / "faiss.index",
+        tmp_path / "chunk_index.jsonl",
+        report_path,
+        skip_faiss=True,
+    )
+
+    exit_code = retrieve_main(
+        [
+            "--query",
+            "深度学习 任课老师",
+            "--mode",
+            "bm25",
+            "--db",
+            str(db_path),
+            "--bm25",
+            str(bm25_path),
+            "--json",
+        ]
+    )
+
+    payload = json.loads(capsys.readouterr().out)
+    assert exit_code == 0
+    assert payload["query"] == "深度学习 任课老师"
+    assert payload["mode"] == "bm25"
+    assert payload["hits"][0]["chunk_id"] == 100
+    assert payload["hits"][0]["url"] == "https://example.edu/a"
 
 
 def test_require_cuda_fails_before_dense_index_build_when_cuda_is_unavailable(

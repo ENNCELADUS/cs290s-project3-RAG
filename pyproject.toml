@@ -39,6 +39,7 @@ dependencies = [
 collect-data = "rag_collection.cli:main"
 rag-build-db = "rag.ingest:main"
 rag-build-index = "rag.index:main"
+rag-retrieve = "rag.retrieve:main"
 
 [dependency-groups]
 dev = [
