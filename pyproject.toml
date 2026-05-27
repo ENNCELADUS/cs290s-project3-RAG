@@ -43,6 +43,7 @@ rag-build-index = "rag.index:main"
 [dependency-groups]
 dev = [
     "pytest>=8.3.0",
+    "pytest-cov>=7.1.0",
     "ruff>=0.8.0",
 ]
 
@@ -56,6 +57,17 @@ packages = ["src/rag_collection", "src/rag"]
 [tool.pytest.ini_options]
 pythonpath = ["src"]
 testpaths = ["tests"]
+addopts = [
+    "--strict-markers",
+    "--cov=src",
+    "--cov-report=term-missing",
+    "--cov-fail-under=80",
+]
+markers = [
+    "unit: pure logic and single-module tests",
+    "integration: filesystem, database, and artifact-building tests",
+    "real_data: opt-in checks against generated data/rag artifacts",
+]
 
 [tool.ruff]
 line-length = 120

@@ -3,7 +3,6 @@ import types
 from pathlib import Path
 
 import faiss
-import numpy as np
 import pytest
 
 from rag.index import DEFAULT_MODEL, build_indexes
@@ -11,48 +10,11 @@ from rag.ingest import build_database
 from rag.io import read_jsonl, write_jsonl
 
 
-def _write_input(input_dir: Path) -> None:
-    input_dir.mkdir()
-    write_jsonl(
-        input_dir / "documents.jsonl",
-        [
-            {"id": 10, "url": "https://example.edu/a", "title": "A", "host": "example.edu"},
-            {"id": 11, "url": "https://example.edu/b", "title": "B", "host": "example.edu"},
-        ],
-    )
-    write_jsonl(
-        input_dir / "chunks.jsonl",
-        [
-            {
-                "id": 100,
-                "document_id": 10,
-                "chunk_index": 0,
-                "title": "Deep Learning",
-                "url": "https://example.edu/a",
-                "text": "深度学习 任课老师 Alice",
-                "char_count": 18,
-            },
-            {"id": 101, "document_id": 99, "chunk_index": 0, "text": "missing document", "char_count": 16},
-            {"id": 102, "document_id": 11, "chunk_index": 0, "text": "", "char_count": 0},
-            {"id": 103, "document_id": 11, "chunk_index": 1, "text": "\x00\x00\x00", "char_count": 3},
-        ],
-    )
-    write_jsonl(input_dir / "courses.jsonl", [{"source_document_id": 10, "course_code": "CS181", "course_name": "AI"}])
-    write_jsonl(
-        input_dir / "faculty_members.jsonl",
-        [{"source_document_id": 10, "name": "All"}, {"source_document_id": 10, "name": "Alice"}],
-    )
-    write_jsonl(input_dir / "program_requirements.jsonl", [])
-    write_jsonl(input_dir / "events.jsonl", [])
-
-
-def test_build_database_preserves_ids_and_filters_invalid_chunks(tmp_path: Path) -> None:
-    input_dir = tmp_path / "merged"
+def test_build_database_preserves_ids_and_filters_invalid_chunks(tmp_path: Path, merged_input_dir: Path) -> None:
     db_path = tmp_path / "rag.sqlite"
     report_path = tmp_path / "report.json"
-    _write_input(input_dir)
 
-    report = build_database(input_dir, db_path, report_path)
+    report = build_database(merged_input_dir, db_path, report_path)
 
     assert report["output_rows"]["documents"] == 2
     assert report["output_rows"]["chunks"] == 1
@@ -62,15 +24,15 @@ def test_build_database_preserves_ids_and_filters_invalid_chunks(tmp_path: Path)
     assert report["foreign_key_errors"] == []
 
 
-def test_failed_database_rebuild_preserves_existing_sqlite(tmp_path: Path) -> None:
-    input_dir = tmp_path / "merged"
+def test_failed_database_rebuild_preserves_existing_sqlite(tmp_path: Path, merged_input_dir: Path) -> None:
     db_path = tmp_path / "rag.sqlite"
     report_path = tmp_path / "report.json"
-    _write_input(input_dir)
-    build_database(input_dir, db_path, report_path)
+    build_database(merged_input_dir, db_path, report_path)
 
     bad_input_dir = tmp_path / "bad-merged"
-    _write_input(bad_input_dir)
+    bad_input_dir.mkdir()
+    for input_file in merged_input_dir.glob("*.jsonl"):
+        write_jsonl(bad_input_dir / input_file.name, read_jsonl(input_file))
     write_jsonl(
         bad_input_dir / "chunks.jsonl",
         [
@@ -98,14 +60,12 @@ def test_failed_database_rebuild_preserves_existing_sqlite(tmp_path: Path) -> No
     assert rebuilt_report["chunk_count"] == 1
 
 
-def test_build_bm25_index_returns_stable_chunk_ids(tmp_path: Path) -> None:
-    input_dir = tmp_path / "merged"
+def test_build_bm25_index_returns_stable_chunk_ids(tmp_path: Path, merged_input_dir: Path) -> None:
     db_path = tmp_path / "rag.sqlite"
     bm25_path = tmp_path / "bm25.pkl"
     chunk_index_path = tmp_path / "chunk_index.jsonl"
     report_path = tmp_path / "report.json"
-    _write_input(input_dir)
-    build_database(input_dir, db_path, report_path)
+    build_database(merged_input_dir, db_path, report_path)
 
     report = build_indexes(
         db_path,
@@ -123,32 +83,14 @@ def test_build_bm25_index_returns_stable_chunk_ids(tmp_path: Path) -> None:
     assert deep_learning_hits[0]["chunk_id"] == 100
 
 
-def test_faiss_mapping_length_matches_vector_count(tmp_path: Path, monkeypatch) -> None:
-    input_dir = tmp_path / "merged"
+def test_faiss_mapping_length_matches_vector_count(
+    tmp_path: Path, merged_input_dir: Path, fake_sentence_transformer_module
+) -> None:
     db_path = tmp_path / "rag.sqlite"
     faiss_path = tmp_path / "faiss.index"
     chunk_index_path = tmp_path / "chunk_index.jsonl"
     report_path = tmp_path / "report.json"
-    _write_input(input_dir)
-    build_database(input_dir, db_path, report_path)
-
-    class FakeSentenceTransformer:
-        def __init__(self, model_name: str, device: str) -> None:
-            self.model_name = model_name
-            self.device = device
-
-        def encode(
-            self,
-            texts: list[str],
-            batch_size: int,
-            convert_to_numpy: bool,
-            normalize_embeddings: bool,
-            show_progress_bar: bool,
-        ) -> np.ndarray:
-            return np.ones((len(texts), 3), dtype="float32")
-
-    fake_sentence_transformers = types.SimpleNamespace(SentenceTransformer=FakeSentenceTransformer)
-    monkeypatch.setitem(sys.modules, "sentence_transformers", fake_sentence_transformers)
+    build_database(merged_input_dir, db_path, report_path)
 
     report = build_indexes(
         db_path,
@@ -169,13 +111,11 @@ def test_faiss_mapping_length_matches_vector_count(tmp_path: Path, monkeypatch) 
 
 
 def test_require_cuda_fails_before_dense_index_build_when_cuda_is_unavailable(
-    tmp_path: Path, monkeypatch
+    tmp_path: Path, monkeypatch, merged_input_dir: Path
 ) -> None:
-    input_dir = tmp_path / "merged"
     db_path = tmp_path / "rag.sqlite"
     report_path = tmp_path / "report.json"
-    _write_input(input_dir)
-    build_database(input_dir, db_path, report_path)
+    build_database(merged_input_dir, db_path, report_path)
 
     fake_torch = types.SimpleNamespace(cuda=types.SimpleNamespace(is_available=lambda: False))
     monkeypatch.setitem(sys.modules, "torch", fake_torch)
