@@ -236,6 +236,50 @@ def test_collector_marks_image_binary_as_unsupported_without_garbled_text(tmp_pa
     assert "possibly_garbled" not in manifest
 
 
+def test_collector_can_keep_link_discovery_on_seed_host(tmp_path: Path, monkeypatch) -> None:
+    seeds_path = tmp_path / "seeds.csv"
+    seeds_path.write_text(
+        "\n".join(
+            [
+                "url,category,depth_limit,priority,notes",
+                "https://sist.shanghaitech.edu.cn/start.htm,events,1,1,",
+            ]
+        ),
+        encoding="utf-8",
+    )
+    pages = {
+        "https://sist.shanghaitech.edu.cn/start.htm": b"""
+            <html><body>
+              <a href="https://sist.shanghaitech.edu.cn/detail.htm">SIST detail</a>
+              <a href="https://openinfo.shanghaitech.edu.cn/detail.htm">Open info detail</a>
+            </body></html>
+        """,
+        "https://sist.shanghaitech.edu.cn/detail.htm": b"<html><body>SIST detail 2026-05-01</body></html>",
+    }
+
+    def fake_urlopen(request: urllib.request.Request, timeout: float) -> FakeResponse:
+        return FakeResponse(pages[request.full_url])
+
+    monkeypatch.setattr(urllib.request, "urlopen", fake_urlopen)
+    config = CollectorConfig(
+        seeds_path=seeds_path,
+        run_dir=prepare_run_dir(tmp_path / "runs", "same-host"),
+        max_pages=5,
+        request_delay_seconds=0,
+        respect_robots=False,
+        same_host_only=True,
+    )
+
+    stats = OfficialCollector(config).run()
+
+    documents = read_jsonl(config.run_dir / "jsonl" / "documents.jsonl")
+    assert stats["documents"] == 2
+    assert [document["url"] for document in documents] == [
+        "https://sist.shanghaitech.edu.cn/start.htm",
+        "https://sist.shanghaitech.edu.cn/detail.htm",
+    ]
+
+
 def _minimal_docx(paragraphs: list[str]) -> bytes:
     xml = "".join(f"<w:p><w:r><w:t>{paragraph}</w:t></w:r></w:p>" for paragraph in paragraphs)
     document = (

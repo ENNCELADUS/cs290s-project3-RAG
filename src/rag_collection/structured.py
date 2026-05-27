@@ -23,6 +23,22 @@ REQUIREMENT_KEYWORDS = (
     "credit",
 )
 NOISY_REQUIREMENT_KEYWORDS = ("毕业生故事", "青春榜样", "新闻", "活动", "招聘")
+FACULTY_NAME_STOPWORDS = {
+    "faculty",
+    "people",
+    "home",
+    "homepage",
+    "introduction",
+    "profile",
+    "teacher",
+    "teachers",
+    "师资队伍",
+    "常任教授",
+    "特聘教授",
+    "研究人员",
+    "支撑人员",
+    "行政人员",
+}
 
 
 def extract_structured_records(document: dict[str, object], text: str) -> dict[str, list[dict[str, object]]]:
@@ -53,12 +69,15 @@ def _extract_courses(lines: list[str], base: dict[str, object]) -> list[dict[str
             continue
         code = match.group("code")
         credit_match = CREDIT_RE.search(line)
+        course_name = _trim_evidence(line.replace(code, "").strip(" -:：|"))
+        if not course_name and not credit_match:
+            continue
         records.append(
             {
                 **base,
                 "school": "School of Information Science and Technology",
                 "course_code": code,
-                "course_name": _trim_evidence(line.replace(code, "").strip(" -:：|")),
+                "course_name": course_name,
                 "credits": float(credit_match.group("credits")) if credit_match else None,
                 "evidence": _trim_evidence(line),
                 "confidence": 0.68 if credit_match else 0.55,
@@ -172,11 +191,40 @@ def _context(lines: list[str], index: int, radius: int) -> str:
 
 
 def _guess_name(context: str) -> str | None:
-    for line in context.splitlines():
+    lines = context.splitlines()
+    for line in lines:
+        inline_name = _name_before_title(line)
+        if inline_name:
+            return inline_name
+    for line in reversed(lines):
         clean = line.strip()
-        if 2 <= len(clean) <= 80 and not EMAIL_RE.search(clean) and not TITLE_RE.search(clean):
+        if _is_plausible_faculty_name(clean):
             return clean
     return None
+
+
+def _name_before_title(line: str) -> str | None:
+    match = TITLE_RE.search(line)
+    if not match:
+        return None
+    prefix = line[: match.start()].strip(" -:：|")
+    words = [word for word in prefix.split() if word.lower() not in FACULTY_NAME_STOPWORDS]
+    if len(words) < 2:
+        return None
+    candidate = " ".join(words[-2:])
+    return candidate if _is_plausible_faculty_name(candidate) else None
+
+
+def _is_plausible_faculty_name(value: str) -> bool:
+    if not 2 <= len(value) <= 80:
+        return False
+    if value.lower() in FACULTY_NAME_STOPWORDS:
+        return False
+    if EMAIL_RE.search(value) or TITLE_RE.search(value):
+        return False
+    if any(token in value.lower() for token in ("room ", "building", "地址", "学院", "university")):
+        return False
+    return True
 
 
 def _guess_program_name(context: str) -> str | None:

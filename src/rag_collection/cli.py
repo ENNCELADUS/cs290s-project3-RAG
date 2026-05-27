@@ -39,6 +39,11 @@ def main(argv: list[str] | None = None) -> int:
     collect_parser.add_argument("--dry-run", action="store_true")
     collect_parser.add_argument("--ignore-robots", action="store_true")
     collect_parser.add_argument(
+        "--same-host-only",
+        action="store_true",
+        help="Only follow links on the seed host or its subdomains.",
+    )
+    collect_parser.add_argument(
         "--skip-known",
         action="store_true",
         help="Do not write URLs already present in data/jsonl or previous collection runs.",
@@ -112,6 +117,7 @@ def _collect(args: argparse.Namespace) -> int:
         dry_run=args.dry_run,
         respect_robots=not args.ignore_robots,
         known_urls=frozenset(known_urls),
+        same_host_only=args.same_host_only,
         progress_factory=None if args.dry_run else _tqdm_progress,
     )
     stats = OfficialCollector(config).run()

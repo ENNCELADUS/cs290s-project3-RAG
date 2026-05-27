@@ -49,7 +49,9 @@ class TextAndLinkParser(HTMLParser):
         self.text_parts.append(clean)
 
     def _is_ignored_context(self) -> bool:
-        return any(tag in {"script", "style", "noscript", "svg"} for tag in self._tag_stack)
+        return any(
+            tag in {"script", "style", "noscript", "svg", "header", "nav", "footer"} for tag in self._tag_stack
+        )
 
 
 CHARSET_RE = re.compile(rb"""charset=["']?\s*([A-Za-z0-9._-]+)""", re.I)

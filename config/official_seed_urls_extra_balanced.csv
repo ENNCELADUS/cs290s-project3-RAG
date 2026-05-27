@@ -1,0 +1,26 @@
+url,category,depth_limit,priority,notes
+https://career.shanghaitech.edu.cn/,career,3,1,career center
+https://jobs.shanghaitech.edu.cn/,career,3,1,university jobs
+https://jobs.shanghaitech.edu.cn/Jobs_english/list.htm,career,2,1,english jobs
+https://yanzhao.shanghaitech.edu.cn/,admission,3,1,graduate admissions
+https://admission.shanghaitech.edu.cn/,admission,2,2,undergraduate admissions refresh
+https://oaa.shanghaitech.edu.cn/,school_info,3,1,academic affairs and graduate school
+https://openinfo.shanghaitech.edu.cn/,school_info,3,1,public information
+https://library.shanghaitech.edu.cn/,school_info,2,2,library services
+https://library.shanghaitech.edu.cn/lib_en/,school_info,2,2,library english
+https://life.shanghaitech.edu.cn/,school_info,2,2,residential college and student life
+https://oia.shanghaitech.edu.cn/,school_info,2,2,international affairs
+https://hr.shanghaitech.edu.cn/,career,2,2,human resources
+https://star-center.shanghaitech.edu.cn/,research,3,1,robotics center
+https://smirc.sist.shanghaitech.edu.cn/,research,2,1,smart medical information research center
+https://clinic.shanghaitech.edu.cn/,research,2,2,clinical research center
+https://bme.shanghaitech.edu.cn/,program,2,2,bme school
+https://ihuman.shanghaitech.edu.cn/,research,2,2,ihuman institute
+https://siais.shanghaitech.edu.cn/,research,2,2,siais institute
+https://cts.shanghaitech.edu.cn/,research,2,2,big science center
+https://shine.shanghaitech.edu.cn/,research,2,2,shine facility
+https://cue.shanghaitech.edu.cn/,research,2,2,ultimate energy center
+https://faculty.sist.shanghaitech.edu.cn/,faculty,3,2,deeper SIST faculty discovery
+https://sist.shanghaitech.edu.cn/tzgg/list.htm,events,3,1,SIST notices deeper
+https://www.shanghaitech.edu.cn/1001/list.htm,news,2,2,university news list
+https://www.shanghaitech.edu.cn/en/Notice/list.htm,events,2,2,university english notices

@@ -25,7 +25,7 @@ from .pdf import extract_pdf_text
 from .quality import quality_flags, write_quality_report
 from .seeds import load_seed_urls
 from .structured import extract_structured_records
-from .urls import SeedUrl, canonicalize_url, infer_category, infer_language, is_official_url
+from .urls import SeedUrl, canonicalize_url, infer_category, infer_language, is_official_url, same_or_subdomain
 
 USER_AGENT = "cs290s-rag-collector/0.1 (+official-source student project)"
 CHARSET_RE = re.compile(r"charset=([A-Za-z0-9._-]+)", re.I)
@@ -74,6 +74,7 @@ class CollectorConfig:
     chunk_chars: int = 1200
     chunk_overlap: int = 120
     known_urls: frozenset[str] = frozenset()
+    same_host_only: bool = False
     progress_factory: ProgressFactory | None = None
 
 
@@ -244,6 +245,9 @@ class OfficialCollector:
     ) -> None:
         for link in links:
             link_url = canonicalize_url(link)
+            seed_host = urllib.parse.urlsplit(canonicalize_url(seed.url)).netloc.lower()
+            if self.config.same_host_only and not same_or_subdomain(link_url, seed_host):
+                continue
             if link_url not in seen and is_official_url(link_url):
                 queue.append((seed, link_url, depth + 1, parent_url))
 

@@ -38,6 +38,64 @@ def test_courses_extract_code_and_credits() -> None:
     assert records["courses"][0]["credits"] == 4.0
 
 
+def test_courses_do_not_extract_bare_course_codes_as_facts() -> None:
+    document = {
+        "id": 2,
+        "url": "https://faculty.sist.shanghaitech.edu.cn/office/Academics/Graduate/Courses/table.htm",
+        "category": "courses",
+        "fetched_at": "2026-05-26T00:00:00+00:00",
+    }
+    text = "\n".join(
+        [
+            "MATH2103",
+            "MATH2104",
+            "CS101 Data Structures 4 credits",
+        ]
+    )
+
+    records = extract_structured_records(document, text)
+
+    assert [record["course_code"] for record in records["courses"]] == ["CS101"]
+
+
+def test_faculty_extracts_person_name_instead_of_page_labels() -> None:
+    document = {
+        "id": 4,
+        "url": "https://pmicc.sist.shanghaitech.edu.cn/faculty.html",
+        "category": "faculty",
+        "fetched_at": "2026-05-26T00:00:00+00:00",
+    }
+    text = "\n".join(
+        [
+            "Faculty",
+            "Wenhan Cao",
+            "Assistant Professor",
+            "Room 3-336, SIST Building",
+            "Introduction",
+            "Baile Chen",
+            "Associate Professor",
+        ]
+    )
+
+    records = extract_structured_records(document, text)
+
+    assert [record["name"] for record in records["faculty_members"]] == ["Wenhan Cao", "Baile Chen"]
+
+
+def test_faculty_extracts_person_name_from_inline_center_listing() -> None:
+    document = {
+        "id": 4,
+        "url": "https://pmicc.sist.shanghaitech.edu.cn/faculty.html",
+        "category": "faculty",
+        "fetched_at": "2026-05-26T00:00:00+00:00",
+    }
+    text = "Faculty Wenhan Cao Assistant Professor Room 3-336, SIST Building Introduction"
+
+    records = extract_structured_records(document, text)
+
+    assert records["faculty_members"][0]["name"] == "Wenhan Cao"
+
+
 def test_structured_extraction_does_not_promote_unrelated_page_snippets() -> None:
     admission_document = {
         "id": 3,

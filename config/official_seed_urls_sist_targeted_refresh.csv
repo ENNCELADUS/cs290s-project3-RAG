@@ -1,0 +1,39 @@
+url,category,depth_limit,priority,notes
+https://sist.shanghaitech.edu.cn/szdwx/list.htm?col=0,faculty,2,1,SIST zh professors
+https://sist.shanghaitech.edu.cn/szdwx/list.htm?col=1,faculty,2,1,SIST zh adjunct/distinguished professors
+https://sist.shanghaitech.edu.cn/szdwx/list.htm?col=3,faculty,2,2,SIST zh research staff
+https://sist.shanghaitech.edu.cn/sist_en/szdwx/list.htm?col=0,faculty,2,2,SIST en professors
+https://sist.shanghaitech.edu.cn/sist_en/szdwx/list.htm?col=1,faculty,2,2,SIST en distinguished adjunct professors
+https://sist.shanghaitech.edu.cn/2835/list.htm,courses,2,1,SIST course system
+https://sist.shanghaitech.edu.cn/2836/list.htm,courses,2,1,SIST undergraduate teaching affairs
+https://sist.shanghaitech.edu.cn/2837/list.htm,courses,2,1,SIST graduate teaching affairs
+https://sist.shanghaitech.edu.cn/sist_en/3905/list.htm,courses,2,2,SIST en curriculum
+https://sist.shanghaitech.edu.cn/sist_en/3906/list.htm,courses,2,2,SIST en undergraduate teaching affairs
+https://sist.shanghaitech.edu.cn/sist_en/3907/list.htm,courses,2,2,SIST en graduate teaching affairs
+https://sist.shanghaitech.edu.cn/pyfa/list.htm,program_requirements,2,1,SIST training plans
+https://sist.shanghaitech.edu.cn/pyyxwsyxgxz/list.htm,program_requirements,2,1,SIST degree rules
+https://sist.shanghaitech.edu.cn/sist_en/UndergraduatePrograms/list.htm,program_requirements,1,2,SIST en CS undergraduate program
+https://sist.shanghaitech.edu.cn/sist_en/EEUndergraduateProgram/list.htm,program_requirements,1,2,SIST en EE undergraduate program
+https://sist.shanghaitech.edu.cn/sist_en/MasterProgram/list.htm,program_requirements,1,2,SIST en CS master program
+https://sist.shanghaitech.edu.cn/sist_en/EEMasterProgram/list.htm,program_requirements,1,2,SIST en EE master program
+https://sist.shanghaitech.edu.cn/sist_en/DoctorialwCSwProgram/list.htm,program_requirements,1,2,SIST en CS PhD program
+https://sist.shanghaitech.edu.cn/sist_en/EEPhwDProgram/list.htm,program_requirements,1,2,SIST en EE PhD program
+https://sist.shanghaitech.edu.cn/xsjz/list.htm,events,3,1,SIST academic seminars
+https://sist.shanghaitech.edu.cn/xyhd/list.htm,events,3,1,SIST activities
+https://sist.shanghaitech.edu.cn/2863/list.htm,events,3,1,SIST notices
+https://sist.shanghaitech.edu.cn/tzgg/list.htm,admission,3,1,SIST admission notices
+https://sist.shanghaitech.edu.cn/sist_en/xsjz/list.htm,events,3,2,SIST en seminars
+https://sist.shanghaitech.edu.cn/sist_en/AcademicActivities_11303/list.htm,events,3,2,SIST en academic activities
+https://sist.shanghaitech.edu.cn/zpxx/list.htm,career,2,2,SIST employment info
+https://sist.shanghaitech.edu.cn/xjh/list.htm,career,2,2,SIST recruiting talks
+https://vdi.sist.shanghaitech.edu.cn/,research,1,1,VDI center
+https://vdi.sist.shanghaitech.edu.cn/news.html,research,1,2,VDI news
+https://nice.sist.shanghaitech.edu.cn/,research,1,1,NICE center
+https://pmicc.sist.shanghaitech.edu.cn/,research,1,1,PMICC center
+https://pmicc.sist.shanghaitech.edu.cn/research.html,research,1,1,PMICC research
+https://pmicc.sist.shanghaitech.edu.cn/faculty.html,faculty,1,1,PMICC faculty
+https://pmicc.sist.shanghaitech.edu.cn/publication.html,research,1,2,PMICC publications
+https://cipes.sist.shanghaitech.edu.cn/,research,1,1,CiPES center
+https://ssc.sist.shanghaitech.edu.cn/,research,1,1,SSC center
+https://smirc.sist.shanghaitech.edu.cn/zh/,research,1,1,SMIRC zh
+https://smirc.sist.shanghaitech.edu.cn/en/,research,1,2,SMIRC en

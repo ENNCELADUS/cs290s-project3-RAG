@@ -5,6 +5,22 @@ from pathlib import Path
 from .io import read_jsonl, write_jsonl
 
 STRUCTURED_FILES = ["courses.jsonl", "faculty_members.jsonl", "program_requirements.jsonl", "events.jsonl"]
+INVALID_FACULTY_NAMES = {
+    "faculty",
+    "people",
+    "home",
+    "homepage",
+    "introduction",
+    "profile",
+    "teacher",
+    "teachers",
+    "师资队伍",
+    "常任教授",
+    "特聘教授",
+    "研究人员",
+    "支撑人员",
+    "行政人员",
+}
 NON_INDEXABLE_PARSERS = {
     "unsupported_binary",
     "doc_unsupported",
@@ -68,12 +84,12 @@ def merge_existing_with_run(existing_jsonl_dir: Path, run_jsonl_dir: Path, outpu
         existing_rows = [
             _remap_source_document_id(row, existing_id_map)
             for row in read_jsonl(existing_jsonl_dir / filename)
-            if _keeps_structured_row(row, existing_id_map)
+            if _keeps_structured_row(filename, row, existing_id_map)
         ]
         run_rows = [
             _remap_source_document_id(row, document_id_map)
             for row in read_jsonl(run_jsonl_dir / filename)
-            if _keeps_structured_row(row, document_id_map)
+            if _keeps_structured_row(filename, row, document_id_map)
         ]
         stats[filename] = write_jsonl(output_dir / filename, [*existing_rows, *run_rows])
 
@@ -93,9 +109,26 @@ def _remap_source_document_id(row: dict[str, object], document_id_map: dict[int,
     return {**row, "source_document_id": document_id_map.get(old_id, old_id)}
 
 
-def _keeps_structured_row(row: dict[str, object], document_id_map: dict[int, int]) -> bool:
+def _keeps_structured_row(filename: str, row: dict[str, object], document_id_map: dict[int, int]) -> bool:
     source_document_id = row.get("source_document_id")
-    return source_document_id is None or int(source_document_id) in document_id_map
+    if source_document_id is not None and int(source_document_id) not in document_id_map:
+        return False
+    return _has_required_structured_fields(filename, row)
+
+
+def _has_required_structured_fields(filename: str, row: dict[str, object]) -> bool:
+    if filename == "courses.jsonl":
+        return bool(str(row.get("course_code") or "").strip()) and (
+            bool(str(row.get("course_name") or "").strip()) or row.get("credits") is not None
+        )
+    if filename == "faculty_members.jsonl":
+        name = str(row.get("name") or "").strip()
+        return bool(name) and name.lower() not in INVALID_FACULTY_NAMES
+    if filename == "program_requirements.jsonl":
+        return bool(str(row.get("requirement_text") or "").strip()) and bool(str(row.get("evidence") or "").strip())
+    if filename == "events.jsonl":
+        return bool(str(row.get("title") or "").strip()) and bool(str(row.get("published_at") or "").strip())
+    return True
 
 
 def _document_url_key(document: dict[str, object]) -> str:

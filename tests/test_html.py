@@ -31,3 +31,30 @@ def test_extract_html_uses_declared_charset_before_utf8_replacement() -> None:
     assert title == "学院新闻"
     assert "信息科学与技术学院" in text
     assert "\ufffd" not in text
+
+
+def test_extract_html_drops_page_chrome_while_keeping_main_content() -> None:
+    _, text, _ = extract_html(
+        b"""
+        <html>
+          <body>
+            <header>School logo English Navigation</header>
+            <nav>Home About Research Faculty Academics</nav>
+            <main>
+              <article>
+                <h1>2026 Academic Seminar</h1>
+                <p>Speaker: ShanghaiTech SIST professor</p>
+              </article>
+            </main>
+            <footer>Copyright ShanghaiTech address QR code</footer>
+          </body>
+        </html>
+        """,
+        "https://sist.shanghaitech.edu.cn/2026/0522/c11304a1122875/page.htm",
+    )
+
+    assert "2026 Academic Seminar" in text
+    assert "Speaker: ShanghaiTech SIST professor" in text
+    assert "School logo" not in text
+    assert "Home About Research Faculty" not in text
+    assert "Copyright ShanghaiTech" not in text

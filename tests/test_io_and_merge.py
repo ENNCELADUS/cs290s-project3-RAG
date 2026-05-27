@@ -98,6 +98,58 @@ def test_merge_excludes_documents_that_are_not_indexable(tmp_path: Path) -> None
     assert merged_chunks == [{"document_id": 1, "id": 1, "text": "ok"}]
 
 
+def test_merge_filters_invalid_structured_rows(tmp_path: Path) -> None:
+    existing = tmp_path / "existing"
+    run = tmp_path / "run"
+    output = tmp_path / "merged"
+    existing.mkdir()
+    run.mkdir()
+    write_jsonl(existing / "documents.jsonl", [])
+    write_jsonl(existing / "chunks.jsonl", [])
+    write_jsonl(
+        run / "documents.jsonl",
+        [
+            {"id": 1, "url": "https://sist.shanghaitech.edu.cn/course.htm", "parser": "html", "text_chars": 180},
+            {
+                "id": 2,
+                "url": "https://pmicc.sist.shanghaitech.edu.cn/faculty.html",
+                "parser": "html",
+                "text_chars": 500,
+            },
+        ],
+    )
+    write_jsonl(
+        run / "chunks.jsonl",
+        [{"id": 1, "document_id": 1, "text": "course"}, {"id": 2, "document_id": 2, "text": "faculty"}],
+    )
+    write_jsonl(existing / "courses.jsonl", [])
+    write_jsonl(
+        run / "courses.jsonl",
+        [
+            {"source_document_id": 1, "course_code": "MATH2103", "course_name": "", "credits": None},
+            {"source_document_id": 1, "course_code": "CS101", "course_name": "Data Structures", "credits": 4.0},
+        ],
+    )
+    write_jsonl(existing / "faculty_members.jsonl", [])
+    write_jsonl(
+        run / "faculty_members.jsonl",
+        [
+            {"source_document_id": 2, "name": "Introduction", "title": "Associate Professor"},
+            {"source_document_id": 2, "name": "Wenhan Cao", "title": "Assistant Professor"},
+        ],
+    )
+    for filename in ["program_requirements.jsonl", "events.jsonl"]:
+        write_jsonl(existing / filename, [])
+        write_jsonl(run / filename, [])
+
+    merge_existing_with_run(existing, run, output)
+
+    courses = read_jsonl(output / "courses.jsonl")
+    faculty = read_jsonl(output / "faculty_members.jsonl")
+    assert [row["course_code"] for row in courses] == ["CS101"]
+    assert [row["name"] for row in faculty] == ["Wenhan Cao"]
+
+
 def test_merge_keeps_best_run_document_for_duplicate_canonical_url(tmp_path: Path) -> None:
     existing = tmp_path / "existing"
     run = tmp_path / "run"
