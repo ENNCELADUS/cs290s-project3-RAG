@@ -26,7 +26,8 @@ Official-source ShanghaiTech/SIST retrieval-augmented generation data and indexi
 
 - **[2026/05]** Added an append-only official-source collection pipeline for ShanghaiTech/SIST data.
 - **[2026/05]** Built a clean merged dataset record at `doc/data_collection.md`.
-- **[2026/05]** Added SQLite ingestion plus BM25 and FAISS index builders under `src/rag/`.
+- **[2026/05]** Added SQLite ingestion, BM25/FAISS index builders, and cited retrieval under `src/rag/`.
+- **[2026/05]** Added Phase 2 hybrid retrieval with RRF fusion, optional local reranking, trace output, source de-duplication, and packed contexts.
 
 ## Why This Project?
 
@@ -38,6 +39,7 @@ Key goals:
 - Preserve crawl runs as append-only audit artifacts under `data/collection_runs/`.
 - Merge accepted outputs into clean JSONL datasets under `data/merged/`.
 - Build retrieval-ready SQLite, BM25, and FAISS artifacts under `data/rag/`.
+- Run baseline and optimized cited retrieval for representative questions.
 - Keep the final generation stack local: no commercial or hosted LLM APIs.
 
 ## Quick Start
@@ -109,6 +111,21 @@ uv run rag-build-index --require-cuda
 
 Defaults are defined in `src/rag/ingest.py` and `src/rag/index.py`. The default dense embedding model is `BAAI/bge-m3`; BM25 tokenization combines ASCII token matching with `jieba` for Chinese text.
 
+Run cited retrieval against existing artifacts:
+
+```bash
+# Baseline sparse retrieval
+uv run rag-retrieve --query "深度学习 任课老师" --mode bm25 --top-k 5
+
+# Baseline dense retrieval
+uv run rag-retrieve --query "SIST faculty robotics" --mode dense --top-k 5
+
+# Optimized hybrid retrieval with RRF and packed contexts
+uv run rag-retrieve --query "SIST faculty robotics" --mode hybrid --top-k 5 --json
+```
+
+Hybrid retrieval uses BM25 and FAISS candidates, reciprocal rank fusion, source de-duplication, and structured trace output. Optional reranking requires `--reranker-model` to point to an existing local model path; omitted reranker settings keep the RRF order. The retrieval API and output shapes are documented in [doc/retrieval.md](doc/retrieval.md).
+
 ## Project Structure
 
 ```text
@@ -119,7 +136,7 @@ data/merged/            Clean merged JSONL datasets for indexing
 data/rag/               Generated SQLite, BM25, FAISS, and report artifacts
 doc/                    Report-facing project notes
 src/rag_collection/     Crawler, parsers, structured extraction, merge CLI
-src/rag/                SQLite ingestion and retrieval index builders
+src/rag/                SQLite ingestion, indexing, and retrieval runtime
 tests/                  Pytest coverage for collection, parsing, merge, indexing
 ```
 
@@ -141,7 +158,7 @@ flowchart LR
   K --> L["Local Qwen generator and Gradio UI"]
 ```
 
-The planned end-to-end stack is described in [doc/tech_stack_plan.md](doc/tech_stack_plan.md): Python, JSONL/SQLite metadata, BM25, FAISS, `BAAI/bge-m3`, optional reranking, local Qwen generation, and a Gradio interface.
+The end-to-end stack is tracked in [doc/tech_stack_plan.md](doc/tech_stack_plan.md): Python, JSONL/SQLite metadata, BM25, FAISS, `BAAI/bge-m3`, hybrid RRF retrieval, optional local reranking, local Qwen generation, and a Gradio interface.
 
 ## Development
 
@@ -150,7 +167,7 @@ The planned end-to-end stack is described in [doc/tech_stack_plan.md](doc/tech_s
 uv run pytest
 
 # Focused tests
-uv run pytest tests/test_rag_ingest_index.py
+uv run pytest tests/integration/test_rag_ingest_index.py
 
 # Lint and format
 uv run ruff check src tests
@@ -168,7 +185,7 @@ Do not commit raw datasets, model checkpoints, secrets, or generated merged/inde
 Keep changes scoped to one pipeline stage when possible:
 
 - `rag_collection`: crawling, parsing, quality checks, reparse, and merge behavior.
-- `rag`: SQLite ingestion, sparse indexing, dense indexing, and retrieval artifacts.
+- `rag`: SQLite ingestion, sparse indexing, dense indexing, retrieval runtime, and retrieval artifacts.
 - `doc`: report-facing run records and architecture notes.
 - `tests`: small deterministic fixtures using `tmp_path`; avoid tests that require large real datasets or network access.
 

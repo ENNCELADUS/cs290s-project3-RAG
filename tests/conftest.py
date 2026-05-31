@@ -123,3 +123,48 @@ def fake_sentence_transformer_module(monkeypatch: pytest.MonkeyPatch) -> Any:
     fake_module = types.SimpleNamespace(SentenceTransformer=FakeSentenceTransformer)
     monkeypatch.setitem(sys.modules, "sentence_transformers", fake_module)
     return fake_module
+
+
+@pytest.fixture
+def fake_hybrid_sentence_transformer_module(monkeypatch: pytest.MonkeyPatch) -> Any:
+    import sys
+    import types
+
+    import numpy as np
+
+    class FakeSentenceTransformer:
+        def __init__(self, model_name: str, device: str) -> None:
+            self.model_name = model_name
+            self.device = device
+
+        def encode(
+            self,
+            texts: list[str],
+            batch_size: int,
+            convert_to_numpy: bool,
+            normalize_embeddings: bool,
+            show_progress_bar: bool,
+        ) -> np.ndarray:
+            vectors = []
+            for text in texts:
+                if text == "exact bridge query":
+                    vectors.append([1.0, 0.0, 0.0])
+                elif "dense winner" in text:
+                    vectors.append([1.0, 0.0, 0.0])
+                elif "bridge" in text:
+                    vectors.append([0.95, 0.0, 0.0])
+                else:
+                    vectors.append([0.0, 0.1, 0.0])
+            return np.asarray(vectors, dtype="float32")
+
+    class FakeCrossEncoder:
+        def __init__(self, model_name: str, device: str) -> None:
+            self.model_name = model_name
+            self.device = device
+
+        def predict(self, pairs: list[tuple[str, str]]) -> np.ndarray:
+            return np.asarray([10.0 if "dense winner" in passage else 1.0 for _, passage in pairs], dtype="float32")
+
+    fake_module = types.SimpleNamespace(SentenceTransformer=FakeSentenceTransformer, CrossEncoder=FakeCrossEncoder)
+    monkeypatch.setitem(sys.modules, "sentence_transformers", fake_module)
+    return fake_module

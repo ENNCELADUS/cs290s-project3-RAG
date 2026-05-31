@@ -1,6 +1,6 @@
 # CS290S SIST RAG Product Roadmap
 
-Last updated: 2026-05-28
+Last updated: 2026-05-31
 
 ## Vision
 
@@ -28,7 +28,8 @@ Primary users are course reviewers and students. The product-quality target is a
 - Accepted clean merged dataset is `data/merged/all-collection-runs-clean-2026-05-27`.
 - SQLite ingestion exists in `src/rag/ingest.py`.
 - BM25 and FAISS index building exist in `src/rag/index.py`.
-- Tests cover collection, parsing, merge, ingestion, and indexing behavior.
+- Baseline and hybrid retrieval exist in `src/rag/retrieve.py`.
+- Tests cover collection, parsing, merge, ingestion, indexing, and retrieval behavior.
 
 ## Build Order
 
@@ -65,21 +66,21 @@ Primary users are course reviewers and students. The product-quality target is a
 ### Task Checklist
 
 #### Retrieval Core
-- [ ] Add a retrieval module that loads existing `rag-build-db` and `rag-build-index` outputs.
-- [ ] Implement baseline BM25 retrieval with stable chunk IDs and cited metadata.
-- [ ] Implement baseline FAISS retrieval when dense artifacts are present.
-- [ ] Add a CLI command for smoke retrieval with a `--mode bm25|dense` option.
+- [x] Add a retrieval module that loads existing `rag-build-db` and `rag-build-index` outputs.
+- [x] Implement baseline BM25 retrieval with stable chunk IDs and cited metadata.
+- [x] Implement baseline FAISS retrieval when dense artifacts are present.
+- [x] Add a CLI command for smoke retrieval with a `--mode bm25|dense` option.
 
 #### Tests
-- [ ] Add unit tests using `tmp_path` artifacts, following `tests/test_rag_ingest_index.py`.
-- [ ] Verify missing dense index behavior is explicit and useful.
-- [ ] Verify Chinese and English smoke queries return source URLs.
+- [x] Add unit tests using `tmp_path` artifacts, following `tests/integration/test_rag_ingest_index.py`.
+- [x] Verify missing dense index behavior is explicit and useful.
+- [x] Verify Chinese and English smoke queries return source URLs.
 
 #### Definition of Done
-- [ ] `uv run pytest tests/test_rag_ingest_index.py` passes.
-- [ ] `uv run pytest` passes.
-- [ ] `uv run ruff check src tests` passes.
-- [ ] Smoke queries return deterministic cited chunks for:
+- [x] `uv run pytest tests/integration/test_rag_ingest_index.py` passes.
+- [x] `uv run pytest` passes.
+- [x] `uv run ruff check src tests` passes.
+- [x] Smoke queries return deterministic cited chunks for:
   - `深度学习 任课老师`
   - `计算机科学与技术 毕业 学分`
   - `SIST faculty robotics`
@@ -98,20 +99,20 @@ Primary users are course reviewers and students. The product-quality target is a
 ### Task Checklist
 
 #### Retrieval Optimization
-- [ ] Add RRF merge for BM25 and FAISS candidate lists.
-- [ ] Add configurable top-k values for sparse, dense, fused, reranked, and final context counts.
-- [ ] Integrate `BAAI/bge-reranker-v2-m3` first; allow `Qwen/Qwen3-Reranker-0.6B` as an alternate local model.
-- [ ] Add source de-duplication by canonical URL and text/content hash when available.
-- [ ] Add context packing with title, URL, language, category, snippet, and rank fields.
+- [x] Add RRF merge for BM25 and FAISS candidate lists.
+- [x] Add configurable top-k values for sparse, dense, fused, reranked, and final context counts.
+- [x] Add optional local `sentence_transformers.CrossEncoder` reranking via `--reranker-model`.
+- [x] Add source de-duplication by canonical URL and text/content hash when available.
+- [x] Add context packing with title, URL, language, category, snippet, and rank fields.
 
 #### Comparison Support
-- [ ] Preserve baseline retrieval output shape for before/after evaluation.
-- [ ] Add retrieval trace fields: sparse score, dense score, RRF score, rerank score, final rank.
+- [x] Preserve baseline retrieval output shape for before/after evaluation.
+- [x] Add retrieval trace fields: sparse score, dense score, RRF score, rerank score, final rank.
 
 #### Definition of Done
-- [ ] The same question can run in baseline and optimized modes.
-- [ ] Optimized output includes final citations and retrieval trace.
-- [ ] Unit tests cover RRF ordering, de-duplication, and missing reranker fallback.
+- [x] The same question can run in baseline and optimized modes.
+- [x] Optimized output includes final citations and retrieval trace.
+- [x] Unit tests cover RRF ordering, de-duplication, and missing reranker fallback.
 
 ## Phase 3 - Local Generator and Answer Policy
 
@@ -297,8 +298,9 @@ Primary users are course reviewers and students. The product-quality target is a
 | --- | --- | --- |
 | `uv run rag-build-db` | Existing/Phase 1 | Build SQLite corpus database. |
 | `uv run rag-build-index` | Existing/Phase 1 | Build BM25, FAISS, chunk index, and report artifacts. |
-| Retrieval CLI | Phase 1 | Run smoke retrieval and print cited chunks. |
-| Retriever Python API | Phase 1-2 | Power CLI, eval runner, generator, and UI. |
+| `uv run rag-retrieve --mode bm25\|dense` | Existing/Phase 1 | Run baseline smoke retrieval and print cited chunks. |
+| `uv run rag-retrieve --mode hybrid` | Existing/Phase 2 | Run optimized RRF retrieval with optional local reranking, trace output, and packed contexts. |
+| Retriever Python API | Existing/Phase 1-2 | Power CLI, eval runner, generator, and UI. |
 | Generator Python API | Phase 3 | Convert retrieved context into cited local-model answers. |
 | Gradio app | Phase 4 | Reviewer-facing web demo. |
 | Evaluation runner | Phase 5 | Produce before/after JSONL and Excel outputs. |
@@ -309,7 +311,7 @@ Run these checks at the relevant phase boundaries:
 
 ```bash
 uv run pytest
-uv run pytest tests/test_rag_ingest_index.py
+uv run pytest tests/integration/test_rag_ingest_index.py
 uv run ruff check src tests
 uv run collect-data doctor --seeds config/official_seed_urls_sist_nav_deep.csv
 ```

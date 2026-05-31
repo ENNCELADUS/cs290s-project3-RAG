@@ -1,6 +1,6 @@
 # Project 3 RAG Tech Stack Plan
 
-Last updated: 2026-05-26
+Last updated: 2026-05-31
 
 ## Scope and Constraints
 
@@ -39,6 +39,13 @@ Existing local data state:
 | UI | Gradio `Blocks` or `ChatInterface` | Minimal web app with answer, source snippets, scores, and source URLs. |
 | Evaluation | `pandas`, `openpyxl`, JSONL run logs | Directly produces the required Excel columns and repeatable before/after comparisons. |
 
+Implemented through Phase 2:
+
+- `rag-build-db` builds SQLite metadata from the clean merged JSONL dataset.
+- `rag-build-index` builds BM25, chunk mapping, and optional FAISS dense artifacts.
+- `rag-retrieve --mode bm25|dense` provides baseline cited retrieval.
+- `rag-retrieve --mode hybrid` provides optimized retrieval with RRF fusion, optional local CrossEncoder reranking, source de-duplication, trace fields, and packed contexts.
+
 ## System Architecture
 
 ```mermaid
@@ -69,7 +76,7 @@ flowchart LR
 
 ## Baseline and Optimization Plan
 
-Baseline retrieval:
+Implemented baseline retrieval:
 
 1. Convert every cleaned chunk into a dense vector with `BAAI/bge-m3`.
 2. Store vectors in a FAISS index and chunk metadata in SQLite/JSONL.
@@ -77,13 +84,18 @@ Baseline retrieval:
 4. Prompt the local Qwen model with the retrieved context.
 5. Return the answer plus source snippets.
 
-Optimization:
+Implemented retrieval optimization:
 
 1. Retrieve top candidates from FAISS and BM25 separately.
 2. Merge candidates with reciprocal rank fusion.
-3. Rerank merged candidates with `BAAI/bge-reranker-v2-m3` or `Qwen/Qwen3-Reranker-0.6B`.
-4. Keep the best 6-8 chunks, with token-budget-aware context packing.
-5. Compare pre-optimization and post-optimization accuracy, retrieval hit rate, and latency.
+3. Optionally rerank merged candidates with a local `sentence_transformers.CrossEncoder` path, such as a downloaded `BAAI/bge-reranker-v2-m3` snapshot.
+4. De-duplicate by normalized text and canonical URL cap.
+5. Keep packed contexts with title, URL, language, category, snippet, text, and trace references.
+
+Still pending:
+
+1. Compare pre-optimization and post-optimization accuracy, retrieval hit rate, and latency on the 50+ question set.
+2. Run a real local reranker smoke check on full generated artifacts.
 
 This optimization is report-friendly because it directly targets common failure cases:
 
@@ -108,9 +120,9 @@ Not allowed for the submitted system:
 Recommended deployment sequence:
 
 1. Build the pipeline with `transformers` and `Qwen/Qwen3-4B-Instruct-2507`.
-2. Verify retrieval quality and prompt format on 10-20 smoke questions.
+2. Verify baseline and hybrid retrieval quality on 10-20 smoke questions.
 3. Run the 50+ question evaluation set.
-4. Add hybrid retrieval plus reranking.
+4. Add local generation and citation prompting.
 5. If GPU memory and latency allow, test `Qwen/Qwen3-30B-A3B-Instruct-2507` or `DeepSeek-V4-Flash` as an optional generator upgrade.
 
 ## Suggested Repository Layout
@@ -126,11 +138,8 @@ doc/
 src/
   rag/
     ingest.py
-    clean.py
-    chunk.py
-    embed.py
+    index.py
     retrieve.py
-    rerank.py
     generate.py
     app.py
 eval/
