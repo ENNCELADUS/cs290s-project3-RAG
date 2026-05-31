@@ -1,6 +1,6 @@
 # Phase 2 Retrieval Core
 
-Last updated: 2026-05-31
+Last updated: 2026-06-01
 
 This document describes the retrieval core that is currently implemented. It includes baseline BM25/dense retrieval and Phase 2 hybrid retrieval with RRF, optional local reranking, trace fields, de-duplication, and packed contexts. It does not describe generation or UI behavior.
 
@@ -184,11 +184,21 @@ Earlier remote WSL artifact verification on 2026-05-30:
   - `SIST faculty robotics`
 - `RAG_TEST_REAL_DATA=1 uv run --locked --offline python -m pytest tests/integration/test_real_artifacts.py -q` passed 3 real-artifact checks.
 
+Remote retrieval pilot verification on 2026-05-31:
+
+- The 12-question manifest in `data/eval/retrieval_pilot_manifest_2026-05-31.jsonl` ran against the full remote
+  `data/rag/` artifacts.
+- Official before-optimization retrieval was `dense`; after-optimization retrieval was `hybrid`; `bm25` was diagnostic.
+- Expected-source hit@5 was `bm25` 6/12, `dense` 9/12, and `hybrid` 10/12.
+- The Phase 3 gate passed because hybrid was at least as good as dense and showed no critical top-5 citation regression.
+- Full per-hit logs were kept on the remote at
+  `/home/richard/cs290s-project3-RAG/data/eval/retrieval_pilot_20260531T155503Z.jsonl`.
+
 ## Todo
 
 The following retrieval-adjacent features are not implemented yet:
 
 - Real local reranker smoke verification on full generated artifacts.
-- Baseline-vs-optimized batch evaluation runner.
+- Phase 5 baseline-vs-optimized evaluation runner and Excel export.
 - Local generation with citation prompt and insufficient-evidence policy.
 - Product-quality Gradio UI.

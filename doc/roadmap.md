@@ -1,6 +1,6 @@
 # CS290S SIST RAG Product Roadmap
 
-Last updated: 2026-05-31
+Last updated: 2026-06-01
 
 ## Vision
 
@@ -29,6 +29,7 @@ Primary users are course reviewers and students. The product-quality target is a
 - SQLite ingestion exists in `src/rag/ingest.py`.
 - BM25 and FAISS index building exist in `src/rag/index.py`.
 - Baseline and hybrid retrieval exist in `src/rag/retrieve.py`.
+- Phase 2 retrieval pilot results are documented in `doc/retrieval_experiments.md`.
 - Tests cover collection, parsing, merge, ingestion, indexing, and retrieval behavior.
 
 ## Build Order
@@ -113,6 +114,7 @@ Primary users are course reviewers and students. The product-quality target is a
 - [x] The same question can run in baseline and optimized modes.
 - [x] Optimized output includes final citations and retrieval trace.
 - [x] Unit tests cover RRF ordering, de-duplication, and missing reranker fallback.
+- [x] A 12-question real-artifact retrieval pilot passed the Phase 3 gate: `hybrid` reached 10/12 expected-source hit@5 versus `dense` at 9/12.
 
 ## Phase 3 - Local Generator and Answer Policy
 
@@ -184,6 +186,7 @@ Primary users are course reviewers and students. The product-quality target is a
 ### Artifact Layout
 
 - `data/eval/questions_YYYY-MM-DD.xlsx`
+- `data/eval/retrieval_pilot_manifest_2026-05-31.jsonl`
 - `data/eval/run_<timestamp>.jsonl`
 - `data/eval/results_before_after_<timestamp>.xlsx`
 - `data/eval/gap_notes_<timestamp>.md`
@@ -301,6 +304,7 @@ Primary users are course reviewers and students. The product-quality target is a
 | `uv run rag-retrieve --mode bm25\|dense` | Existing/Phase 1 | Run baseline smoke retrieval and print cited chunks. |
 | `uv run rag-retrieve --mode hybrid` | Existing/Phase 2 | Run optimized RRF retrieval with optional local reranking, trace output, and packed contexts. |
 | Retriever Python API | Existing/Phase 1-2 | Power CLI, eval runner, generator, and UI. |
+| Retrieval pilot manifest | Existing/Phase 2 | Track the 12-question before/after retrieval smoke set and expected source prefixes. |
 | Generator Python API | Phase 3 | Convert retrieved context into cited local-model answers. |
 | Gradio app | Phase 4 | Reviewer-facing web demo. |
 | Evaluation runner | Phase 5 | Produce before/after JSONL and Excel outputs. |

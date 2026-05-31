@@ -1,6 +1,6 @@
 # Project 3 RAG Tech Stack Plan
 
-Last updated: 2026-05-31
+Last updated: 2026-06-01
 
 ## Scope and Constraints
 
@@ -45,6 +45,7 @@ Implemented through Phase 2:
 - `rag-build-index` builds BM25, chunk mapping, and optional FAISS dense artifacts.
 - `rag-retrieve --mode bm25|dense` provides baseline cited retrieval.
 - `rag-retrieve --mode hybrid` provides optimized retrieval with RRF fusion, optional local CrossEncoder reranking, source de-duplication, trace fields, and packed contexts.
+- `doc/retrieval_experiments.md` records the Phase 2 retrieval pilot: `hybrid` reached 10/12 expected-source hit@5 versus `dense` at 9/12 on the 12-question manifest.
 
 ## System Architecture
 
@@ -94,7 +95,7 @@ Implemented retrieval optimization:
 
 Still pending:
 
-1. Compare pre-optimization and post-optimization accuracy, retrieval hit rate, and latency on the 50+ question set.
+1. Compare pre-optimization and post-optimization answer accuracy and latency on the 50+ question set after generation exists.
 2. Run a real local reranker smoke check on full generated artifacts.
 
 This optimization is report-friendly because it directly targets common failure cases:
@@ -120,10 +121,9 @@ Not allowed for the submitted system:
 Recommended deployment sequence:
 
 1. Build the pipeline with `transformers` and `Qwen/Qwen3-4B-Instruct-2507`.
-2. Verify baseline and hybrid retrieval quality on 10-20 smoke questions.
+2. Add local generation and citation prompting.
 3. Run the 50+ question evaluation set.
-4. Add local generation and citation prompting.
-5. If GPU memory and latency allow, test `Qwen/Qwen3-30B-A3B-Instruct-2507` or `DeepSeek-V4-Flash` as an optional generator upgrade.
+4. If GPU memory and latency allow, test `Qwen/Qwen3-30B-A3B-Instruct-2507` or `DeepSeek-V4-Flash` as an optional generator upgrade.
 
 ## Suggested Repository Layout
 

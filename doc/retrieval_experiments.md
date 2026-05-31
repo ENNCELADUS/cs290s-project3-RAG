@@ -1,6 +1,6 @@
 # Retrieval Pilot Experiments
 
-Last updated: 2026-05-31
+Last updated: 2026-06-01
 
 This document records the small retrieval-only pilot used before Phase 3 generation work. It validates the current
 Phase 1-2 retrievers on real `data/rag/` artifacts and checks whether hybrid retrieval is a defensible source of

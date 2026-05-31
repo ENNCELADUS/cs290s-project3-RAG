@@ -4,7 +4,7 @@
 
 This repository builds an official-source ShanghaiTech/SIST RAG system. Core Python packages live under `src/`: `src/rag_collection/` contains the crawler, parsers, structured extraction, reparse, merge, and collection CLI; `src/rag/` contains ingestion, SQLite export, BM25/FAISS indexing, baseline retrieval, and hybrid retrieval. Tests in `tests/` mirror package behavior, for example `tests/integration/test_crawler.py` and `tests/integration/test_rag_ingest_index.py`.
 
-Configuration lives in `config/`, including seed CSVs such as `config/official_seed_urls_sist_nav_deep.csv`. Treat `doc/tech_stack_plan.md` and `doc/data_collection.md` as current report references. Generated crawl runs belong under `data/collection_runs/`, merged datasets under `data/merged/`, and RAG artifacts under `data/rag/`.
+Configuration lives in `config/`, including seed CSVs such as `config/official_seed_urls_sist_nav_deep.csv`. Treat `doc/tech_stack_plan.md`, `doc/data_collection.md`, `doc/retrieval.md`, and `doc/retrieval_experiments.md` as current report references. Generated crawl runs belong under `data/collection_runs/`, merged datasets under `data/merged/`, RAG artifacts under `data/rag/`, and small evaluation specs under `data/eval/`.
 
 ## Build, Test, and Development Commands
 
@@ -18,6 +18,9 @@ Configuration lives in `config/`, including seed CSVs such as `config/official_s
 - `uv run rag-build-index --skip-faiss`: build BM25 and metadata without dense embeddings.
 - `uv run rag-retrieve --query "SIST faculty robotics" --mode hybrid --json`: run optimized retrieval against existing artifacts.
 
+Retrieval report terms are defined in `CONTEXT.md`: `dense` is the official before-optimization retrieval condition,
+`hybrid` is the after-optimization condition, and `bm25` is diagnostic.
+
 ## Coding Style & Naming Conventions
 
 Use Python with type hints and `from __future__ import annotations`, matching existing modules. Keep path defaults as `pathlib.Path` constants near the top of CLI modules. Use snake_case for functions, variables, CLI flags, and JSONL fields. Ruff targets 120-character lines and Python 3.11.
@@ -25,6 +28,9 @@ Use Python with type hints and `from __future__ import annotations`, matching ex
 ## Testing Guidelines
 
 Add or update tests for behavior changes. Prefer small fixtures with `tmp_path` and local JSONL writers, as in `tests/integration/test_rag_ingest_index.py`, instead of large real datasets. For crawler/parser changes, cover canonical URLs, content parsing, quality flags, and merge behavior.
+
+For real artifact checks, use remote or opt-in generated artifacts rather than committing large outputs. The Phase 2
+retrieval pilot keeps only the small manifest in Git and leaves per-hit JSONL run logs under remote `data/eval/`.
 
 ## Security & Configuration Tips
 

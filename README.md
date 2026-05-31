@@ -28,6 +28,7 @@ Official-source ShanghaiTech/SIST retrieval-augmented generation data and indexi
 - **[2026/05]** Built a clean merged dataset record at `doc/data_collection.md`.
 - **[2026/05]** Added SQLite ingestion, BM25/FAISS index builders, and cited retrieval under `src/rag/`.
 - **[2026/05]** Added Phase 2 hybrid retrieval with RRF fusion, optional local reranking, trace output, source de-duplication, and packed contexts.
+- **[2026/05]** Completed a 12-question retrieval pilot: `hybrid` reached 10/12 expected-source hit@5 versus `dense` at 9/12.
 
 ## Why This Project?
 
@@ -126,6 +127,10 @@ uv run rag-retrieve --query "SIST faculty robotics" --mode hybrid --top-k 5 --js
 
 Hybrid retrieval uses BM25 and FAISS candidates, reciprocal rank fusion, source de-duplication, and structured trace output. Optional reranking requires `--reranker-model` to point to an existing local model path; omitted reranker settings keep the RRF order. The retrieval API and output shapes are documented in [doc/retrieval.md](doc/retrieval.md).
 
+The Phase 2 retrieval pilot is documented in [doc/retrieval_experiments.md](doc/retrieval_experiments.md). For report
+language, the official before-optimization retrieval condition is `dense`; the after-optimization condition is
+`hybrid`; `bm25` is a diagnostic baseline.
+
 ## Project Structure
 
 ```text
@@ -134,6 +139,7 @@ data/jsonl/             Existing normalized source data
 data/collection_runs/   Append-only crawl and reparse outputs
 data/merged/            Clean merged JSONL datasets for indexing
 data/rag/               Generated SQLite, BM25, FAISS, and report artifacts
+data/eval/              Small evaluation specs; large run logs stay generated
 doc/                    Report-facing project notes
 src/rag_collection/     Crawler, parsers, structured extraction, merge CLI
 src/rag/                SQLite ingestion, indexing, and retrieval runtime
