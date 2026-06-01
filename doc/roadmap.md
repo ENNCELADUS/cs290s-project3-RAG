@@ -129,14 +129,20 @@ Primary users are course reviewers and students. The product-quality target is a
 ### Task Checklist
 
 #### Generation
-- [ ] Add generator module using local `transformers` model loading or a local self-hosted endpoint.
-- [ ] Define prompt template with question, ranked context, answer rules, and citation requirements.
-- [ ] Add configurable model path, max tokens, temperature, and device settings.
-- [ ] Add insufficient-evidence response when retrieval confidence/context is weak.
+- [x] Add generator module using local `transformers` model loading or a local self-hosted endpoint.
+- [x] Define prompt template with question, ranked context, answer rules, and citation requirements.
+- [x] Add configurable model path, max tokens, temperature, and device settings.
+- [x] Add insufficient-evidence response when retrieval context is absent, uncited, or lacks usable source URLs.
 
 #### Safety and Constraints
-- [ ] Ensure no hosted OpenAI, Claude, Gemini, DashScope, hosted DeepSeek, or Hugging Face hosted inference calls are used.
-- [ ] Add clear error messages for missing local model files or unavailable CUDA.
+- [x] Ensure no hosted OpenAI, Claude, Gemini, DashScope, hosted DeepSeek, or Hugging Face hosted inference calls are used.
+- [x] Add clear error messages for missing local model files or unavailable CUDA.
+
+#### Implementation Notes
+- [x] Add `rag-answer` for local cited answer generation over `dense` and `hybrid` retrieval modes.
+- [x] Require explicit local `--model-path`; recommended Qwen model IDs are documentation hints, not runtime download defaults.
+- [x] Add default fake-model tests for prompt, citation, refusal, device, and JSON output behavior.
+- [ ] Run opt-in real Qwen3-4B smoke checks with a local model snapshot.
 
 #### Definition of Done
 - [ ] Local Qwen3-4B answers representative Chinese and English questions.

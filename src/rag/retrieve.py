@@ -256,6 +256,16 @@ class Retriever:
             contexts.append(_context_from_row(row, rank=final_rank, trace_ref=trace.trace_id))
         return HybridRetrievalResult(query=query, mode=HYBRID_MODE, hits=hits, contexts=contexts, config=config)
 
+    def contexts_for_hits(self, hits: list[RetrievalHit]) -> list[ContextItem]:
+        return [
+            _context_from_row(
+                self._chunks_by_id[hit.chunk_id],
+                rank=hit.rank,
+                trace_ref=f"{hit.mode}:chunk:{hit.chunk_id}",
+            )
+            for hit in hits
+        ]
+
     def _retrieve_bm25_matching(self, query: str, top_k: int) -> list[RetrievalHit]:
         if self.bm25_path is None:
             raise FileNotFoundError("BM25 retrieval requires a bm25_path")

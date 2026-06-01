@@ -29,6 +29,7 @@ Official-source ShanghaiTech/SIST retrieval-augmented generation data and indexi
 - **[2026/05]** Added SQLite ingestion, BM25/FAISS index builders, and cited retrieval under `src/rag/`.
 - **[2026/05]** Added Phase 2 hybrid retrieval with RRF fusion, optional local reranking, trace output, source de-duplication, and packed contexts.
 - **[2026/05]** Completed a 12-question retrieval pilot: `hybrid` reached 10/12 expected-source hit@5 versus `dense` at 9/12.
+- **[2026/06]** Added local `rag-answer` generation with explicit model paths, citation checks, and evidence-insufficient answers.
 
 ## Why This Project?
 
@@ -131,6 +132,23 @@ The Phase 2 retrieval pilot is documented in [doc/retrieval_experiments.md](doc/
 language, the official before-optimization retrieval condition is `dense`; the after-optimization condition is
 `hybrid`; `bm25` is a diagnostic baseline.
 
+## RAG Answering
+
+Generate local cited answers with an explicit local model snapshot:
+
+```bash
+uv run rag-answer \
+  --query "SIST faculty robotics" \
+  --mode hybrid \
+  --model-path /models/hub/snapshots/qwen3-4b-instruct-2507-local \
+  --json
+```
+
+`rag-answer` supports the official report modes `dense` and `hybrid`. It does not default to a hosted model ID or
+download model files at runtime. Missing model paths, unavailable requested CUDA, empty evidence, missing source URLs,
+and uncited model text produce explicit errors or evidence-insufficient answers. The generation contract is documented
+in [doc/generation.md](doc/generation.md).
+
 ## Project Structure
 
 ```text
@@ -142,7 +160,7 @@ data/rag/               Generated SQLite, BM25, FAISS, and report artifacts
 data/eval/              Small evaluation specs; large run logs stay generated
 doc/                    Report-facing project notes
 src/rag_collection/     Crawler, parsers, structured extraction, merge CLI
-src/rag/                SQLite ingestion, indexing, and retrieval runtime
+src/rag/                SQLite ingestion, indexing, retrieval, and generation runtime
 tests/                  Pytest coverage for collection, parsing, merge, indexing
 ```
 
