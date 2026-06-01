@@ -150,3 +150,18 @@ uv run rag-answer \
 
 The last query should produce an evidence-insufficient response unless the indexed official-source corpus contains
 usable evidence.
+
+For regression work on the real local generator, run the opt-in e2e tests. These tests load the real model, call the
+public `RagAnswerer` API, and pin the expected answer shape for representative Chinese, English, and unanswerable
+questions:
+
+```bash
+RAG_TEST_REAL_DATA=1 \
+RAG_TEST_REAL_LLM=1 \
+RAG_TEST_MODEL_PATH=/home/richard/models/Qwen3-0.6B \
+RAG_TEST_DEVICE=cuda \
+uv run python -m pytest tests/e2e/test_rag_answer_real_llm.py -q
+```
+
+They are expected to fail until the prompt/generation policy can produce concise cited answers and refuse unsupported
+questions.

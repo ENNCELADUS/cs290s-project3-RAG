@@ -34,15 +34,21 @@ def _disable_subset_coverage_gate(config: pytest.Config) -> None:
 
 def pytest_collection_modifyitems(items: list[pytest.Item]) -> None:
     run_real_data = os.getenv("RAG_TEST_REAL_DATA") == "1"
+    run_real_llm = os.getenv("RAG_TEST_REAL_LLM") == "1"
     skip_real_data = pytest.mark.skip(reason="set RAG_TEST_REAL_DATA=1 to run real artifact checks")
+    skip_real_llm = pytest.mark.skip(reason="set RAG_TEST_REAL_LLM=1 and RAG_TEST_MODEL_PATH to run real LLM checks")
     for item in items:
         path_parts = set(Path(str(item.fspath)).parts)
         if "unit" in path_parts:
             item.add_marker(pytest.mark.unit)
         if "integration" in path_parts:
             item.add_marker(pytest.mark.integration)
+        if "e2e" in path_parts:
+            item.add_marker(pytest.mark.e2e)
         if "real_data" in item.keywords and not run_real_data:
             item.add_marker(skip_real_data)
+        if "real_llm" in item.keywords and not run_real_llm:
+            item.add_marker(skip_real_llm)
 
 
 @pytest.fixture

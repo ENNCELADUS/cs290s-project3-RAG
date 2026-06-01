@@ -35,6 +35,32 @@ class FakeTokenizer:
         return self.generated_text
 
 
+class FakeChatTokenizer(FakeTokenizer):
+    def __init__(self, generated_text: str) -> None:
+        super().__init__(generated_text)
+        self.chat_template_kwargs: dict[str, object] | None = None
+
+    def apply_chat_template(
+        self,
+        messages: list[dict[str, str]],
+        *,
+        tokenize: bool,
+        add_generation_prompt: bool,
+        enable_thinking: bool,
+    ) -> str:
+        self.chat_template_kwargs = {
+            "messages": messages,
+            "tokenize": tokenize,
+            "add_generation_prompt": add_generation_prompt,
+            "enable_thinking": enable_thinking,
+        }
+        return "<chat prompt>"
+
+    def __call__(self, prompt: str, return_tensors: str) -> dict[str, FakeTensor]:
+        assert prompt == "<chat prompt>"
+        return {"input_ids": FakeTensor()}
+
+
 class FakeModel:
     def generate(self, **kwargs: object) -> list[list[int]]:
         return [[1, 2, 3, 4]]
@@ -167,6 +193,69 @@ def test_generation_with_unresolved_citation_returns_insufficient_evidence(
     assert result.answer.startswith("Evidence is insufficient")
 
 
+def test_prompt_leakage_generation_returns_insufficient_evidence(
+    tmp_path: Path, fake_hybrid_sentence_transformer_module, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    paths = _build_generation_artifacts(tmp_path)
+    model_path = tmp_path / "qwen-local"
+    model_path.mkdir()
+    _patch_generation(
+        monkeypatch,
+        "[1] Dense Winner\nURL: https://example.edu/b\ntrace_ref: chunk:101\nTEXT:\nleaked source block",
+    )
+    answerer = RagAnswerer(_retriever_from_paths(paths), model_path=model_path, device="cpu")
+
+    result = answerer.answer("exact bridge query", mode="hybrid", top_k=2)
+
+    assert result.status == "insufficient_evidence"
+    assert result.answer.startswith("Evidence is insufficient")
+
+
+def test_model_insufficient_evidence_text_returns_structural_insufficient_evidence(
+    tmp_path: Path, fake_hybrid_sentence_transformer_module, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    paths = _build_generation_artifacts(tmp_path)
+    model_path = tmp_path / "qwen-local"
+    model_path.mkdir()
+    _patch_generation(monkeypatch, "Evidence is insufficient to answer this question [1].")
+    answerer = RagAnswerer(_retriever_from_paths(paths), model_path=model_path, device="cpu")
+
+    result = answerer.answer("exact bridge query", mode="hybrid", top_k=2)
+
+    assert result.status == "insufficient_evidence"
+    assert result.answer.startswith("Evidence is insufficient")
+
+
+def test_model_refusal_falls_back_to_explicit_course_teacher_evidence(
+    tmp_path: Path, fake_hybrid_sentence_transformer_module, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    paths = _build_generation_artifacts(tmp_path, dense_text="Deep Learning 【Dr Alice】")
+    model_path = tmp_path / "qwen-local"
+    model_path.mkdir()
+    _patch_generation(monkeypatch, "Evidence is insufficient.")
+    answerer = RagAnswerer(_retriever_from_paths(paths), model_path=model_path, device="cpu")
+
+    result = answerer.answer("Who taught Deep Learning?", mode="hybrid", top_k=2)
+
+    assert result.status == "answered"
+    assert result.answer == "Deep Learning was taught by Dr Alice [1]."
+
+
+def test_model_refusal_falls_back_to_explicit_robotics_faculty_evidence(
+    tmp_path: Path, fake_hybrid_sentence_transformer_module, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    paths = _build_generation_artifacts(tmp_path, dense_text="Robotics Lab of Prof. Schwertfeger")
+    model_path = tmp_path / "qwen-local"
+    model_path.mkdir()
+    _patch_generation(monkeypatch, "Evidence is insufficient.")
+    answerer = RagAnswerer(_retriever_from_paths(paths), model_path=model_path, device="cpu")
+
+    result = answerer.answer("Which faculty work on robotics?", mode="hybrid", top_k=2)
+
+    assert result.status == "answered"
+    assert result.answer == "Prof. Schwertfeger works on robotics [1]."
+
+
 def test_answer_cli_json_outputs_structured_result(
     tmp_path: Path,
     fake_hybrid_sentence_transformer_module,
@@ -223,6 +312,30 @@ def test_build_prompt_numbers_context_sources(tmp_path: Path, fake_hybrid_senten
     assert "Every factual paragraph must include" in prompt
 
 
+def test_generation_uses_chat_template_without_qwen_thinking(
+    tmp_path: Path, fake_hybrid_sentence_transformer_module, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    paths = _build_generation_artifacts(tmp_path)
+    model_path = tmp_path / "qwen-local"
+    model_path.mkdir()
+    tokenizer = FakeChatTokenizer("Chat template answer [1].")
+
+    def fake_load_model(self: RagAnswerer) -> tuple[FakeChatTokenizer, FakeModel]:
+        return tokenizer, FakeModel()
+
+    monkeypatch.setattr(RagAnswerer, "_load_model", fake_load_model)
+    answerer = RagAnswerer(_retriever_from_paths(paths), model_path=model_path, device="cpu")
+
+    result = answerer.answer("exact bridge query", mode="hybrid", top_k=2)
+
+    assert result.status == "answered"
+    assert tokenizer.chat_template_kwargs is not None
+    assert tokenizer.chat_template_kwargs["add_generation_prompt"] is True
+    assert tokenizer.chat_template_kwargs["enable_thinking"] is False
+    assert tokenizer.chat_template_kwargs["messages"][0]["role"] == "system"
+    assert tokenizer.chat_template_kwargs["messages"][1]["role"] == "user"
+
+
 def _patch_generation(monkeypatch: pytest.MonkeyPatch, generated_text: str) -> None:
     def fake_load_model(self: RagAnswerer) -> tuple[FakeTokenizer, FakeModel]:
         return FakeTokenizer(generated_text), FakeModel()
@@ -240,7 +353,12 @@ def _retriever_from_paths(paths: dict[str, Path]) -> Retriever:
     )
 
 
-def _build_generation_artifacts(tmp_path: Path, *, chunk_url: str | None = "https://example.edu/b") -> dict[str, Path]:
+def _build_generation_artifacts(
+    tmp_path: Path,
+    *,
+    chunk_url: str | None = "https://example.edu/b",
+    dense_text: str = "dense winner semantic source with enough full text for generation",
+) -> dict[str, Path]:
     import faiss
 
     input_dir = tmp_path / "generation-merged"
@@ -270,8 +388,8 @@ def _build_generation_artifacts(tmp_path: Path, *, chunk_url: str | None = "http
                 "chunk_index": 0,
                 "title": "Dense Winner",
                 "url": chunk_url,
-                "text": "dense winner semantic source with enough full text for generation",
-                "char_count": 61,
+                "text": dense_text,
+                "char_count": len(dense_text),
             },
         ],
     )

@@ -68,7 +68,9 @@ addopts = [
 markers = [
     "unit: pure logic and single-module tests",
     "integration: filesystem, database, and artifact-building tests",
+    "e2e: end-to-end tests that exercise the full local pipeline",
     "real_data: opt-in checks against generated data/rag artifacts",
+    "real_llm: opt-in checks that load a local LLM and generate answers",
 ]
 
 [tool.uv.sources]
