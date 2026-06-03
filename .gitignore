@@ -26,5 +26,14 @@ data/texts/
 data/collection_runs/
 data/merged/
 data/rag/
+data/archive/
 data/*.sqlite
 data/*.sqlite-*
+
+# Generated evaluation outputs
+data/eval/run_*.jsonl
+data/eval/retrieval_pilot_*.jsonl
+data/eval/retrieval_pilot_*.md
+data/eval/results_before_after_*.xlsx
+data/eval/gap_notes_*.md
+!data/eval/retrieval_pilot_manifest_*.jsonl
