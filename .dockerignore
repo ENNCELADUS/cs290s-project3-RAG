@@ -1,0 +1,13 @@
+.git
+.venv
+.pytest_cache
+.ruff_cache
+__pycache__
+*.py[cod]
+
+data
+logs
+offline_assets
+
+.env
+.DS_Store
