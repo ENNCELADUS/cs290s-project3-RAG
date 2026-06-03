@@ -15,6 +15,7 @@ Official-source ShanghaiTech/SIST retrieval-augmented generation data and indexi
 <p>
   <a href="#why-this-project">Why This Project</a> |
   <a href="#quick-start">Quick Start</a> |
+  <a href="#docker-quick-start">Docker Quick Start</a> |
   <a href="#data-pipeline">Data Pipeline</a> |
   <a href="#architecture">Architecture</a> |
   <a href="#development">Development</a>
@@ -30,6 +31,7 @@ Official-source ShanghaiTech/SIST retrieval-augmented generation data and indexi
 - **[2026/05]** Added Phase 2 hybrid retrieval with RRF fusion, optional local reranking, trace output, source de-duplication, and packed contexts.
 - **[2026/05]** Completed a 12-question retrieval pilot: `hybrid` reached 10/12 expected-source hit@5 versus `dense` at 9/12.
 - **[2026/06]** Added local `rag-answer` generation with explicit model paths, citation checks, and evidence-insufficient answers.
+- **[2026/06]** Added Docker packaging for the local retrieval and answer runtime.
 
 ## Why This Project?
 
@@ -60,6 +62,55 @@ uv run pytest
 ```
 
 > Prerequisites: Python `>=3.11,<3.13` and `uv`. OCR fallback uses local Tesseract language data, especially `chi_sim`, when available.
+
+## Docker Quick Start
+
+Use this path when you already received the Docker image, for example `cs290s-rag-phase3.tar`, or the image is already
+loaded on the server as `cs290s-rag:phase3`. Runtime data is not bundled into the image; mount the generated RAG
+artifacts from `data/rag`.
+
+```bash
+# 1. Load the image if you received a tarball
+docker load -i cs290s-rag-phase3.tar
+
+# 2. Confirm the image is available
+docker image ls cs290s-rag:phase3
+
+# 3. Run a retrieval smoke test against mounted data/rag artifacts
+docker run --rm \
+  --mount type=bind,source="$PWD/data/rag",target=/home/richard/cs290s-project3-RAG/data/rag,readonly \
+  cs290s-rag:phase3 \
+  rag-retrieve --query "SIST faculty robotics" --mode bm25 --top-k 2 --json
+```
+
+For generated answers, also mount a local Qwen snapshot and the local Hugging Face cache that contains the dense
+retrieval model referenced by `data/rag/build_report_2026-05-27.json`:
+
+```bash
+docker run --rm \
+  --mount type=bind,source="$PWD/data/rag",target=/home/richard/cs290s-project3-RAG/data/rag,readonly \
+  --mount type=bind,source=/home/richard/models/Qwen3-0.6B,target=/home/richard/models/Qwen3-0.6B,readonly \
+  --mount type=bind,source="$HOME/.cache/huggingface",target=/home/richard/.cache/huggingface,readonly \
+  cs290s-rag:phase3 \
+  rag-answer --query "SIST faculty robotics" --mode hybrid --top-k 1 \
+  --model-path /home/richard/models/Qwen3-0.6B --device cpu --json
+```
+
+If your model lives elsewhere, change both the host-side `source=...` path and the `--model-path` inside the command.
+If the dense retrieval model is mounted at a path different from the build report path, add
+`--dense-model /path/inside/container/to/bge-m3`. CPU mode is enough for smoke tests. GPU mode requires Docker GPU
+passthrough to work on the host. After installing the NVIDIA runtime, replace `--device cpu` with `--device cuda` and
+add Docker's GPU flag:
+
+```bash
+docker run --rm --gpus all ...
+```
+
+To share the prepared image from a server:
+
+```bash
+docker save cs290s-rag:phase3 -o cs290s-rag-phase3.tar
+```
 
 ## Data Pipeline
 
