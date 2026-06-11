@@ -26,6 +26,8 @@ DEFAULT_FUSED_TOP_K = 20
 DEFAULT_RERANK_TOP_K = 10
 DEFAULT_RRF_K = 60
 DEFAULT_URL_CAP = 2
+DEFAULT_DENSE_URL_CAP = 1
+DENSE_DEDUP_CANDIDATE_MULTIPLIER = 4
 SNIPPET_CHARS = 240
 WHITESPACE_RE = re.compile(r"\s+")
 
@@ -196,7 +198,7 @@ class Retriever:
             hits.append(_hit_from_row(row, rank=rank, score=float(scores[int(index)]), mode="bm25"))
         return hits
 
-    def _retrieve_dense(self, query: str, top_k: int) -> list[RetrievalHit]:
+    def _retrieve_dense(self, query: str, top_k: int, *, dedupe: bool = True) -> list[RetrievalHit]:
         if self.faiss_path is None:
             raise FileNotFoundError("Dense retrieval requires a faiss_path")
         if self.chunk_index_path is None:
@@ -222,19 +224,38 @@ class Retriever:
             show_progress_bar=False,
         )
         vector = np.asarray(embedding, dtype="float32")
-        scores, indices = index.search(vector, top_k)
+        candidate_top_k = top_k
+        if dedupe:
+            candidate_top_k = min(int(index.ntotal), max(top_k, top_k * DENSE_DEDUP_CANDIDATE_MULTIPLIER))
+        if candidate_top_k <= 0:
+            return []
+        scores, indices = index.search(vector, candidate_top_k)
         hits: list[RetrievalHit] = []
-        for rank, index_position in enumerate(indices[0], start=1):
+        for index_rank, index_position in enumerate(indices[0], start=1):
             if int(index_position) < 0:
                 continue
             chunk_id = int(chunk_mapping[int(index_position)]["chunk_id"])
             row = self._chunks_by_id[chunk_id]
-            hits.append(_hit_from_row(row, rank=rank, score=float(scores[0][rank - 1]), mode="dense"))
-        return hits
+            hits.append(_hit_from_row(row, rank=index_rank, score=float(scores[0][index_rank - 1]), mode="dense"))
+        if not dedupe:
+            return hits
+        candidates = [{"chunk_id": hit.chunk_id, "score": hit.score} for hit in hits]
+        selected = _dedupe_candidates(
+            candidates,
+            self._chunks_by_id,
+            final_top_k=top_k,
+            url_cap=DEFAULT_DENSE_URL_CAP,
+        )
+        deduped_hits: list[RetrievalHit] = []
+        for rank, candidate in enumerate(selected, start=1):
+            chunk_id = int(candidate["chunk_id"])
+            row = self._chunks_by_id[chunk_id]
+            deduped_hits.append(_hit_from_row(row, rank=rank, score=float(candidate["score"]), mode="dense"))
+        return deduped_hits
 
     def _retrieve_hybrid(self, query: str, config: HybridRetrievalConfig) -> HybridRetrievalResult:
         sparse_hits = self._retrieve_bm25_matching(query, config.sparse_top_k)
-        dense_hits = self._retrieve_dense(query, config.dense_top_k)
+        dense_hits = self._retrieve_dense(query, config.dense_top_k, dedupe=False)
         fused = _reciprocal_rank_fuse(sparse_hits, dense_hits, config.rrf_k)[: config.fused_top_k]
         reranked = _rerank_candidates(query, fused[: config.rerank_top_k], self._chunks_by_id, config.reranker_model)
         ordered = [*reranked, *fused[config.rerank_top_k :]]
