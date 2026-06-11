@@ -41,6 +41,7 @@ rag-build-db = "rag.ingest:main"
 rag-build-index = "rag.index:main"
 rag-retrieve = "rag.retrieve:main"
 rag-answer = "rag.generate:main"
+rag-evaluate = "evaluate.cli:main"
 
 [dependency-groups]
 dev = [
@@ -54,7 +55,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/rag_collection", "src/rag"]
+packages = ["src/rag_collection", "src/rag", "src/evaluate"]
 
 [tool.pytest.ini_options]
 pythonpath = ["src"]

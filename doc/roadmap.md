@@ -1,6 +1,6 @@
 # CS290S SIST RAG Product Roadmap
 
-Last updated: 2026-06-01
+Last updated: 2026-06-11
 
 ## Vision
 
@@ -18,7 +18,7 @@ Primary users are course reviewers and students. The product-quality target is a
 | Sparse retrieval | BM25 with regex tokens + `jieba` | Handles exact course, faculty, Chinese, and English matches. |
 | Dense retrieval | FAISS + `BAAI/bge-m3` | Multilingual dense retrieval for semantic matching. |
 | Optimization | RRF hybrid merge + reranker | Clear before/after improvement axis for report and demo. |
-| Generator | Local Qwen3-4B first; Qwen3-30B-A3B optional | Prioritizes a working demo, with a stronger AIStation experiment path. |
+| Generator | Local Qwen3 family; Qwen3-0.6B smoke, Qwen3-4B/30B optional | Keeps local-only generation testable on 8GB GPUs, with stronger AIStation experiment paths. |
 | UI | Gradio | Fastest route to a polished interactive web demo. |
 | Deployment | AIStation GPU + local smoke mode | Meets assignment resources while preserving lightweight dev checks. |
 
@@ -30,7 +30,17 @@ Primary users are course reviewers and students. The product-quality target is a
 - BM25 and FAISS index building exist in `src/rag/index.py`.
 - Baseline and hybrid retrieval exist in `src/rag/retrieve.py`.
 - Phase 2 retrieval pilot results are documented in `doc/retrieval_experiments.md`.
-- Tests cover collection, parsing, merge, ingestion, indexing, and retrieval behavior.
+- Local answer generation exists in `src/rag/generate.py` and the `rag-answer` CLI.
+- Phase 3 answer policy uses local `transformers` loading only, explicit `--model-path`, chat-template rendering when
+  available, citation validation, prompt-leakage rejection, and evidence-insufficient responses.
+- Opt-in real LLM e2e tests exist in `tests/e2e/test_rag_answer_real_llm.py` and passed on the remote WSL host with
+  `/home/richard/models/Qwen3-0.6B` and generated `data/rag/` artifacts.
+- Docker packaging and mounted-runtime smoke commands are documented in `README.md`.
+- A structured 100-question evaluation CSV exists at `data/test/question_final_structured_100.csv`.
+- A Phase 5 evaluation module exists at `src/evaluate/` with the `rag-evaluate` CLI for retrieval or answer runs over the
+  structured question set, producing JSONL records, summary JSON, review queues, gap notes, and Excel output under
+  `data/eval/`.
+- Tests cover collection, parsing, merge, ingestion, indexing, retrieval, generation, and opt-in real LLM e2e behavior.
 
 ## Build Order
 
@@ -122,7 +132,12 @@ Primary users are course reviewers and students. The product-quality target is a
 
 ### What's New
 
-- Local Qwen3-4B generation path with a conservative citation-first prompt.
+- Local Qwen generation path with a conservative citation-first prompt.
+- Qwen chat-template rendering when available, with Qwen3 thinking disabled for answer-mode generation.
+- Structural answer validation for missing citations, unresolved citations, prompt/source leakage, and explicit
+  evidence-insufficient model text.
+- Evidence-grounded fallback for narrow explicit course-teacher and robotics-faculty patterns exposed by the real
+  Qwen3-0.6B smoke tests.
 - Optional Qwen3-30B-A3B AIStation experiment path.
 - Answer policy: answer in the user's language, cite sources, and say when evidence is insufficient.
 
@@ -142,12 +157,14 @@ Primary users are course reviewers and students. The product-quality target is a
 - [x] Add `rag-answer` for local cited answer generation over `dense` and `hybrid` retrieval modes.
 - [x] Require explicit local `--model-path`; recommended Qwen model IDs are documentation hints, not runtime download defaults.
 - [x] Add default fake-model tests for prompt, citation, refusal, device, and JSON output behavior.
-- [ ] Run opt-in real Qwen3-4B smoke checks with a local model snapshot.
+- [x] Add opt-in real LLM e2e tests guarded by `RAG_TEST_REAL_LLM`, `RAG_TEST_REAL_DATA`, and `RAG_TEST_MODEL_PATH`.
+- [x] Run opt-in real Qwen3-0.6B smoke checks with a local model snapshot on the remote WSL host.
+- [ ] Run opt-in Qwen3-4B or larger AIStation smoke checks if GPU memory allows.
 
 #### Definition of Done
-- [ ] Local Qwen3-4B answers representative Chinese and English questions.
-- [ ] Answers include source titles or URLs.
-- [ ] An unanswerable question produces an evidence-insufficient response.
+- [x] Local Qwen3 smoke model answers representative Chinese and English questions.
+- [x] Answers include numbered citations mapped to source titles and URLs in the structured `sources` list.
+- [x] An unanswerable question produces an evidence-insufficient response.
 
 ## Phase 4 - Product-Quality Gradio UI
 
@@ -191,23 +208,29 @@ Primary users are course reviewers and students. The product-quality target is a
 
 ### Artifact Layout
 
+- `data/test/question_final.csv`
+- `data/test/question_final_structured_100.csv`
 - `data/eval/questions_YYYY-MM-DD.xlsx`
 - `data/eval/retrieval_pilot_manifest_2026-05-31.jsonl`
 - `data/eval/run_<timestamp>.jsonl`
+- `data/eval/summary_<timestamp>.json`
+- `data/eval/review_queue_<timestamp>.csv`
 - `data/eval/results_before_after_<timestamp>.xlsx`
 - `data/eval/gap_notes_<timestamp>.md`
 
 ### Task Checklist
 
 #### Evaluation Set
-- [ ] Create at least 50 questions across factual, multi-hop, time-sensitive, comparative, conditional, course, faculty, and English categories.
-- [ ] Store ground-truth answers, source URLs, expected evidence snippets, category, and language.
+- [x] Create at least 50 questions across factual, multi-hop, time-sensitive, comparative, conditional, course, faculty, and English categories.
+- [x] Store ground-truth answers, source URLs, expected evidence snippets, category, and language.
 - [ ] Include reviewer-friendly examples for the demo.
 
 #### Evaluation Runner
-- [ ] Run each question through baseline and optimized modes.
-- [ ] Record before/after response, retrieved source URLs, retrieval hit notes, latency, and correctness labels.
-- [ ] Export the required Excel columns:
+- [x] Add a formal `src/evaluate` runner that can run each question through `dense` and `hybrid` modes for retrieval or answer paths.
+- [x] Record retrieved or cited source URLs, source-hit flags, top titles, latency, answer status, and answer text to JSONL.
+- [x] Write summary JSON with per-mode ok/error counts, retrieval metrics, correctness draft counts, and average latency.
+- [x] Record before/after correctness drafts and support review-decision overrides for final labels.
+- [x] Export the required Excel columns:
   - `query`
   - `gt_answer`
   - `sys_resp_before_opt`
@@ -311,9 +334,11 @@ Primary users are course reviewers and students. The product-quality target is a
 | `uv run rag-retrieve --mode hybrid` | Existing/Phase 2 | Run optimized RRF retrieval with optional local reranking, trace output, and packed contexts. |
 | Retriever Python API | Existing/Phase 1-2 | Power CLI, eval runner, generator, and UI. |
 | Retrieval pilot manifest | Existing/Phase 2 | Track the 12-question before/after retrieval smoke set and expected source prefixes. |
-| Generator Python API | Phase 3 | Convert retrieved context into cited local-model answers. |
+| Generator Python API | Existing/Phase 3 | Convert retrieved context into cited local-model answers. |
+| `uv run rag-answer --mode dense\|hybrid` | Existing/Phase 3 | Generate structured local answers for official before/after answer conditions. |
+| Real LLM e2e tests | Existing/Phase 3 | Opt-in local-Qwen regression checks for answer templates and insufficient-evidence behavior. |
 | Gradio app | Phase 4 | Reviewer-facing web demo. |
-| Evaluation runner | Phase 5 | Produce before/after JSONL and Excel outputs. |
+| `uv run rag-evaluate` | Existing/Phase 5 | Run structured questions through retrieval and/or answer paths, summarize retrieval metrics, emit review queues, and export assignment-ready before/after Excel outputs. |
 
 ## Test and Acceptance Plan
 
@@ -322,8 +347,25 @@ Run these checks at the relevant phase boundaries:
 ```bash
 uv run pytest
 uv run pytest tests/integration/test_rag_ingest_index.py
+uv run pytest tests/integration/test_rag_generate.py
 uv run ruff check src tests
 uv run collect-data doctor --seeds config/official_seed_urls_sist_nav_deep.csv
+```
+
+Opt-in real LLM regression:
+
+```bash
+RAG_TEST_REAL_DATA=1 \
+RAG_TEST_REAL_LLM=1 \
+RAG_TEST_MODEL_PATH=/home/richard/models/Qwen3-0.6B \
+RAG_TEST_DEVICE=cuda \
+uv run python -m pytest tests/e2e/test_rag_answer_real_llm.py -q
+```
+
+Structured question benchmark smoke:
+
+```bash
+uv run rag-evaluate --runner retrieve --modes dense hybrid --limit 5
 ```
 
 Manual acceptance scenarios:
@@ -358,3 +400,5 @@ Evaluation acceptance:
 - After completing a phase, update this file with checked tasks, verification commands, generated artifact paths, and any commit hash if committed.
 - Preserve user changes in the working tree; do not rewrite unrelated docs or generated data.
 - If a phase exposes a data coverage gap, create a targeted refresh task rather than launching a broad crawl.
+- Keep uncommitted evaluation artifacts under `data/test/` and generated benchmark outputs under `data/eval/` visibly
+  documented before using them for report claims.
