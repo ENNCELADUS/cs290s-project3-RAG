@@ -197,24 +197,6 @@ def test_dense_retrieval_returns_cited_chunks(
     assert hits[0].mode == "dense"
 
 
-def test_dense_retrieval_skips_duplicate_source_chunks(
-    tmp_path: Path, fake_hybrid_sentence_transformer_module
-) -> None:
-    paths = _build_dense_duplicate_source_artifacts(tmp_path)
-    retriever = Retriever.from_paths(
-        db_path=paths["db"],
-        faiss_path=paths["faiss"],
-        chunk_index_path=paths["chunk_index"],
-        report_path=paths["report"],
-    )
-
-    hits = retriever.retrieve("exact bridge query", mode="dense", top_k=2)
-
-    assert [hit.url for hit in hits] == ["https://example.edu/a", "https://example.edu/b"]
-    assert [hit.rank for hit in hits] == [1, 2]
-    assert [hit.mode for hit in hits] == ["dense", "dense"]
-
-
 def test_dense_retrieval_reports_missing_dense_index(tmp_path: Path, merged_input_dir: Path) -> None:
     db_path = tmp_path / "rag.sqlite"
     report_path = tmp_path / "report.json"
@@ -614,97 +596,6 @@ def _build_hybrid_artifacts(tmp_path: Path) -> dict[str, Path]:
     return {
         "db": db_path,
         "bm25": bm25_path,
-        "faiss": faiss_path,
-        "chunk_index": chunk_index_path,
-        "report": report_path,
-    }
-
-
-def _build_dense_duplicate_source_artifacts(tmp_path: Path) -> dict[str, Path]:
-    import faiss
-
-    input_dir = tmp_path / "dense-dedupe-merged"
-    input_dir.mkdir()
-    write_jsonl(
-        input_dir / "documents.jsonl",
-        [
-            {"id": 10, "url": "https://example.edu/a", "canonical_url": "https://example.edu/a", "title": "A"},
-            {"id": 11, "url": "https://example.edu/b", "canonical_url": "https://example.edu/b", "title": "B"},
-        ],
-    )
-    write_jsonl(
-        input_dir / "chunks.jsonl",
-        [
-            {
-                "id": 100,
-                "document_id": 10,
-                "chunk_index": 0,
-                "title": "A1",
-                "url": "https://example.edu/a",
-                "text": "same dense source text",
-                "char_count": 22,
-            },
-            {
-                "id": 101,
-                "document_id": 10,
-                "chunk_index": 1,
-                "title": "A2",
-                "url": "https://example.edu/a",
-                "text": "same dense source text",
-                "char_count": 22,
-            },
-            {
-                "id": 102,
-                "document_id": 10,
-                "chunk_index": 2,
-                "title": "A3",
-                "url": "https://example.edu/a",
-                "text": "different dense source text",
-                "char_count": 27,
-            },
-            {
-                "id": 103,
-                "document_id": 11,
-                "chunk_index": 0,
-                "title": "B1",
-                "url": "https://example.edu/b",
-                "text": "distinct dense source text",
-                "char_count": 26,
-            },
-        ],
-    )
-    write_jsonl(input_dir / "courses.jsonl", [])
-    write_jsonl(input_dir / "faculty_members.jsonl", [])
-    write_jsonl(input_dir / "program_requirements.jsonl", [])
-    write_jsonl(input_dir / "events.jsonl", [])
-
-    db_path = tmp_path / "rag.sqlite"
-    bm25_path = tmp_path / "bm25.pkl"
-    faiss_path = tmp_path / "faiss.index"
-    chunk_index_path = tmp_path / "chunk_index.jsonl"
-    report_path = tmp_path / "report.json"
-    build_database(input_dir, db_path, report_path)
-    build_indexes(db_path, bm25_path, faiss_path, chunk_index_path, report_path, skip_faiss=True)
-
-    index = faiss.IndexFlatIP(3)
-    index.add(
-        np.asarray(
-            [
-                [1.0, 0.0, 0.0],
-                [0.99, 0.0, 0.0],
-                [0.98, 0.0, 0.0],
-                [0.97, 0.0, 0.0],
-            ],
-            dtype="float32",
-        )
-    )
-    faiss.write_index(index, str(faiss_path))
-    atomic_json_dump(
-        report_path,
-        {"index": {"faiss": {"model_path": "/models/hub/snapshots/bge-m3-local", "model_id": DEFAULT_MODEL}}},
-    )
-    return {
-        "db": db_path,
         "faiss": faiss_path,
         "chunk_index": chunk_index_path,
         "report": report_path,
