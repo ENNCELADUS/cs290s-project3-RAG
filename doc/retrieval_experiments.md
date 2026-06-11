@@ -275,6 +275,66 @@ Interpretation:
 - The remaining both-missed top-5 set is 14 questions, down from 23 after Fix 1.
 - Dense remains stronger on top-5 coverage, but hybrid keeps competitive top-rank quality after the same index enrichment.
 
+### Fix 3: Weighted Hybrid RRF
+
+Change:
+
+- commit: `dedac87` (`Weight dense channel in hybrid RRF`)
+- branch: `codex/retrieval-control-url-canonicalization`
+- behavior: hybrid RRF now uses default channel weights `sparse_weight=1.0` and `dense_weight=1.5`.
+- no candidate pool size, qrels canonicalization, diagnostic-depth, index text, reranker, or boost changes.
+
+Remote run:
+
+```text
+run_id: remote_retrieve_weighted_rrf_dense15_20260612
+remote worktree: /home/richard/cs290s-project3-RAG-retrieval-urlcanon
+remote artifacts:
+  data/eval/run_remote_retrieve_weighted_rrf_dense15_20260612.jsonl
+  data/eval/summary_remote_retrieve_weighted_rrf_dense15_20260612.json
+  data/eval/review_queue_remote_retrieve_weighted_rrf_dense15_20260612.csv
+  data/eval/gap_notes_remote_retrieve_weighted_rrf_dense15_20260612.md
+  data/eval/results_before_after_remote_retrieve_weighted_rrf_dense15_20260612.xlsx
+records: 200
+status: dense 100 ok / 0 errors; hybrid 100 ok / 0 errors
+```
+
+| mode | source_hit@1 | source_hit@5 | source_recall@5 | mrr@5 | ndcg@5 | precision@5 | avg latency (s) |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| `dense` | 0.65 | 0.85 | 0.813333 | 0.724333 | 0.721326 | 0.192 | 2.076126 |
+| `hybrid` | 0.64 | 0.82 | 0.788333 | 0.710833 | 0.709939 | 0.190 | 2.989514 |
+
+Delta versus Fix 2:
+
+| mode | source_hit@1 | source_hit@5 | source_recall@5 | mrr@5 | ndcg@5 | precision@5 |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| `dense` | +0.00 | +0.00 | +0.000000 | +0.000000 | +0.000000 | +0.000 |
+| `hybrid` | +0.00 | +0.02 | +0.020000 | +0.005000 | +0.013651 | +0.012 |
+
+Per-question top-5 source-hit overlap after fix 3:
+
+| dense hit@5 | hybrid hit@5 | questions |
+| ---: | ---: | ---: |
+| 0 | 0 | 13 |
+| 0 | 1 | 2 |
+| 1 | 0 | 5 |
+| 1 | 1 | 80 |
+
+Per-question top-1 source-hit overlap after fix 3:
+
+| dense hit@1 | hybrid hit@1 | questions |
+| ---: | ---: | ---: |
+| 0 | 0 | 28 |
+| 0 | 1 | 7 |
+| 1 | 0 | 8 |
+| 1 | 1 | 57 |
+
+Interpretation:
+
+- Weighted RRF gives a small positive top-5 gain for hybrid without changing dense retrieval.
+- Hybrid `source_hit@1` is unchanged, so the effect is deeper top-5 evidence ordering rather than first-rank correction.
+- The remaining both-missed top-5 set is 13 questions, down from 14 after Fix 2.
+
 ## Verification
 
 The root URL matching fix, URL-canonicalization fix, and evaluation module were checked locally:
@@ -291,6 +351,13 @@ uv run --locked --no-sync --offline python -m pytest tests/integration/test_rag_
 uv run --locked --no-sync --offline ruff check src/rag/index.py tests/integration/test_rag_ingest_index.py
 ```
 
+The weighted RRF change was checked locally:
+
+```bash
+uv run --locked --no-sync --offline python -m pytest tests/integration/test_rag_ingest_index.py tests/integration/test_evaluate_phase5.py tests/unit/test_evaluate_core.py -q
+uv run --locked --no-sync --offline ruff check src/rag/retrieve.py tests/integration/test_rag_ingest_index.py
+```
+
 Remote validation:
 
 ```text
@@ -303,6 +370,9 @@ gap_notes_remote_retrieve_urlcanon_20260611.md: 202 lines
 run_remote_retrieve_enriched_index_20260612.jsonl: 200 lines
 review_queue_remote_retrieve_enriched_index_20260612.csv: 201 lines including header
 gap_notes_remote_retrieve_enriched_index_20260612.md: 202 lines
+run_remote_retrieve_weighted_rrf_dense15_20260612.jsonl: 200 lines
+review_queue_remote_retrieve_weighted_rrf_dense15_20260612.csv: 201 lines including header
+gap_notes_remote_retrieve_weighted_rrf_dense15_20260612.md: 202 lines
 workbook sheets: submission, diagnostics, retrieval_metrics, review_queue
 workbook rows: submission 101; diagnostics 201; retrieval_metrics 3; review_queue 201
 ```
