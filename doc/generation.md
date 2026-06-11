@@ -1,6 +1,6 @@
 # Local Generation
 
-Last updated: 2026-06-01
+Last updated: 2026-06-11
 
 This document describes the Phase 3 local answer-generation path. Retrieval still produces cited hits and packed
 contexts; generation turns those contexts into a **Generated Answer** with numbered citations.
@@ -163,5 +163,5 @@ RAG_TEST_DEVICE=cuda \
 uv run python -m pytest tests/e2e/test_rag_answer_real_llm.py -q
 ```
 
-They are expected to fail until the prompt/generation policy can produce concise cited answers and refuse unsupported
-questions.
+These tests should pass when the local model path and generated `data/rag/` artifacts are present. The remote smoke
+path used `/home/richard/models/Qwen3-0.6B` on the WSL host.
