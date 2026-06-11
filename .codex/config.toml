@@ -1,0 +1,39 @@
+#:schema https://developers.openai.com/codex/config-schema.json
+
+# Project-local Codex configuration for ShanghaiTech/SIST RAG multiagent workflows.
+# Keep this focused on agents that help with corpus mapping, evaluation design,
+# scoped edits, review, and documentation consistency for this repository.
+
+approval_policy = "on-request"
+sandbox_mode = "workspace-write"
+web_search = "live"
+approvals_reviewer = "auto_review"
+
+[mcp_servers.context7]
+command = "npx"
+args = ["-y", "@upstash/context7-mcp@latest"]
+startup_timeout_sec = 30
+
+[agents]
+max_threads = 6
+max_depth = 1
+
+[agents.corpus_mapper]
+description = "Read-only mapper for crawler, parser, merge, ingest, index, retrieval, generation, data, config, and documentation paths."
+config_file = "agents/corpus-mapper.toml"
+
+[agents.evaluation_planner]
+description = "Read-only planner for retrieval, generation, and answer-quality evaluation designs using project terminology."
+config_file = "agents/evaluation-planner.toml"
+
+[agents.implementation_worker]
+description = "Scoped implementation worker for assigned RAG collection, retrieval, generation, config, or documentation changes."
+config_file = "agents/implementation-worker.toml"
+
+[agents.reviewer]
+description = "Reviewer focused on correctness, official-source boundaries, data contracts, security, and missing tests."
+config_file = "agents/reviewer.toml"
+
+[agents.docs_guard]
+description = "Read-only documentation guard for README, report docs, evaluation specs, and CONTEXT terminology alignment."
+config_file = "agents/docs-guard.toml"
