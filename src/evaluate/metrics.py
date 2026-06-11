@@ -14,6 +14,8 @@ def normalize_url(url: str) -> str:
 def source_matches(observed_url: str, expected_url: str) -> bool:
     observed = normalize_url(observed_url)
     expected = normalize_url(expected_url)
+    if expected.endswith("/"):
+        return observed == expected or observed.startswith(expected)
     return observed == expected or observed.startswith(f"{expected}/")
 
 

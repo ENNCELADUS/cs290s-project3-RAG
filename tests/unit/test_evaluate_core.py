@@ -43,6 +43,7 @@ def test_source_metrics_are_rank_aware_and_url_prefix_based() -> None:
 
     assert normalize_url("http://EXAMPLE.edu/source/") == "https://example.edu/source"
     assert source_matches("https://example.edu/source/detail", "https://example.edu/source")
+    assert source_matches("https://example.edu/source/detail", "https://example.edu/")
     assert metrics["source_hit@1"] == 0.0
     assert metrics["source_hit@5"] == 1.0
     assert metrics["source_recall@5"] == 1.0
