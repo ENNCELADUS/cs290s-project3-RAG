@@ -41,6 +41,7 @@ class EvaluationConfig:
     top_k: int = 5
     diagnostic_depth: int | None = None
     model_path: Path | None = None
+    reranker_model: Path | None = None
     device: str = "auto"
     max_new_tokens: int | None = None
     artifacts: ArtifactPaths = ArtifactPaths()
@@ -84,7 +85,12 @@ def _run_retrieve(
     started = time.perf_counter()
     base = _question_payload(question, mode=mode, runner="retrieve")
     try:
-        retrieval_result = retriever.retrieve(question.query, mode=mode, top_k=config.top_k)
+        retrieval_result = retriever.retrieve(
+            question.query,
+            mode=mode,
+            top_k=config.top_k,
+            **_reranker_retrieve_kwargs(mode=mode, config=config),
+        )
         hits = _hits_from_result(retrieval_result)
         observed_urls = [str(_hit_value(hit, "url") or "") for hit in hits]
         record = {
@@ -106,6 +112,7 @@ def _run_retrieve(
                 question.query,
                 mode=mode,
                 **_diagnostic_retrieve_kwargs(mode=mode, depth=config.diagnostic_depth),
+                **_reranker_retrieve_kwargs(mode=mode, config=config),
             )
             record["diagnostic_hits"] = [_hit_to_dict(hit) for hit in _hits_from_result(diagnostic_result)]
         return record
@@ -218,6 +225,12 @@ def _diagnostic_retrieve_kwargs(*, mode: EvalMode, depth: int) -> dict[str, int]
             }
         )
     return kwargs
+
+
+def _reranker_retrieve_kwargs(*, mode: EvalMode, config: EvaluationConfig) -> dict[str, str]:
+    if mode != "hybrid" or config.reranker_model is None:
+        return {}
+    return {"reranker_model": str(config.reranker_model)}
 
 
 def _hit_to_dict(hit: object) -> dict[str, Any]:

@@ -24,6 +24,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--top-k", type=int, default=5)
     parser.add_argument("--diagnostic-depth", type=int, default=None)
     parser.add_argument("--model-path", type=Path, default=None)
+    parser.add_argument("--reranker-model", type=Path, default=None)
     parser.add_argument("--device", choices=["auto", "cpu", "cuda"], default="auto")
     parser.add_argument("--max-new-tokens", type=int, default=None)
     parser.add_argument("--dense-model", default=None)
@@ -58,6 +59,7 @@ def main(argv: list[str] | None = None) -> int:
         top_k=args.top_k,
         diagnostic_depth=args.diagnostic_depth,
         model_path=args.model_path,
+        reranker_model=args.reranker_model,
         device=args.device,
         max_new_tokens=args.max_new_tokens,
         artifacts=artifacts,

@@ -301,6 +301,53 @@ def test_evaluate_retrieve_can_save_diagnostic_hits_beyond_final_top_k(tmp_path:
     assert hybrid_diagnostic_call["fused_top_k"] == 25
 
 
+def test_evaluate_retrieve_passes_reranker_model_only_to_hybrid(tmp_path: Path, monkeypatch) -> None:
+    questions_path = tmp_path / "questions.csv"
+    _write_questions(questions_path)
+    output_dir = tmp_path / "eval"
+    calls: list[dict[str, object]] = []
+
+    class FakeRetriever:
+        @classmethod
+        def from_paths(cls, **kwargs: object) -> FakeRetriever:
+            return cls()
+
+        def retrieve(self, query: str, *, mode: str, top_k: int, **kwargs: object) -> list[object]:
+            calls.append({"mode": mode, "top_k": top_k, **kwargs})
+            return [_Hit(rank=1, url="https://example.edu/source", title=mode, score=1.0)]
+
+    monkeypatch.setattr("evaluate.runner.Retriever", FakeRetriever)
+
+    assert (
+        evaluate_main(
+            [
+                "--questions",
+                str(questions_path),
+                "--output-dir",
+                str(output_dir),
+                "--runner",
+                "retrieve",
+                "--reranker-model",
+                "/models/local-reranker",
+                "--diagnostic-depth",
+                "10",
+                "--timestamp",
+                "20260611T080000Z",
+            ]
+        )
+        == 0
+    )
+
+    assert calls[0]["mode"] == "dense"
+    assert "reranker_model" not in calls[0]
+    assert calls[1]["mode"] == "dense"
+    assert "reranker_model" not in calls[1]
+    assert calls[2]["mode"] == "hybrid"
+    assert calls[2]["reranker_model"] == "/models/local-reranker"
+    assert calls[3]["mode"] == "hybrid"
+    assert calls[3]["reranker_model"] == "/models/local-reranker"
+
+
 def test_evaluate_both_runner_emits_retrieval_and_answer_records(tmp_path: Path, monkeypatch) -> None:
     questions_path = tmp_path / "questions.csv"
     _write_questions(questions_path)
