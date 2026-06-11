@@ -1,14 +1,27 @@
 from __future__ import annotations
 
 import math
+import re
 from urllib.parse import unquote, urlsplit, urlunsplit
+
+_SIST_HOST = "sist.shanghaitech.edu.cn"
+_SIST_TEMPLATE_SEGMENT = re.compile(r"_t\d+")
 
 
 def normalize_url(url: str) -> str:
     parsed = urlsplit(unquote(url.strip()))
     scheme = "https" if parsed.scheme in {"http", "https"} else parsed.scheme
-    path = parsed.path.rstrip("/") or "/"
-    return urlunsplit((scheme, parsed.netloc.lower(), path, parsed.query, ""))
+    netloc = parsed.netloc.lower()
+    path = _canonical_path(parsed.path, netloc)
+    return urlunsplit((scheme, netloc, path, "", ""))
+
+
+def _canonical_path(path: str, netloc: str) -> str:
+    canonical = path.rstrip("/") or "/"
+    if netloc != _SIST_HOST:
+        return canonical
+    parts = [part for part in canonical.split("/") if not _SIST_TEMPLATE_SEGMENT.fullmatch(part)]
+    return "/".join(parts) or "/"
 
 
 def source_matches(observed_url: str, expected_url: str) -> bool:

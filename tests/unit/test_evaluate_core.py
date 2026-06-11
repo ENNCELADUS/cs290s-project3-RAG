@@ -52,6 +52,24 @@ def test_source_metrics_are_rank_aware_and_url_prefix_based() -> None:
     assert 0.0 < metrics["ndcg@5"] < 1.0
 
 
+def test_source_metrics_match_sist_template_and_query_variants() -> None:
+    expected = [
+        "https://sist.shanghaitech.edu.cn/2024/0115/c7339a1097189/page.htm",
+        "https://sist.shanghaitech.edu.cn/list.htm",
+    ]
+    observed = [
+        "https://sist.shanghaitech.edu.cn/_t335/2024/0115/c7339a1097189/page.htm?from=nav#section",
+        "https://sist.shanghaitech.edu.cn/list.htm?lang=en",
+    ]
+
+    metrics = source_metrics(observed, expected)
+
+    assert source_matches(observed[0], expected[0])
+    assert source_matches(observed[1], expected[1])
+    assert metrics["source_hit@1"] == 1.0
+    assert metrics["source_recall@5"] == 1.0
+
+
 def test_judge_exact_required_manual_and_forbidden_cases(tmp_path: Path) -> None:
     questions_path = tmp_path / "questions.csv"
     _write_question_csv(questions_path)
