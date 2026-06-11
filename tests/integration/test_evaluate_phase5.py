@@ -236,6 +236,71 @@ def test_evaluate_answer_metrics_use_cited_sources_only(tmp_path: Path, monkeypa
     assert run_records[0]["retrieved_source_urls"] == ["https://example.edu/noise", "https://example.edu/source"]
 
 
+def test_evaluate_retrieve_can_save_diagnostic_hits_beyond_final_top_k(tmp_path: Path, monkeypatch) -> None:
+    questions_path = tmp_path / "questions.csv"
+    _write_questions(questions_path)
+    output_dir = tmp_path / "eval"
+    calls: list[dict[str, object]] = []
+
+    class FakeRetriever:
+        @classmethod
+        def from_paths(cls, **kwargs: object) -> FakeRetriever:
+            return cls()
+
+        def retrieve(self, query: str, *, mode: str, top_k: int, **kwargs: object) -> list[object]:
+            calls.append({"mode": mode, "top_k": top_k, **kwargs})
+            return [
+                _Hit(
+                    rank=rank,
+                    url="https://example.edu/source" if rank == 8 else f"https://example.edu/noise/{rank}",
+                    title=f"{mode}-{rank}",
+                    score=1.0 / rank,
+                )
+                for rank in range(1, top_k + 1)
+            ]
+
+    monkeypatch.setattr("evaluate.runner.Retriever", FakeRetriever)
+
+    assert (
+        evaluate_main(
+            [
+                "--questions",
+                str(questions_path),
+                "--output-dir",
+                str(output_dir),
+                "--runner",
+                "retrieve",
+                "--diagnostic-depth",
+                "25",
+                "--timestamp",
+                "20260611T070000Z",
+            ]
+        )
+        == 0
+    )
+
+    summary = json.loads((output_dir / "summary_20260611T070000Z.json").read_text(encoding="utf-8"))
+    assert summary["modes"]["dense"]["source_hit@5"] == 0.0
+    assert summary["modes"]["hybrid"]["source_hit@5"] == 0.0
+
+    run_records = [
+        json.loads(line)
+        for line in (output_dir / "run_20260611T070000Z.jsonl").read_text(encoding="utf-8").splitlines()
+    ]
+    assert [record["top_titles"] for record in run_records] == [
+        ["dense-1", "dense-2", "dense-3", "dense-4", "dense-5"],
+        ["hybrid-1", "hybrid-2", "hybrid-3", "hybrid-4", "hybrid-5"],
+    ]
+    assert [len(record["diagnostic_hits"]) for record in run_records] == [25, 25]
+    assert run_records[0]["diagnostic_hits"][7]["url"] == "https://example.edu/source"
+    hybrid_diagnostic_call = calls[3]
+    assert hybrid_diagnostic_call["mode"] == "hybrid"
+    assert hybrid_diagnostic_call["top_k"] == 25
+    assert hybrid_diagnostic_call["sparse_top_k"] == 25
+    assert hybrid_diagnostic_call["dense_top_k"] == 25
+    assert hybrid_diagnostic_call["fused_top_k"] == 25
+
+
 def test_evaluate_both_runner_emits_retrieval_and_answer_records(tmp_path: Path, monkeypatch) -> None:
     questions_path = tmp_path / "questions.csv"
     _write_questions(questions_path)

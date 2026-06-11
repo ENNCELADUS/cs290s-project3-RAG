@@ -8,7 +8,13 @@ from typing import Any, Literal
 
 from rag.generate import RagAnswerer
 from rag.index import DEFAULT_BM25, DEFAULT_CHUNK_INDEX, DEFAULT_DB, DEFAULT_FAISS, DEFAULT_REPORT
-from rag.retrieve import HybridRetrievalResult, Retriever
+from rag.retrieve import (
+    DEFAULT_DENSE_TOP_K,
+    DEFAULT_FUSED_TOP_K,
+    DEFAULT_SPARSE_TOP_K,
+    HybridRetrievalResult,
+    Retriever,
+)
 
 from .judge import JudgeResult, judge_answer
 from .metrics import source_metrics
@@ -33,6 +39,7 @@ class EvaluationConfig:
     runner: RunnerKind = "both"
     modes: tuple[EvalMode, ...] = ("dense", "hybrid")
     top_k: int = 5
+    diagnostic_depth: int | None = None
     model_path: Path | None = None
     device: str = "auto"
     max_new_tokens: int | None = None
@@ -80,7 +87,7 @@ def _run_retrieve(
         retrieval_result = retriever.retrieve(question.query, mode=mode, top_k=config.top_k)
         hits = _hits_from_result(retrieval_result)
         observed_urls = [str(_hit_value(hit, "url") or "") for hit in hits]
-        return {
+        record = {
             **base,
             "status": "ok",
             "answer_status": None,
@@ -94,8 +101,16 @@ def _run_retrieve(
             "metrics": source_metrics(observed_urls, question.acceptable_source_urls),
             "latency_s": round(time.perf_counter() - started, 6),
         }
+        if config.diagnostic_depth is not None:
+            diagnostic_result = retriever.retrieve(
+                question.query,
+                mode=mode,
+                **_diagnostic_retrieve_kwargs(mode=mode, depth=config.diagnostic_depth),
+            )
+            record["diagnostic_hits"] = [_hit_to_dict(hit) for hit in _hits_from_result(diagnostic_result)]
+        return record
     except Exception as error:
-        return {
+        record = {
             **base,
             "status": "error",
             "answer_status": None,
@@ -110,6 +125,9 @@ def _run_retrieve(
             "latency_s": round(time.perf_counter() - started, 6),
             "error": str(error),
         }
+        if config.diagnostic_depth is not None:
+            record["diagnostic_hits"] = []
+        return record
 
 
 def _run_answer(
@@ -187,6 +205,19 @@ def _retrieval_payload(result: object) -> dict[str, Any]:
     if isinstance(result, HybridRetrievalResult):
         return asdict(result)
     return {"hits": [_hit_to_dict(hit) for hit in _hits_from_result(result)]}
+
+
+def _diagnostic_retrieve_kwargs(*, mode: EvalMode, depth: int) -> dict[str, int]:
+    kwargs = {"top_k": depth}
+    if mode == "hybrid":
+        kwargs.update(
+            {
+                "sparse_top_k": max(DEFAULT_SPARSE_TOP_K, depth),
+                "dense_top_k": max(DEFAULT_DENSE_TOP_K, depth),
+                "fused_top_k": max(DEFAULT_FUSED_TOP_K, depth),
+            }
+        )
+    return kwargs
 
 
 def _hit_to_dict(hit: object) -> dict[str, Any]:

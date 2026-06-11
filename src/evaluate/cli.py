@@ -22,6 +22,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--limit", type=int, default=None)
     parser.add_argument("--offset", type=int, default=0)
     parser.add_argument("--top-k", type=int, default=5)
+    parser.add_argument("--diagnostic-depth", type=int, default=None)
     parser.add_argument("--model-path", type=Path, default=None)
     parser.add_argument("--device", choices=["auto", "cpu", "cuda"], default="auto")
     parser.add_argument("--max-new-tokens", type=int, default=None)
@@ -35,6 +36,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--require-final-labels", action="store_true")
     parser.add_argument("--timestamp", default=None)
     args = parser.parse_args(argv)
+    if args.diagnostic_depth is not None and args.diagnostic_depth <= 0:
+        parser.error("--diagnostic-depth must be a positive integer")
 
     modes: list[EvalMode] = list(args.modes)
     if args.include_diagnostic_bm25:
@@ -53,6 +56,7 @@ def main(argv: list[str] | None = None) -> int:
         runner=args.runner,
         modes=tuple(modes),
         top_k=args.top_k,
+        diagnostic_depth=args.diagnostic_depth,
         model_path=args.model_path,
         device=args.device,
         max_new_tokens=args.max_new_tokens,
