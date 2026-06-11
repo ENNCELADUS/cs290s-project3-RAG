@@ -29,7 +29,7 @@ Primary users are course reviewers and students. The product-quality target is a
 - SQLite ingestion exists in `src/rag/ingest.py`.
 - BM25 and FAISS index building exist in `src/rag/index.py`.
 - Baseline and hybrid retrieval exist in `src/rag/retrieve.py`.
-- Phase 2 retrieval pilot results are documented in `doc/retrieval_experiments.md`.
+- The current 100-question Phase 5 retrieval evaluation is documented in `doc/retrieval_experiments.md`.
 - Local answer generation exists in `src/rag/generate.py` and the `rag-answer` CLI.
 - Phase 3 answer policy uses local `transformers` loading only, explicit `--model-path`, chat-template rendering when
   available, citation validation, prompt-leakage rejection, and evidence-insufficient responses.
@@ -40,6 +40,8 @@ Primary users are course reviewers and students. The product-quality target is a
 - A Phase 5 evaluation module exists at `src/evaluate/` with the `rag-evaluate` CLI for retrieval or answer runs over the
   structured question set, producing JSONL records, summary JSON, review queues, gap notes, and Excel output under
   `data/eval/`.
+- A full retrieval-only run on 2026-06-11 completed with `dense` source_hit@5 0.69 and `hybrid` source_hit@5 0.68;
+  `hybrid` improved source_hit@1, MRR@5, and nDCG@5.
 - Tests cover collection, parsing, merge, ingestion, indexing, retrieval, generation, and opt-in real LLM e2e behavior.
 
 ## Build Order
@@ -212,11 +214,11 @@ Primary users are course reviewers and students. The product-quality target is a
 - `data/test/question_final_structured_100.csv`
 - `data/eval/questions_YYYY-MM-DD.xlsx`
 - `data/eval/retrieval_pilot_manifest_2026-05-31.jsonl`
-- `data/eval/run_<timestamp>.jsonl`
-- `data/eval/summary_<timestamp>.json`
-- `data/eval/review_queue_<timestamp>.csv`
-- `data/eval/results_before_after_<timestamp>.xlsx`
-- `data/eval/gap_notes_<timestamp>.md`
+- `data/eval/<timestamp>_<run_id>/run_<run_id>.jsonl`
+- `data/eval/<timestamp>_<run_id>/summary_<run_id>.json`
+- `data/eval/<timestamp>_<run_id>/review_queue_<run_id>.csv`
+- `data/eval/<timestamp>_<run_id>/results_before_after_<run_id>.xlsx`
+- `data/eval/<timestamp>_<run_id>/gap_notes_<run_id>.md`
 
 ### Task Checklist
 
@@ -333,7 +335,7 @@ Primary users are course reviewers and students. The product-quality target is a
 | `uv run rag-retrieve --mode bm25\|dense` | Existing/Phase 1 | Run baseline smoke retrieval and print cited chunks. |
 | `uv run rag-retrieve --mode hybrid` | Existing/Phase 2 | Run optimized RRF retrieval with optional local reranking, trace output, and packed contexts. |
 | Retriever Python API | Existing/Phase 1-2 | Power CLI, eval runner, generator, and UI. |
-| Retrieval pilot manifest | Existing/Phase 2 | Track the 12-question before/after retrieval smoke set and expected source prefixes. |
+| Retrieval pilot manifest | Historical/Phase 2 | Preserve the 12-question smoke spec for provenance; do not use it for current report metrics. |
 | Generator Python API | Existing/Phase 3 | Convert retrieved context into cited local-model answers. |
 | `uv run rag-answer --mode dense\|hybrid` | Existing/Phase 3 | Generate structured local answers for official before/after answer conditions. |
 | Real LLM e2e tests | Existing/Phase 3 | Opt-in local-Qwen regression checks for answer templates and insufficient-evidence behavior. |
@@ -366,6 +368,12 @@ Structured question benchmark smoke:
 
 ```bash
 uv run rag-evaluate --runner retrieve --modes dense hybrid --limit 5
+```
+
+Locked 100-question retrieval evaluation:
+
+```bash
+uv run rag-evaluate --runner retrieve --modes dense hybrid --top-k 5
 ```
 
 Manual acceptance scenarios:

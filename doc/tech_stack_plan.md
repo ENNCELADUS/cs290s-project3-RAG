@@ -45,7 +45,8 @@ Implemented through Phase 2:
 - `rag-build-index` builds BM25, chunk mapping, and optional FAISS dense artifacts.
 - `rag-retrieve --mode bm25|dense` provides baseline cited retrieval.
 - `rag-retrieve --mode hybrid` provides optimized retrieval with RRF fusion, optional local CrossEncoder reranking, source de-duplication, trace fields, and packed contexts.
-- `doc/retrieval_experiments.md` records the Phase 2 retrieval pilot: `hybrid` reached 10/12 expected-source hit@5 versus `dense` at 9/12 on the 12-question manifest.
+- `doc/retrieval_experiments.md` records the current 100-question Phase 5 retrieval evaluation: `dense` reached
+  source_hit@5 0.69, while `hybrid` reached source_hit@5 0.68 and improved source_hit@1, MRR@5, and nDCG@5.
 
 ## System Architecture
 
@@ -95,7 +96,7 @@ Implemented retrieval optimization:
 
 Still pending:
 
-1. Compare pre-optimization and post-optimization answer accuracy and latency on the 50+ question set after generation exists.
+1. Compare pre-optimization and post-optimization answer accuracy and latency on the 100-question set after final answer generation and review decisions are complete.
 2. Run a real local reranker smoke check on full generated artifacts.
 
 This optimization is report-friendly because it directly targets common failure cases:
@@ -122,7 +123,7 @@ Recommended deployment sequence:
 
 1. Build the pipeline with `transformers` and `Qwen/Qwen3-4B-Instruct-2507`.
 2. Add local generation and citation prompting.
-3. Run the 50+ question evaluation set.
+3. Run the 100-question evaluation set.
 4. If GPU memory and latency allow, test `Qwen/Qwen3-30B-A3B-Instruct-2507` or `DeepSeek-V4-Flash` as an optional generator upgrade.
 
 ## Suggested Repository Layout

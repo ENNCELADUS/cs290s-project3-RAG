@@ -192,13 +192,25 @@ Remote retrieval pilot verification on 2026-05-31:
 - Expected-source hit@5 was `bm25` 6/12, `dense` 9/12, and `hybrid` 10/12.
 - The Phase 3 gate passed because hybrid was at least as good as dense and showed no critical top-5 citation regression.
 - Full per-hit logs were kept on the remote at
-  `/home/richard/cs290s-project3-RAG/data/eval/retrieval_pilot_20260531T155503Z.jsonl`.
+  `/home/richard/cs290s-project3-RAG/data/eval/20260531T155503Z_retrieval_pilot/retrieval_pilot_20260531T155503Z.jsonl`.
+
+Full retrieval evaluation verification on 2026-06-11:
+
+- The structured 100-question set in `data/test/question_final_structured_100.csv` ran against the full remote
+  `data/rag/` artifacts through `src/evaluate`.
+- Official before-optimization retrieval was `dense`; after-optimization retrieval was `hybrid`; `bm25` remained
+  diagnostic and was not part of the official comparison.
+- Final root-prefix-corrected retrieval results were `dense` source_hit@5 0.69 and `hybrid` source_hit@5 0.68.
+- `hybrid` improved top-rank retrieval quality: source_hit@1 0.46 versus dense 0.43, MRR@5 0.561167 versus 0.509000,
+  and nDCG@5 0.572978 versus 0.529621.
+- Full generated artifacts are grouped by timestamp on the remote under
+  `/home/richard/cs290s-project3-RAG/data/eval/20260611T222046Z_remote_retrieve_full_rootfix/`.
 
 ## Todo
 
 The following retrieval-adjacent features are not implemented yet:
 
 - Real local reranker smoke verification on full generated artifacts.
-- Phase 5 baseline-vs-optimized evaluation runner and Excel export.
+- Phase 5 answer-generation run with final manual review decisions for assignment correctness labels.
 - Local generation with citation prompt and insufficient-evidence policy.
 - Product-quality Gradio UI.

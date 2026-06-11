@@ -1,119 +1,167 @@
-# Retrieval Pilot Experiments
+# Retrieval Evaluation Experiments
 
-Last updated: 2026-06-01
+Last updated: 2026-06-11
 
-This document records the small retrieval-only pilot used before Phase 3 generation work. It validates the current
-Phase 1-2 retrievers on real `data/rag/` artifacts and checks whether hybrid retrieval is a defensible source of
-generator context. It is not the Phase 5 Excel evaluation.
+This document records the current report-facing retrieval evaluation for the ShanghaiTech/SIST RAG system. The old
+12-question Phase 2 pilot is historical only; the locked retrieval test paradigm is now the structured 100-question
+Phase 5 set and the `src/evaluate` runner.
 
-## Experiment Definition
+This is still a retrieval-only experiment. It measures whether the retriever surfaces expected official-source evidence,
+not whether the local generator produces a correct final answer.
+
+## Locked Test Paradigm
 
 The official before/after retrieval convention for the report is:
 
 | role | retrieval mode | purpose |
 | --- | --- | --- |
-| Before optimization | `dense` | Pre-optimization condition for report and later Excel comparison. |
-| After optimization | `hybrid` | Optimized condition using BM25+dense RRF fusion, de-duplication, and packed contexts. |
-| Diagnostic baseline | `bm25` | Sparse baseline used to explain retrieval behavior, not the official before condition. |
+| Before optimization | `dense` | Pre-optimization condition using FAISS over `BAAI/bge-m3` embeddings. |
+| After optimization | `hybrid` | Optimized condition using BM25+dense RRF fusion, source de-duplication, and packed contexts. |
+| Diagnostic baseline | `bm25` | Optional sparse diagnostic only; not part of the official before/after comparison. |
 
-No `sys_resp_before_opt` or `sys_resp_after_opt` values are produced in this pilot because generation is not
-implemented yet. The pilot inspects retrieved sources and packed contexts only.
+Locked inputs:
 
-## Question Manifest
+| input | value |
+| --- | --- |
+| Question file | `data/test/question_final_structured_100.csv` |
+| Question count | 100 |
+| Corpus snapshot | `data/merged/all-collection-runs-clean-2026-05-27` |
+| SQLite DB | `data/rag/sist_merged_2026-05-27.sqlite` |
+| BM25 payload | `data/rag/bm25_2026-05-27.pkl` |
+| FAISS index | `data/rag/faiss_bge_m3_2026-05-27.index` |
+| Chunk index | `data/rag/chunk_index_2026-05-27.jsonl` |
+| Build report | `data/rag/build_report_2026-05-27.json` |
+| Retrieval depth | `top_k=5` |
+| Evaluation runner | `src/evaluate` via `python -m evaluate.cli` or `rag-evaluate` |
 
-The 12-question manifest is tracked at `data/eval/retrieval_pilot_manifest_2026-05-31.jsonl`.
+Question distribution:
 
-| category | count | examples |
-| --- | ---: | --- |
-| course | 2 | `《深度学习》这门课的任课老师是谁？`; `CS181 Artificial Intelligence 的任课老师是谁？` |
-| program credits | 2 | CS master and doctor credit requirements. |
-| program comparison | 1 | Professional/project master versus academic master training plans. |
-| faculty/research | 2 | Xuming He and robotics direction questions. |
-| institution fact | 1 | SIST founding-year question. |
-| time-sensitive corpus-latest | 2 | Latest training-plan notice and latest lecture/activity in the indexed corpus. |
-| English | 2 | Robotics faculty and SIST research-center questions. |
+| field | distribution |
+| --- | --- |
+| category | Factual 45; Time-sensitive 20; Comparative 13; Conditional 10; Multi-hop 12 |
+| language | zh 100 |
+| complexity | Low 45; Medium 45; High 10 |
+| judge type | exact_or_alias_match 35; required_facts_match 27; required_facts_with_manual_review 29; local_llm_judge_with_human_review 9 |
 
-Time-sensitive questions are evaluated against the current artifact corpus, not live web truth as of the run date.
+Metric policy:
 
-## Metrics
+- Source metrics use normalized URL-prefix qrels from the structured question source fields.
+- Root expected URLs, such as `https://sist.shanghaitech.edu.cn/`, match same-site subpages after commit `6230f75`.
+- `source_hit@k` is 1 when any expected official source appears in the top `k`.
+- `source_recall@k`, `mrr@k`, `ndcg@k`, and `precision@k` are retrieval diagnostics, not answer correctness.
+- Retrieval-only runs intentionally produce `manual_review` correctness status because no generated answer is judged.
 
-Primary metric:
+Canonical command used on the remote runner:
 
-- `expected_source_hit_at_5`: true if any top-5 retrieved URL matches one of the query's normalized expected official
-  URL prefixes.
-
-Diagnostics:
-
-- `overlap_at_5_vs_dense`: count of shared top-5 chunk IDs with dense retrieval for the same query.
-- `latency_s`: wall-clock runtime after one warmup per mode.
-- `notes`: manual citation-quality notes or obvious irrelevant-source issues.
-
-Latency is smoke latency for the current retrieval runtime. It is not final UI serving latency because the Phase 2
-runtime may load dense models during retrieval calls.
-
-## Remote Run
-
-Run host:
-
-```text
-ssh -p 2222 richard@10.20.97.163
-repo: /home/richard/cs290s-project3-RAG
-artifacts: data/rag/
+```bash
+uv run --locked --no-sync --offline python -m evaluate.cli \
+  --runner retrieve \
+  --modes dense hybrid \
+  --top-k 5 \
+  --timestamp remote_retrieve_full_rootfix_20260611
 ```
 
-Execution policy:
+## Remote Artifact Layout
 
-- Use a temporary remote Python script, not a tracked runner.
-- Run modes `bm25`, `dense`, and `hybrid` for all 12 questions.
-- Run `hybrid_rerank` only if a local reranker snapshot already exists.
-- Keep full per-hit JSONL logs on the remote under `data/eval/`.
+Generated evaluation artifacts stay on the remote runner and are grouped by timestamp under `data/eval/`. The tracked
+manifest `data/eval/retrieval_pilot_manifest_2026-05-31.jsonl` remains at the root as a small historical Phase 2 spec.
 
-The remote cache did not contain a local reranker snapshot, so this pilot did not run a `hybrid_rerank` condition.
+```text
+/home/richard/cs290s-project3-RAG/data/eval/
+  retrieval_pilot_manifest_2026-05-31.jsonl
+  20260531T155503Z_retrieval_pilot/
+    retrieval_pilot_20260531T155503Z.jsonl
+    retrieval_pilot_20260531T155503Z.md
+  20260611T220856Z_remote_retrieve_full/
+    run_remote_retrieve_full_20260611.jsonl
+    summary_remote_retrieve_full_20260611.json
+    review_queue_remote_retrieve_full_20260611.csv
+    gap_notes_remote_retrieve_full_20260611.md
+    results_before_after_remote_retrieve_full_20260611.xlsx
+  20260611T222046Z_remote_retrieve_full_rootfix/
+    run_remote_retrieve_full_rootfix_20260611.jsonl
+    summary_remote_retrieve_full_rootfix_20260611.json
+    review_queue_remote_retrieve_full_rootfix_20260611.csv
+    gap_notes_remote_retrieve_full_rootfix_20260611.md
+    results_before_after_remote_retrieve_full_rootfix_20260611.xlsx
+```
 
-## Results
+Use the `20260611T222046Z_remote_retrieve_full_rootfix/` directory for report numbers. The earlier
+`20260611T220856Z_remote_retrieve_full/` run is retained only as a pre-root-prefix-fix diagnostic.
 
-A first diagnostic dry run exposed overly narrow expected URL prefixes for list pages, current-year degree-program
-PDFs, and broad robotics/activity questions. The tracked manifest now uses normalized official source prefixes rather
-than one exact page version.
+## Final Retrieval Results
 
 Final run:
 
 ```text
-run_id: retrieval_pilot_20260531T155503Z
-jsonl: /home/richard/cs290s-project3-RAG/data/eval/retrieval_pilot_20260531T155503Z.jsonl
-summary: /home/richard/cs290s-project3-RAG/data/eval/retrieval_pilot_20260531T155503Z.md
+run_id: remote_retrieve_full_rootfix_20260611
+remote directory: /home/richard/cs290s-project3-RAG/data/eval/20260611T222046Z_remote_retrieve_full_rootfix
+records: 200
+status: dense 100 ok / 0 errors; hybrid 100 ok / 0 errors
 ```
 
-| mode | expected-source hit@5 | avg latency (s) | max latency (s) |
-| --- | ---: | ---: | ---: |
-| `bm25` | 6/12 | 0.605 | 0.643 |
-| `dense` | 9/12 | 1.883 | 2.001 |
-| `hybrid` | 10/12 | 2.457 | 2.625 |
+| mode | source_hit@1 | source_hit@5 | source_recall@5 | mrr@5 | ndcg@5 | precision@5 | avg latency (s) |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| `dense` | 0.43 | 0.69 | 0.663333 | 0.509000 | 0.529621 | 0.156 | 1.944186 |
+| `hybrid` | 0.46 | 0.68 | 0.648333 | 0.561167 | 0.572978 | 0.154 | 2.814903 |
 
-| query_id | category | bm25 hit | dense hit | hybrid hit | dense latency (s) | hybrid latency (s) | hybrid overlap@5 vs dense |
-| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| `pilot_001` | course | 0 | 0 | 0 | 1.915 | 2.345 | 2 |
-| `pilot_002` | course | 1 | 1 | 1 | 1.898 | 2.439 | 2 |
-| `pilot_003` | program_credits | 0 | 1 | 1 | 1.980 | 2.486 | 3 |
-| `pilot_004` | program_credits | 1 | 0 | 1 | 1.850 | 2.460 | 3 |
-| `pilot_005` | program_comparison | 1 | 1 | 1 | 2.001 | 2.385 | 4 |
-| `pilot_006` | faculty_research | 1 | 1 | 1 | 1.838 | 2.515 | 3 |
-| `pilot_007` | faculty_research | 0 | 1 | 1 | 1.837 | 2.384 | 2 |
-| `pilot_008` | institution_fact | 0 | 0 | 0 | 1.818 | 2.625 | 3 |
-| `pilot_009` | time_sensitive_corpus_latest | 0 | 1 | 1 | 1.778 | 2.465 | 2 |
-| `pilot_010` | time_sensitive_corpus_latest | 0 | 1 | 1 | 1.951 | 2.496 | 3 |
-| `pilot_011` | english_faculty_research | 1 | 1 | 1 | 1.888 | 2.448 | 2 |
-| `pilot_012` | english_research | 1 | 1 | 1 | 1.847 | 2.435 | 2 |
+Per-question top-5 source-hit overlap:
 
-Open issues from the pilot:
+| dense hit@5 | hybrid hit@5 | questions |
+| ---: | ---: | ---: |
+| 0 | 0 | 25 |
+| 0 | 1 | 6 |
+| 1 | 0 | 7 |
+| 1 | 1 | 62 |
 
-- `pilot_001` (`深度学习` instructor) did not retrieve the expected course catalog source in any mode.
-- `pilot_008` (SIST founding year) did not retrieve the expected college-introduction source in any mode.
-- Hybrid improves expected-source hit@5 by one query over dense, but adds about 0.574 s average latency in this smoke
-  setup.
+Per-question top-1 source-hit overlap:
 
-## Phase 3 Gate
+| dense hit@1 | hybrid hit@1 | questions |
+| ---: | ---: | ---: |
+| 0 | 0 | 46 |
+| 0 | 1 | 11 |
+| 1 | 0 | 8 |
+| 1 | 1 | 35 |
 
-Gate: pass. `hybrid` has expected-source hit@5 of 10/12 versus `dense` at 9/12, with no critical citation-quality
-regression in the top-5 inspection. The two shared misses should be handled as retrieval/data-refresh follow-ups, not as
-blockers for Phase 3 generation.
+Interpretation:
+
+- Hybrid improves top-rank quality: `source_hit@1`, `mrr@5`, and `ndcg@5` are higher than dense.
+- Dense is slightly better on broad top-5 coverage: `source_hit@5`, `source_recall@5`, and `precision@5` are marginally higher.
+- Hybrid-only top-5 wins (6 questions) and dense-only top-5 wins (7 questions) show that both channels recover evidence
+  the other misses; the report should describe this as a ranking-quality improvement rather than a simple top-5 win.
+- The 25 questions missed by both modes are the first targets for bounded official-source refresh or qrels inspection.
+
+## Verification
+
+The root URL matching fix and evaluation module were checked locally:
+
+```bash
+uv run --locked --no-sync --offline python -m pytest tests/unit/test_evaluate_core.py tests/integration/test_evaluate_phase5.py -q
+uv run --locked --no-sync --offline ruff check src/evaluate tests/unit/test_evaluate_core.py tests/integration/test_evaluate_phase5.py
+```
+
+Remote validation:
+
+```text
+run_remote_retrieve_full_rootfix_20260611.jsonl: 200 lines
+review_queue_remote_retrieve_full_rootfix_20260611.csv: 201 lines including header
+gap_notes_remote_retrieve_full_rootfix_20260611.md: 202 lines
+workbook sheets: submission, diagnostics, retrieval_metrics, review_queue
+workbook rows: submission 101; diagnostics 201; retrieval_metrics 3; review_queue 201
+```
+
+The remote focused unit check passed:
+
+```bash
+uv run --locked --no-sync --offline python -m pytest tests/unit/test_evaluate_core.py -q
+```
+
+## Locked Follow-up Rules
+
+- Do not compare future report retrieval numbers against the old 12-question pilot.
+- Do not use `bm25` as the official before-optimization condition.
+- Do not treat retrieval-only `manual_review` labels as answer correctness.
+- For final assignment Excel correctness, run answer generation over the same 100-question CSV and apply manual review
+  decisions where the deterministic judge emits `manual_review`.
+- Keep generated run logs remote under timestamp directories; commit only small specs and documentation unless a
+  submission checklist explicitly asks for the generated workbook.
