@@ -10,6 +10,7 @@ import sys
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
+from urllib.parse import unquote, urlparse
 
 import jieba
 import numpy as np
@@ -25,6 +26,8 @@ DEFAULT_REPORT = Path("data/rag/build_report_2026-05-27.json")
 DEFAULT_MODEL = "BAAI/bge-m3"
 SMOKE_QUERIES = ["深度学习 任课老师", "计算机科学与技术 毕业 学分", "SIST faculty robotics"]
 TOKEN_RE = re.compile(r"[A-Za-z0-9_./+-]+")
+URL_SLUG_SPLIT_RE = re.compile(r"[/_.+-]+")
+WHITESPACE_RE = re.compile(r"\s+")
 
 
 def build_indexes(
@@ -94,6 +97,7 @@ def _load_chunks(db_path: Path) -> list[dict[str, object]]:
                 c.document_id,
                 c.title,
                 c.url,
+                d.canonical_url AS canonical_url,
                 c.category,
                 c.language,
                 c.text,
@@ -113,9 +117,52 @@ def _tokenize(text: str) -> list[str]:
     return tokens
 
 
+def _index_text(row: dict[str, object]) -> str:
+    parts: list[str] = []
+    seen: set[str] = set()
+
+    def add(value: object) -> None:
+        if value is None:
+            return
+        text = WHITESPACE_RE.sub(" ", str(value)).strip()
+        if not text:
+            return
+        key = text.casefold()
+        if key not in seen:
+            parts.append(text)
+            seen.add(key)
+
+    add(row.get("title"))
+    add(row.get("category"))
+    add(_url_index_text(row.get("canonical_url")))
+    add(_url_index_text(row.get("url")))
+    add(row.get("text"))
+    return "\n".join(parts)
+
+
+def _url_index_text(value: object) -> str:
+    if value is None:
+        return ""
+    raw_url = str(value).strip()
+    if not raw_url:
+        return ""
+    parsed = urlparse(raw_url)
+    path = unquote(parsed.path or raw_url)
+    parts = [raw_url]
+    if parsed.netloc:
+        parts.append(parsed.netloc)
+    path_text = path.strip("/")
+    if path_text:
+        parts.append(path_text)
+        slug_words = [word for word in URL_SLUG_SPLIT_RE.split(path_text) if word]
+        if slug_words:
+            parts.append(" ".join(slug_words))
+    return " ".join(parts)
+
+
 def _build_bm25(chunks: list[dict[str, object]], output_path: Path) -> dict[str, object]:
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    tokenized = [_tokenize(str(row["text"])) for row in chunks]
+    tokenized = [_tokenize(_index_text(row)) for row in chunks]
     bm25 = BM25Okapi(tokenized)
     payload = {
         "bm25": bm25,
@@ -178,7 +225,7 @@ def _build_faiss(
     model = SentenceTransformer(model_name, device=device)
     if max_seq_length is not None:
         model.max_seq_length = max_seq_length
-    texts = [str(row["text"]) for row in chunks]
+    texts = [_index_text(row) for row in chunks]
     embeddings = model.encode(
         texts,
         batch_size=batch_size,

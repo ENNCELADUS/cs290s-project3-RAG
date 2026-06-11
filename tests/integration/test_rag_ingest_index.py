@@ -112,6 +112,83 @@ def test_bm25_retrieval_returns_cited_chunks(tmp_path: Path, merged_input_dir: P
     assert "Alice" in hits[0].snippet
 
 
+def test_bm25_index_uses_metadata_for_matching_but_returns_raw_chunk_text(tmp_path: Path) -> None:
+    input_dir = _metadata_enrichment_input(tmp_path)
+    db_path = tmp_path / "rag.sqlite"
+    bm25_path = tmp_path / "bm25.pkl"
+    chunk_index_path = tmp_path / "chunk_index.jsonl"
+    report_path = tmp_path / "report.json"
+    build_database(input_dir, db_path, report_path)
+    build_indexes(
+        db_path,
+        bm25_path,
+        tmp_path / "faiss.index",
+        chunk_index_path,
+        report_path,
+        skip_faiss=True,
+    )
+
+    retriever = Retriever.from_paths(db_path=db_path, bm25_path=bm25_path)
+    hits = retriever.retrieve("robotics", mode="bm25", top_k=1)
+    contexts = retriever.contexts_for_hits(hits)
+
+    assert hits[0].chunk_id == 100
+    assert hits[0].snippet == "General lab introduction with contacts and office hours."
+    assert contexts[0].text == "General lab introduction with contacts and office hours."
+
+
+def test_faiss_index_uses_metadata_for_embeddings_but_returns_raw_chunk_text(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    input_dir = _metadata_enrichment_input(tmp_path)
+    db_path = tmp_path / "rag.sqlite"
+    bm25_path = tmp_path / "bm25.pkl"
+    faiss_path = tmp_path / "faiss.index"
+    chunk_index_path = tmp_path / "chunk_index.jsonl"
+    report_path = tmp_path / "report.json"
+    build_database(input_dir, db_path, report_path)
+
+    class MetadataAwareSentenceTransformer:
+        def __init__(self, model_name: str, device: str) -> None:
+            self.model_name = model_name
+            self.device = device
+
+        def encode(
+            self,
+            texts: list[str],
+            batch_size: int,
+            convert_to_numpy: bool,
+            normalize_embeddings: bool,
+            show_progress_bar: bool,
+        ) -> np.ndarray:
+            vectors = [[1.0, 0.0, 0.0] if "catalog" in text.lower() else [0.0, 1.0, 0.0] for text in texts]
+            return np.asarray(vectors, dtype="float32")
+
+    fake_sentence_transformers = types.SimpleNamespace(SentenceTransformer=MetadataAwareSentenceTransformer)
+    monkeypatch.setitem(sys.modules, "sentence_transformers", fake_sentence_transformers)
+
+    build_indexes(
+        db_path,
+        bm25_path,
+        faiss_path,
+        chunk_index_path,
+        report_path,
+        model_name="/models/hub/snapshots/bge-m3-local",
+        model_id=DEFAULT_MODEL,
+    )
+
+    retriever = Retriever.from_paths(
+        db_path=db_path,
+        faiss_path=faiss_path,
+        chunk_index_path=chunk_index_path,
+        report_path=report_path,
+    )
+    hits = retriever.retrieve("catalog", mode="dense", top_k=1)
+
+    assert hits[0].chunk_id == 101
+    assert hits[0].snippet == "Degree planning notes with credits and prerequisites."
+
+
 def test_retrieval_reports_missing_sqlite_without_creating_file(tmp_path: Path) -> None:
     db_path = tmp_path / "missing.sqlite"
 
@@ -517,6 +594,77 @@ def test_require_cuda_fails_before_dense_index_build_when_cuda_is_unavailable(
             report_path,
             require_cuda=True,
         )
+
+
+def _metadata_enrichment_input(tmp_path: Path) -> Path:
+    input_dir = tmp_path / "metadata-enrichment-merged"
+    input_dir.mkdir()
+    write_jsonl(
+        input_dir / "documents.jsonl",
+        [
+            {
+                "id": 10,
+                "url": "https://example.edu/research/robotics-lab",
+                "canonical_url": "https://example.edu/research/robotics-lab",
+                "title": "Robotics Laboratory",
+                "host": "example.edu",
+            },
+            {
+                "id": 11,
+                "url": "https://example.edu/academics/course-catalog",
+                "canonical_url": "https://example.edu/academics/course-catalog",
+                "title": "Course Catalog",
+                "host": "example.edu",
+            },
+            {
+                "id": 12,
+                "url": "https://example.edu/admissions/calendar",
+                "canonical_url": "https://example.edu/admissions/calendar",
+                "title": "Admissions Calendar",
+                "host": "example.edu",
+            },
+        ],
+    )
+    write_jsonl(
+        input_dir / "chunks.jsonl",
+        [
+            {
+                "id": 100,
+                "document_id": 10,
+                "chunk_index": 0,
+                "title": "Robotics Laboratory",
+                "url": "https://example.edu/research/robotics-lab",
+                "category": "Research",
+                "text": "General lab introduction with contacts and office hours.",
+                "char_count": 54,
+            },
+            {
+                "id": 101,
+                "document_id": 11,
+                "chunk_index": 0,
+                "title": "Course Catalog",
+                "url": "https://example.edu/academics/course-catalog",
+                "category": "Academics",
+                "text": "Degree planning notes with credits and prerequisites.",
+                "char_count": 51,
+            },
+            {
+                "id": 102,
+                "document_id": 12,
+                "chunk_index": 0,
+                "title": "Admissions Calendar",
+                "url": "https://example.edu/admissions/calendar",
+                "category": "Admissions",
+                "text": "Application schedule details with registration reminders.",
+                "char_count": 57,
+            },
+        ],
+    )
+    write_jsonl(input_dir / "courses.jsonl", [])
+    write_jsonl(input_dir / "faculty_members.jsonl", [])
+    write_jsonl(input_dir / "program_requirements.jsonl", [])
+    write_jsonl(input_dir / "events.jsonl", [])
+    return input_dir
 
 
 def _build_hybrid_artifacts(tmp_path: Path) -> dict[str, Path]:
