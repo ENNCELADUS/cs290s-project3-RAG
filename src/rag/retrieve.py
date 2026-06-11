@@ -26,6 +26,7 @@ DEFAULT_FUSED_TOP_K = 20
 DEFAULT_RERANK_TOP_K = 10
 DEFAULT_RRF_K = 60
 DEFAULT_URL_CAP = 2
+HYBRID_MIN_CANDIDATE_POOL = 50
 SNIPPET_CHARS = 240
 WHITESPACE_RE = re.compile(r"\s+")
 
@@ -169,8 +170,8 @@ class Retriever:
             return self._retrieve_dense(query, top_k)
         if mode == "hybrid":
             config = HybridRetrievalConfig(
-                sparse_top_k=sparse_top_k,
-                dense_top_k=dense_top_k,
+                sparse_top_k=max(sparse_top_k, HYBRID_MIN_CANDIDATE_POOL),
+                dense_top_k=max(dense_top_k, HYBRID_MIN_CANDIDATE_POOL),
                 fused_top_k=fused_top_k,
                 rerank_top_k=rerank_top_k,
                 final_top_k=top_k,

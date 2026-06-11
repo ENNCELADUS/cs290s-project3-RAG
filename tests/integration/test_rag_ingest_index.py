@@ -9,7 +9,7 @@ import pytest
 from rag.index import DEFAULT_MODEL, build_indexes
 from rag.ingest import build_database
 from rag.io import atomic_json_dump, read_jsonl, write_jsonl
-from rag.retrieve import HybridRetrievalResult, Retriever, _dedupe_candidates
+from rag.retrieve import HybridRetrievalResult, RetrievalHit, Retriever, _dedupe_candidates
 from rag.retrieve import main as retrieve_main
 
 
@@ -374,6 +374,50 @@ def test_hybrid_retrieval_preserves_sparse_matches_with_non_positive_bm25_scores
     assert traces_by_chunk[101].sparse_score <= 0
 
 
+def test_hybrid_retrieval_expands_candidate_pools_before_final_selection(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, fake_hybrid_sentence_transformer_module
+) -> None:
+    paths = _build_hybrid_artifacts(tmp_path)
+    retriever = Retriever.from_paths(
+        db_path=paths["db"],
+        bm25_path=paths["bm25"],
+        faiss_path=paths["faiss"],
+        chunk_index_path=paths["chunk_index"],
+        report_path=paths["report"],
+    )
+    requested_pools: dict[str, int] = {}
+
+    def fake_sparse(self: Retriever, query: str, top_k: int) -> list[RetrievalHit]:
+        requested_pools["sparse"] = top_k
+        return [
+            RetrievalHit(1, 100, 10, "Sparse Source", "https://example.edu/a", None, None, 1.0, "sparse", "bm25"),
+            RetrievalHit(2, 102, 12, "Bridge Source", "https://example.edu/c", None, None, 0.5, "bridge", "bm25"),
+        ]
+
+    def fake_dense(self: Retriever, query: str, top_k: int) -> list[RetrievalHit]:
+        requested_pools["dense"] = top_k
+        return [
+            RetrievalHit(1, 101, 11, "Dense Winner", "https://example.edu/b", None, None, 1.0, "dense", "dense"),
+            RetrievalHit(2, 102, 12, "Bridge Source", "https://example.edu/c", None, None, 0.5, "bridge", "dense"),
+        ]
+
+    monkeypatch.setattr(Retriever, "_retrieve_bm25_matching", fake_sparse)
+    monkeypatch.setattr(Retriever, "_retrieve_dense", fake_dense)
+
+    result = retriever.retrieve(
+        "candidate pool query",
+        mode="hybrid",
+        top_k=2,
+        sparse_top_k=2,
+        dense_top_k=3,
+    )
+
+    assert isinstance(result, HybridRetrievalResult)
+    assert requested_pools == {"sparse": 50, "dense": 50}
+    assert len(result.hits) == 2
+    assert result.config.final_top_k == 2
+
+
 def test_hybrid_cli_json_includes_hits_contexts_and_config(
     tmp_path: Path, fake_hybrid_sentence_transformer_module, capsys: pytest.CaptureFixture[str]
 ) -> None:
@@ -409,7 +453,8 @@ def test_hybrid_cli_json_includes_hits_contexts_and_config(
     assert payload["mode"] == "hybrid"
     assert payload["hits"][0]["trace"]["rrf_score"] > 0
     assert payload["contexts"][0]["text"]
-    assert payload["config"]["sparse_top_k"] == 2
+    assert payload["config"]["sparse_top_k"] == 50
+    assert payload["config"]["dense_top_k"] == 50
 
 
 def test_hybrid_deduplicates_text_and_caps_canonical_url() -> None:
@@ -471,7 +516,7 @@ def test_hybrid_reranker_reorders_with_local_model(
         sparse_top_k=2,
         dense_top_k=2,
         fused_top_k=3,
-        rerank_top_k=2,
+        rerank_top_k=3,
         reranker_model=str(reranker_model),
     )
 
