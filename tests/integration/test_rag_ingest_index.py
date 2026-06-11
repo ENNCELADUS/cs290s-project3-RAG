@@ -374,6 +374,39 @@ def test_hybrid_retrieval_preserves_sparse_matches_with_non_positive_bm25_scores
     assert traces_by_chunk[101].sparse_score <= 0
 
 
+def test_hybrid_retrieval_defaults_weight_dense_rrf_above_sparse_rrf_at_same_rank(
+    tmp_path: Path, fake_hybrid_sentence_transformer_module
+) -> None:
+    paths = _build_weighted_rrf_artifacts(tmp_path)
+    retriever = Retriever.from_paths(
+        db_path=paths["db"],
+        bm25_path=paths["bm25"],
+        faiss_path=paths["faiss"],
+        chunk_index_path=paths["chunk_index"],
+        report_path=paths["report"],
+    )
+
+    result = retriever.retrieve(
+        "exact bridge query",
+        mode="hybrid",
+        top_k=2,
+        sparse_top_k=1,
+        dense_top_k=1,
+        fused_top_k=2,
+        rerank_top_k=0,
+    )
+
+    assert isinstance(result, HybridRetrievalResult)
+    assert result.config.sparse_weight == 1.0
+    assert result.config.dense_weight == 1.5
+    chunk_ids = [hit.chunk_id for hit in result.hits]
+    assert chunk_ids.index(101) < chunk_ids.index(100)
+    assert result.hits[chunk_ids.index(101)].trace.dense_rank == 1
+    assert result.hits[chunk_ids.index(101)].trace.sparse_rank is None
+    assert result.hits[chunk_ids.index(100)].trace.sparse_rank == 1
+    assert result.hits[chunk_ids.index(100)].trace.dense_rank is None
+
+
 def test_hybrid_cli_json_includes_hits_contexts_and_config(
     tmp_path: Path, fake_hybrid_sentence_transformer_module, capsys: pytest.CaptureFixture[str]
 ) -> None:
@@ -410,6 +443,8 @@ def test_hybrid_cli_json_includes_hits_contexts_and_config(
     assert payload["hits"][0]["trace"]["rrf_score"] > 0
     assert payload["contexts"][0]["text"]
     assert payload["config"]["sparse_top_k"] == 2
+    assert payload["config"]["sparse_weight"] == 1.0
+    assert payload["config"]["dense_weight"] == 1.5
 
 
 def test_hybrid_deduplicates_text_and_caps_canonical_url() -> None:
@@ -736,6 +771,70 @@ def _build_hybrid_artifacts(tmp_path: Path) -> dict[str, Path]:
             dtype="float32",
         )
     )
+    faiss.write_index(index, str(faiss_path))
+    atomic_json_dump(
+        report_path,
+        {"index": {"faiss": {"model_path": "/models/hub/snapshots/bge-m3-local", "model_id": DEFAULT_MODEL}}},
+    )
+    return {
+        "db": db_path,
+        "bm25": bm25_path,
+        "faiss": faiss_path,
+        "chunk_index": chunk_index_path,
+        "report": report_path,
+    }
+
+
+def _build_weighted_rrf_artifacts(tmp_path: Path) -> dict[str, Path]:
+    import faiss
+
+    input_dir = tmp_path / "weighted-rrf-merged"
+    input_dir.mkdir()
+    write_jsonl(
+        input_dir / "documents.jsonl",
+        [
+            {"id": 10, "url": "https://example.edu/a", "canonical_url": "https://example.edu/a", "title": "A"},
+            {"id": 11, "url": "https://example.edu/b", "canonical_url": "https://example.edu/b", "title": "B"},
+        ],
+    )
+    write_jsonl(
+        input_dir / "chunks.jsonl",
+        [
+            {
+                "id": 100,
+                "document_id": 10,
+                "chunk_index": 0,
+                "title": "Sparse Source",
+                "url": "https://example.edu/a",
+                "text": "exact bridge query sparse source",
+                "char_count": 31,
+            },
+            {
+                "id": 101,
+                "document_id": 11,
+                "chunk_index": 0,
+                "title": "Dense Winner",
+                "url": "https://example.edu/b",
+                "text": "dense winner semantic source",
+                "char_count": 28,
+            },
+        ],
+    )
+    write_jsonl(input_dir / "courses.jsonl", [])
+    write_jsonl(input_dir / "faculty_members.jsonl", [])
+    write_jsonl(input_dir / "program_requirements.jsonl", [])
+    write_jsonl(input_dir / "events.jsonl", [])
+
+    db_path = tmp_path / "rag.sqlite"
+    bm25_path = tmp_path / "bm25.pkl"
+    faiss_path = tmp_path / "faiss.index"
+    chunk_index_path = tmp_path / "chunk_index.jsonl"
+    report_path = tmp_path / "report.json"
+    build_database(input_dir, db_path, report_path)
+    build_indexes(db_path, bm25_path, faiss_path, chunk_index_path, report_path, skip_faiss=True)
+
+    index = faiss.IndexFlatIP(3)
+    index.add(np.asarray([[0.0, 0.1, 0.0], [1.0, 0.0, 0.0]], dtype="float32"))
     faiss.write_index(index, str(faiss_path))
     atomic_json_dump(
         report_path,

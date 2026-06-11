@@ -25,6 +25,8 @@ DEFAULT_DENSE_TOP_K = 20
 DEFAULT_FUSED_TOP_K = 20
 DEFAULT_RERANK_TOP_K = 10
 DEFAULT_RRF_K = 60
+DEFAULT_SPARSE_WEIGHT = 1.0
+DEFAULT_DENSE_WEIGHT = 1.5
 DEFAULT_URL_CAP = 2
 SNIPPET_CHARS = 240
 WHITESPACE_RE = re.compile(r"\s+")
@@ -52,6 +54,8 @@ class HybridRetrievalConfig:
     rerank_top_k: int = DEFAULT_RERANK_TOP_K
     final_top_k: int = 5
     rrf_k: int = DEFAULT_RRF_K
+    sparse_weight: float = DEFAULT_SPARSE_WEIGHT
+    dense_weight: float = DEFAULT_DENSE_WEIGHT
     reranker_model: str | None = None
     url_cap: int = DEFAULT_URL_CAP
 
@@ -160,6 +164,8 @@ class Retriever:
         fused_top_k: int = DEFAULT_FUSED_TOP_K,
         rerank_top_k: int = DEFAULT_RERANK_TOP_K,
         rrf_k: int = DEFAULT_RRF_K,
+        sparse_weight: float = DEFAULT_SPARSE_WEIGHT,
+        dense_weight: float = DEFAULT_DENSE_WEIGHT,
         reranker_model: str | None = None,
         url_cap: int = DEFAULT_URL_CAP,
     ) -> list[RetrievalHit] | HybridRetrievalResult:
@@ -175,6 +181,8 @@ class Retriever:
                 rerank_top_k=rerank_top_k,
                 final_top_k=top_k,
                 rrf_k=rrf_k,
+                sparse_weight=sparse_weight,
+                dense_weight=dense_weight,
                 reranker_model=reranker_model,
                 url_cap=url_cap,
             )
@@ -235,7 +243,13 @@ class Retriever:
     def _retrieve_hybrid(self, query: str, config: HybridRetrievalConfig) -> HybridRetrievalResult:
         sparse_hits = self._retrieve_bm25_matching(query, config.sparse_top_k)
         dense_hits = self._retrieve_dense(query, config.dense_top_k)
-        fused = _reciprocal_rank_fuse(sparse_hits, dense_hits, config.rrf_k)[: config.fused_top_k]
+        fused = _reciprocal_rank_fuse(
+            sparse_hits,
+            dense_hits,
+            config.rrf_k,
+            sparse_weight=config.sparse_weight,
+            dense_weight=config.dense_weight,
+        )[: config.fused_top_k]
         reranked = _rerank_candidates(query, fused[: config.rerank_top_k], self._chunks_by_id, config.reranker_model)
         ordered = [*reranked, *fused[config.rerank_top_k :]]
         selected = _dedupe_candidates(
@@ -367,7 +381,12 @@ def _context_from_row(row: dict[str, object], *, rank: int, trace_ref: str) -> C
 
 
 def _reciprocal_rank_fuse(
-    sparse_hits: list[RetrievalHit], dense_hits: list[RetrievalHit], rrf_k: int
+    sparse_hits: list[RetrievalHit],
+    dense_hits: list[RetrievalHit],
+    rrf_k: int,
+    *,
+    sparse_weight: float,
+    dense_weight: float,
 ) -> list[dict[str, object]]:
     candidates: dict[int, dict[str, object]] = {}
     for hit in sparse_hits:
@@ -385,7 +404,7 @@ def _reciprocal_rank_fuse(
         )
         candidate["sparse_rank"] = hit.rank
         candidate["sparse_score"] = hit.score
-        candidate["rrf_score"] = float(candidate["rrf_score"]) + 1.0 / (rrf_k + hit.rank)
+        candidate["rrf_score"] = float(candidate["rrf_score"]) + sparse_weight / (rrf_k + hit.rank)
     for hit in dense_hits:
         candidate = candidates.setdefault(
             hit.chunk_id,
@@ -401,7 +420,7 @@ def _reciprocal_rank_fuse(
         )
         candidate["dense_rank"] = hit.rank
         candidate["dense_score"] = hit.score
-        candidate["rrf_score"] = float(candidate["rrf_score"]) + 1.0 / (rrf_k + hit.rank)
+        candidate["rrf_score"] = float(candidate["rrf_score"]) + dense_weight / (rrf_k + hit.rank)
     return sorted(candidates.values(), key=_candidate_sort_key)
 
 
@@ -538,6 +557,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--fused-top-k", type=int, default=DEFAULT_FUSED_TOP_K)
     parser.add_argument("--rerank-top-k", type=int, default=DEFAULT_RERANK_TOP_K)
     parser.add_argument("--rrf-k", type=int, default=DEFAULT_RRF_K)
+    parser.add_argument("--sparse-weight", type=float, default=DEFAULT_SPARSE_WEIGHT)
+    parser.add_argument("--dense-weight", type=float, default=DEFAULT_DENSE_WEIGHT)
     parser.add_argument("--reranker-model", default=None)
     parser.add_argument("--url-cap", type=int, default=DEFAULT_URL_CAP)
     parser.add_argument("--db", type=Path, default=DEFAULT_DB)
@@ -566,6 +587,8 @@ def main(argv: list[str] | None = None) -> int:
         fused_top_k=args.fused_top_k,
         rerank_top_k=args.rerank_top_k,
         rrf_k=args.rrf_k,
+        sparse_weight=args.sparse_weight,
+        dense_weight=args.dense_weight,
         reranker_model=args.reranker_model,
         url_cap=args.url_cap,
     )
