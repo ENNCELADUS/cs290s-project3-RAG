@@ -1,6 +1,6 @@
 # Retrieval Evaluation Experiments
 
-Last updated: 2026-06-11
+Last updated: 2026-06-12
 
 This document records the current report-facing retrieval evaluation for the ShanghaiTech/SIST RAG system. The old
 12-question Phase 2 pilot is historical only; the locked retrieval test paradigm is now the structured 100-question
@@ -200,6 +200,81 @@ Interpretation:
 - The remaining both-missed top-5 set is 23 questions, down from 25 in the control anchor.
 - Dense still has broader top-5 coverage, while hybrid keeps stronger top-rank quality.
 
+### Fix 2: Enriched Index Text
+
+Change:
+
+- commit: `82768b2` (`Enrich retrieval index text`)
+- branch: `codex/retrieval-control-url-canonicalization`
+- behavior: BM25 tokenization and FAISS embeddings are built from enriched retrieval text:
+  title, category, canonical URL, URL slug/path tokens, and raw chunk text.
+- display snippets, packed context text, and source metadata still use the original SQLite chunk text.
+
+Remote index build:
+
+```text
+remote worktree: /home/richard/cs290s-project3-RAG-retrieval-urlcanon
+index artifacts:
+  data/rag_enriched_20260611/bm25_enriched_20260611.pkl
+  data/rag_enriched_20260611/faiss_bge_m3_enriched_20260611.index
+  data/rag_enriched_20260611/chunk_index_enriched_20260611.jsonl
+  data/rag_enriched_20260611/build_report_enriched_20260611.json
+chunk_count: 35315
+model: BAAI/bge-m3 local snapshot
+```
+
+Remote run:
+
+```text
+run_id: remote_retrieve_enriched_index_20260612
+remote worktree: /home/richard/cs290s-project3-RAG-retrieval-urlcanon
+remote artifacts:
+  data/eval/run_remote_retrieve_enriched_index_20260612.jsonl
+  data/eval/summary_remote_retrieve_enriched_index_20260612.json
+  data/eval/review_queue_remote_retrieve_enriched_index_20260612.csv
+  data/eval/gap_notes_remote_retrieve_enriched_index_20260612.md
+  data/eval/results_before_after_remote_retrieve_enriched_index_20260612.xlsx
+records: 200
+status: dense 100 ok / 0 errors; hybrid 100 ok / 0 errors
+```
+
+| mode | source_hit@1 | source_hit@5 | source_recall@5 | mrr@5 | ndcg@5 | precision@5 | avg latency (s) |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| `dense` | 0.65 | 0.85 | 0.813333 | 0.724333 | 0.721326 | 0.192 | 1.995500 |
+| `hybrid` | 0.64 | 0.80 | 0.768333 | 0.705833 | 0.696288 | 0.178 | 2.948884 |
+
+Delta versus Fix 1:
+
+| mode | source_hit@1 | source_hit@5 | source_recall@5 | mrr@5 | ndcg@5 | precision@5 |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| `dense` | +0.14 | +0.11 | +0.090000 | +0.135833 | +0.112808 | +0.020 |
+| `hybrid` | +0.08 | +0.09 | +0.075000 | +0.082666 | +0.070599 | +0.016 |
+
+Per-question top-5 source-hit overlap after fix 2:
+
+| dense hit@5 | hybrid hit@5 | questions |
+| ---: | ---: | ---: |
+| 0 | 0 | 14 |
+| 0 | 1 | 1 |
+| 1 | 0 | 6 |
+| 1 | 1 | 79 |
+
+Per-question top-1 source-hit overlap after fix 2:
+
+| dense hit@1 | hybrid hit@1 | questions |
+| ---: | ---: | ---: |
+| 0 | 0 | 28 |
+| 0 | 1 | 7 |
+| 1 | 0 | 8 |
+| 1 | 1 | 57 |
+
+Interpretation:
+
+- Enriched index text is the largest accepted retrieval gain so far, improving both top-rank quality and top-5 coverage
+  for both retrieval conditions.
+- The remaining both-missed top-5 set is 14 questions, down from 23 after Fix 1.
+- Dense remains stronger on top-5 coverage, but hybrid keeps competitive top-rank quality after the same index enrichment.
+
 ## Verification
 
 The root URL matching fix, URL-canonicalization fix, and evaluation module were checked locally:
@@ -207,6 +282,13 @@ The root URL matching fix, URL-canonicalization fix, and evaluation module were 
 ```bash
 uv run --locked --no-sync --offline python -m pytest tests/unit/test_evaluate_core.py tests/integration/test_evaluate_phase5.py -q
 uv run --locked --no-sync --offline ruff check src/evaluate tests/unit/test_evaluate_core.py tests/integration/test_evaluate_phase5.py
+```
+
+The enriched index text change was checked locally:
+
+```bash
+uv run --locked --no-sync --offline python -m pytest tests/integration/test_rag_ingest_index.py tests/integration/test_evaluate_phase5.py tests/unit/test_evaluate_core.py -q
+uv run --locked --no-sync --offline ruff check src/rag/index.py tests/integration/test_rag_ingest_index.py
 ```
 
 Remote validation:
@@ -218,6 +300,9 @@ gap_notes_remote_retrieve_full_rootfix_20260611.md: 202 lines
 run_remote_retrieve_urlcanon_20260611.jsonl: 200 lines
 review_queue_remote_retrieve_urlcanon_20260611.csv: 201 lines including header
 gap_notes_remote_retrieve_urlcanon_20260611.md: 202 lines
+run_remote_retrieve_enriched_index_20260612.jsonl: 200 lines
+review_queue_remote_retrieve_enriched_index_20260612.csv: 201 lines including header
+gap_notes_remote_retrieve_enriched_index_20260612.md: 202 lines
 workbook sheets: submission, diagnostics, retrieval_metrics, review_queue
 workbook rows: submission 101; diagnostics 201; retrieval_metrics 3; review_queue 201
 ```
