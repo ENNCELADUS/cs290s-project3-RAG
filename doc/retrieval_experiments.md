@@ -46,6 +46,8 @@ Question distribution:
 Metric policy:
 
 - Source metrics use normalized URL-prefix qrels from the structured question source fields.
+- URL normalization removes query strings and fragments and treats SIST template path segments such as `_t335` as aliases
+  of the same non-template official path after commit `44bfec4`.
 - Root expected URLs, such as `https://sist.shanghaitech.edu.cn/`, match same-site subpages after commit `6230f75`.
 - `source_hit@k` is 1 when any expected official source appears in the top `k`.
 - `source_recall@k`, `mrr@k`, `ndcg@k`, and `precision@k` are retrieval diagnostics, not answer correctness.
@@ -131,9 +133,76 @@ Interpretation:
   the other misses; the report should describe this as a ranking-quality improvement rather than a simple top-5 win.
 - The 25 questions missed by both modes are the first targets for bounded official-source refresh or qrels inspection.
 
+## Controlled Optimization Runs
+
+The `remote_retrieve_full_rootfix_20260611` run above is the control anchor. Each follow-up run changes one factor and
+uses the same 100-question file, corpus snapshot, RAG artifacts, retrieval modes, and `top_k=5`.
+
+### Fix 1: URL Canonicalization and Qrels Alias Matching
+
+Change:
+
+- commit: `44bfec4` (`Canonicalize source URL variants`)
+- branch: `codex/retrieval-control-url-canonicalization`
+- behavior: source metrics now ignore query strings/fragments and treat SIST `_tNNN` template path segments as aliases of
+  the same non-template official path.
+- no retrieval ranking, candidate selection, indexing, or generation changes.
+
+Remote run:
+
+```text
+run_id: remote_retrieve_urlcanon_20260611
+remote worktree: /home/richard/cs290s-project3-RAG-retrieval-urlcanon
+remote artifacts:
+  data/eval/run_remote_retrieve_urlcanon_20260611.jsonl
+  data/eval/summary_remote_retrieve_urlcanon_20260611.json
+  data/eval/review_queue_remote_retrieve_urlcanon_20260611.csv
+  data/eval/gap_notes_remote_retrieve_urlcanon_20260611.md
+  data/eval/results_before_after_remote_retrieve_urlcanon_20260611.xlsx
+records: 200
+status: dense 100 ok / 0 errors; hybrid 100 ok / 0 errors
+```
+
+| mode | source_hit@1 | source_hit@5 | source_recall@5 | mrr@5 | ndcg@5 | precision@5 | avg latency (s) |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| `dense` | 0.51 | 0.74 | 0.723333 | 0.588500 | 0.608518 | 0.172 | 2.035649 |
+| `hybrid` | 0.56 | 0.71 | 0.693333 | 0.623167 | 0.625689 | 0.162 | 2.882323 |
+
+Delta versus the control anchor:
+
+| mode | source_hit@1 | source_hit@5 | source_recall@5 | mrr@5 | ndcg@5 | precision@5 |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| `dense` | +0.08 | +0.05 | +0.060000 | +0.079500 | +0.078897 | +0.016 |
+| `hybrid` | +0.10 | +0.03 | +0.045000 | +0.062000 | +0.052711 | +0.008 |
+
+Per-question top-5 source-hit overlap after fix 1:
+
+| dense hit@5 | hybrid hit@5 | questions |
+| ---: | ---: | ---: |
+| 0 | 0 | 23 |
+| 0 | 1 | 3 |
+| 1 | 0 | 6 |
+| 1 | 1 | 68 |
+
+Per-question top-1 source-hit overlap after fix 1:
+
+| dense hit@1 | hybrid hit@1 | questions |
+| ---: | ---: | ---: |
+| 0 | 0 | 38 |
+| 0 | 1 | 11 |
+| 1 | 0 | 6 |
+| 1 | 1 | 45 |
+
+Interpretation:
+
+- This fix improves both retrieval conditions without changing retrieved candidates, so the gain is attributable to
+  stricter source URL canonicalization rather than ranking.
+- The remaining both-missed top-5 set is 23 questions, down from 25 in the control anchor.
+- Dense still has broader top-5 coverage, while hybrid keeps stronger top-rank quality.
+
 ## Verification
 
-The root URL matching fix and evaluation module were checked locally:
+The root URL matching fix, URL-canonicalization fix, and evaluation module were checked locally:
 
 ```bash
 uv run --locked --no-sync --offline python -m pytest tests/unit/test_evaluate_core.py tests/integration/test_evaluate_phase5.py -q
@@ -146,6 +215,9 @@ Remote validation:
 run_remote_retrieve_full_rootfix_20260611.jsonl: 200 lines
 review_queue_remote_retrieve_full_rootfix_20260611.csv: 201 lines including header
 gap_notes_remote_retrieve_full_rootfix_20260611.md: 202 lines
+run_remote_retrieve_urlcanon_20260611.jsonl: 200 lines
+review_queue_remote_retrieve_urlcanon_20260611.csv: 201 lines including header
+gap_notes_remote_retrieve_urlcanon_20260611.md: 202 lines
 workbook sheets: submission, diagnostics, retrieval_metrics, review_queue
 workbook rows: submission 101; diagnostics 201; retrieval_metrics 3; review_queue 201
 ```
