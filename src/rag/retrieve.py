@@ -28,14 +28,8 @@ DEFAULT_RRF_K = 60
 DEFAULT_SPARSE_WEIGHT = 1.0
 DEFAULT_DENSE_WEIGHT = 1.5
 DEFAULT_URL_CAP = 2
-HYBRID_METADATA_TOKEN_BOOST = 0.001
-HYBRID_METADATA_TOKEN_BOOST_CAP = 0.003
 SNIPPET_CHARS = 240
 WHITESPACE_RE = re.compile(r"\s+")
-ACADEMIC_YEAR_RE = re.compile(r"\b(?:19|20)\d{2}\s*[-/]\s*(?:19|20)\d{2}\b")
-YEAR_RE = re.compile(r"\b(?:19|20)\d{2}\b")
-UPPER_PATH_TOKEN_RE = re.compile(r"\b[A-Z][A-Z0-9]{1,3}\b")
-HYBRID_METADATA_PHRASES = ("degree plan", "course table")
 
 
 @dataclass(frozen=True)
@@ -255,8 +249,7 @@ class Retriever:
             config.rrf_k,
             sparse_weight=config.sparse_weight,
             dense_weight=config.dense_weight,
-        )
-        fused = _boost_hybrid_metadata_matches(query, fused, self._chunks_by_id)[: config.fused_top_k]
+        )[: config.fused_top_k]
         reranked = _rerank_candidates(query, fused[: config.rerank_top_k], self._chunks_by_id, config.reranker_model)
         ordered = [*reranked, *fused[config.rerank_top_k :]]
         selected = _dedupe_candidates(
@@ -435,57 +428,6 @@ def _candidate_sort_key(candidate: dict[str, object]) -> tuple[float, int, int]:
     ranks = [rank for rank in (candidate["sparse_rank"], candidate["dense_rank"]) if isinstance(rank, int)]
     best_rank = min(ranks) if ranks else sys.maxsize
     return (-float(candidate["rrf_score"]), best_rank, int(candidate["chunk_id"]))
-
-
-def _boost_hybrid_metadata_matches(
-    query: str,
-    candidates: list[dict[str, object]],
-    chunks_by_id: dict[int, dict[str, object]],
-) -> list[dict[str, object]]:
-    tokens = _hybrid_metadata_boost_tokens(query)
-    if not tokens:
-        return candidates
-
-    boosted: list[dict[str, object]] = []
-    for candidate in candidates:
-        row = chunks_by_id[int(candidate["chunk_id"])]
-        metadata = _hybrid_metadata_text(row)
-        metadata_words = set(metadata.split())
-        match_count = sum(1 for token in tokens if _hybrid_metadata_token_matches(token, metadata, metadata_words))
-        if match_count == 0:
-            boosted.append(candidate)
-            continue
-        boost = min(match_count * HYBRID_METADATA_TOKEN_BOOST, HYBRID_METADATA_TOKEN_BOOST_CAP)
-        boosted.append({**candidate, "rrf_score": float(candidate["rrf_score"]) + boost})
-    return sorted(boosted, key=_candidate_sort_key)
-
-
-def _hybrid_metadata_boost_tokens(query: str) -> set[str]:
-    normalized_query = _normalize_hybrid_metadata_text(query)
-    tokens: set[str] = set()
-    for phrase in HYBRID_METADATA_PHRASES:
-        if phrase in normalized_query:
-            tokens.add(phrase)
-    tokens.update(_normalize_hybrid_metadata_text(match.group(0)) for match in ACADEMIC_YEAR_RE.finditer(query))
-    tokens.update(match.group(0).casefold() for match in YEAR_RE.finditer(query))
-    tokens.update(match.group(0).casefold() for match in UPPER_PATH_TOKEN_RE.finditer(query))
-    return {token for token in tokens if token}
-
-
-def _hybrid_metadata_text(row: dict[str, object]) -> str:
-    fields = ("title", "url", "canonical_url", "category", "text")
-    return _normalize_hybrid_metadata_text(" ".join(str(row.get(field) or "") for field in fields))
-
-
-def _hybrid_metadata_token_matches(token: str, metadata: str, metadata_words: set[str]) -> bool:
-    if " " in token:
-        return token in metadata
-    return token in metadata_words
-
-
-def _normalize_hybrid_metadata_text(text: str) -> str:
-    normalized = re.sub(r"[^0-9A-Za-z]+", " ", text.casefold())
-    return WHITESPACE_RE.sub(" ", normalized).strip()
 
 
 def _bm25_document_matches_query(bm25: object, index: int, query_tokens: set[str]) -> bool:

@@ -407,34 +407,6 @@ def test_hybrid_retrieval_defaults_weight_dense_rrf_above_sparse_rrf_at_same_ran
     assert result.hits[chunk_ids.index(100)].trace.dense_rank is None
 
 
-def test_hybrid_retrieval_boosts_matching_path_year_tokens(
-    tmp_path: Path, fake_hybrid_sentence_transformer_module
-) -> None:
-    paths = _build_hybrid_path_year_artifacts(tmp_path)
-    retriever = Retriever.from_paths(
-        db_path=paths["db"],
-        bm25_path=paths["bm25"],
-        faiss_path=paths["faiss"],
-        chunk_index_path=paths["chunk_index"],
-        report_path=paths["report"],
-    )
-
-    result = retriever.retrieve(
-        "2025 EE degree plan",
-        mode="hybrid",
-        top_k=2,
-        sparse_top_k=1,
-        dense_top_k=1,
-        fused_top_k=2,
-        rerank_top_k=0,
-        sparse_weight=1.0,
-        dense_weight=1.0,
-    )
-
-    assert isinstance(result, HybridRetrievalResult)
-    assert [hit.chunk_id for hit in result.hits] == [101, 100]
-
-
 def test_hybrid_cli_json_includes_hits_contexts_and_config(
     tmp_path: Path, fake_hybrid_sentence_transformer_module, capsys: pytest.CaptureFixture[str]
 ) -> None:
@@ -863,81 +835,6 @@ def _build_weighted_rrf_artifacts(tmp_path: Path) -> dict[str, Path]:
 
     index = faiss.IndexFlatIP(3)
     index.add(np.asarray([[0.0, 0.1, 0.0], [1.0, 0.0, 0.0]], dtype="float32"))
-    faiss.write_index(index, str(faiss_path))
-    atomic_json_dump(
-        report_path,
-        {"index": {"faiss": {"model_path": "/models/hub/snapshots/bge-m3-local", "model_id": DEFAULT_MODEL}}},
-    )
-    return {
-        "db": db_path,
-        "bm25": bm25_path,
-        "faiss": faiss_path,
-        "chunk_index": chunk_index_path,
-        "report": report_path,
-    }
-
-
-def _build_hybrid_path_year_artifacts(tmp_path: Path) -> dict[str, Path]:
-    import faiss
-
-    input_dir = tmp_path / "path-year-merged"
-    input_dir.mkdir()
-    write_jsonl(
-        input_dir / "documents.jsonl",
-        [
-            {
-                "id": 10,
-                "url": "https://example.edu/programs/cs/overview",
-                "canonical_url": "https://example.edu/programs/cs/overview",
-                "title": "CS Overview",
-            },
-            {
-                "id": 11,
-                "url": "https://example.edu/ee/degree-plan-2025",
-                "canonical_url": "https://example.edu/ee/degree-plan-2025",
-                "title": "EE Degree Plan 2025",
-            },
-        ],
-    )
-    write_jsonl(
-        input_dir / "chunks.jsonl",
-        [
-            {
-                "id": 100,
-                "document_id": 10,
-                "chunk_index": 0,
-                "title": "CS Overview",
-                "url": "https://example.edu/programs/cs/overview",
-                "text": "dense-only overview",
-                "char_count": 19,
-            },
-            {
-                "id": 101,
-                "document_id": 11,
-                "chunk_index": 0,
-                "title": "EE Degree Plan 2025",
-                "url": "https://example.edu/ee/degree-plan-2025",
-                "category": "Academics",
-                "text": "Course table for the 2025-2026 degree plan.",
-                "char_count": 43,
-            },
-        ],
-    )
-    write_jsonl(input_dir / "courses.jsonl", [])
-    write_jsonl(input_dir / "faculty_members.jsonl", [])
-    write_jsonl(input_dir / "program_requirements.jsonl", [])
-    write_jsonl(input_dir / "events.jsonl", [])
-
-    db_path = tmp_path / "rag.sqlite"
-    bm25_path = tmp_path / "bm25.pkl"
-    faiss_path = tmp_path / "faiss.index"
-    chunk_index_path = tmp_path / "chunk_index.jsonl"
-    report_path = tmp_path / "report.json"
-    build_database(input_dir, db_path, report_path)
-    build_indexes(db_path, bm25_path, faiss_path, chunk_index_path, report_path, skip_faiss=True)
-
-    index = faiss.IndexFlatIP(3)
-    index.add(np.asarray([[0.0, 1.0, 0.0], [1.0, 0.0, 0.0]], dtype="float32"))
     faiss.write_index(index, str(faiss_path))
     atomic_json_dump(
         report_path,
