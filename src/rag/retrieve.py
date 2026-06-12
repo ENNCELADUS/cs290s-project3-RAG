@@ -16,6 +16,7 @@ import numpy as np
 
 from .index import DEFAULT_BM25, DEFAULT_CHUNK_INDEX, DEFAULT_DB, DEFAULT_FAISS, DEFAULT_REPORT, _tokenize
 from .io import read_jsonl
+from .source_urls import normalize_url, sist_article_id
 
 BaselineRetrievalMode = Literal["bm25", "dense"]
 RetrievalMode = Literal["bm25", "dense", "hybrid"]
@@ -27,7 +28,7 @@ DEFAULT_RERANK_TOP_K = 10
 DEFAULT_RRF_K = 60
 DEFAULT_SPARSE_WEIGHT = 1.0
 DEFAULT_DENSE_WEIGHT = 1.5
-DEFAULT_URL_CAP = 2
+DEFAULT_URL_CAP = 1
 SNIPPET_CHARS = 240
 WHITESPACE_RE = re.compile(r"\s+")
 
@@ -486,19 +487,19 @@ def _dedupe_candidates(
 ) -> list[dict[str, object]]:
     selected: list[dict[str, object]] = []
     seen_text_hashes: set[str] = set()
-    counts_by_url: dict[str, int] = {}
+    counts_by_source_key: dict[str, int] = {}
     for candidate in candidates:
         row = chunks_by_id[int(candidate["chunk_id"])]
         text_hash = _normalized_text_hash(str(row["text"]))
         if text_hash in seen_text_hashes:
             continue
-        url_key = _canonical_url_key(row)
-        if url_key is not None and counts_by_url.get(url_key, 0) >= url_cap:
+        source_keys = _source_keys(row)
+        if any(counts_by_source_key.get(key, 0) >= url_cap for key in source_keys):
             continue
         selected.append(candidate)
         seen_text_hashes.add(text_hash)
-        if url_key is not None:
-            counts_by_url[url_key] = counts_by_url.get(url_key, 0) + 1
+        for key in source_keys:
+            counts_by_source_key[key] = counts_by_source_key.get(key, 0) + 1
         if len(selected) >= final_top_k:
             break
     return selected
@@ -509,8 +510,19 @@ def _normalized_text_hash(text: str) -> str:
     return hashlib.sha256(normalized.encode("utf-8")).hexdigest()
 
 
-def _canonical_url_key(row: dict[str, object]) -> str | None:
-    return _optional_str(row.get("canonical_url")) or _optional_str(row.get("url"))
+def _source_keys(row: dict[str, object]) -> set[str]:
+    keys: set[str] = set()
+    url = _optional_str(row.get("canonical_url")) or _optional_str(row.get("url"))
+    if url is not None:
+        normalized_url = normalize_url(url)
+        keys.add(f"url:{normalized_url}")
+        article_id = sist_article_id(normalized_url)
+        if article_id is not None:
+            keys.add(f"sist_article:{article_id}")
+    document_id = _optional_int(row.get("document_id"))
+    if document_id is not None:
+        keys.add(f"document:{document_id}")
+    return keys
 
 
 def _trace_from_candidate(candidate: dict[str, object], *, final_rank: int) -> RetrievalTrace:

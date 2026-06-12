@@ -468,6 +468,54 @@ def test_hybrid_deduplicates_text_and_caps_canonical_url() -> None:
     assert [candidate["chunk_id"] for candidate in selected] == [1, 3, 5]
 
 
+def test_hybrid_deduplicates_source_keys_by_default() -> None:
+    chunks_by_id = {
+        1: {
+            "chunk_id": 1,
+            "document_id": 10,
+            "canonical_url": "https://sist.shanghaitech.edu.cn/_t335/2026/0327/c2863a1120270/page.htm",
+            "url": "https://sist.shanghaitech.edu.cn/_t335/2026/0327/c2863a1120270/page.htm",
+            "text": "first article chunk",
+        },
+        2: {
+            "chunk_id": 2,
+            "document_id": 11,
+            "canonical_url": "https://sist.shanghaitech.edu.cn/2026/0327/c7339a1120270/page.htm",
+            "url": "https://sist.shanghaitech.edu.cn/2026/0327/c7339a1120270/page.htm",
+            "text": "same article different column",
+        },
+        3: {
+            "chunk_id": 3,
+            "document_id": 12,
+            "canonical_url": "https://sist.shanghaitech.edu.cn/2026/0327/c7339a1120271/page.htm",
+            "url": "https://sist.shanghaitech.edu.cn/2026/0327/c7339a1120271/page.htm",
+            "text": "different article",
+        },
+        4: {
+            "chunk_id": 4,
+            "document_id": 12,
+            "canonical_url": "https://sist.shanghaitech.edu.cn/2026/0327/c7339a1120271/page.htm",
+            "url": "https://sist.shanghaitech.edu.cn/2026/0327/c7339a1120271/page.htm",
+            "text": "same document second chunk",
+        },
+        5: {
+            "chunk_id": 5,
+            "document_id": 13,
+            "canonical_url": "https://example.edu/other",
+            "url": "https://example.edu/other",
+            "text": "external source",
+        },
+    }
+    candidates = [
+        {"chunk_id": chunk_id, "rrf_score": 1.0 / chunk_id}
+        for chunk_id in [1, 2, 3, 4, 5]
+    ]
+
+    selected = _dedupe_candidates(candidates, chunks_by_id, final_top_k=5, url_cap=1)
+
+    assert [candidate["chunk_id"] for candidate in selected] == [1, 3, 5]
+
+
 def test_hybrid_retrieval_reports_missing_dense_artifacts(tmp_path: Path, merged_input_dir: Path) -> None:
     db_path = tmp_path / "rag.sqlite"
     bm25_path = tmp_path / "bm25.pkl"

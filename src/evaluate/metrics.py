@@ -1,27 +1,8 @@
 from __future__ import annotations
 
 import math
-import re
-from urllib.parse import unquote, urlsplit, urlunsplit
 
-_SIST_HOST = "sist.shanghaitech.edu.cn"
-_SIST_TEMPLATE_SEGMENT = re.compile(r"_t\d+")
-
-
-def normalize_url(url: str) -> str:
-    parsed = urlsplit(unquote(url.strip()))
-    scheme = "https" if parsed.scheme in {"http", "https"} else parsed.scheme
-    netloc = parsed.netloc.lower()
-    path = _canonical_path(parsed.path, netloc)
-    return urlunsplit((scheme, netloc, path, "", ""))
-
-
-def _canonical_path(path: str, netloc: str) -> str:
-    canonical = path.rstrip("/") or "/"
-    if netloc != _SIST_HOST:
-        return canonical
-    parts = [part for part in canonical.split("/") if not _SIST_TEMPLATE_SEGMENT.fullmatch(part)]
-    return "/".join(parts) or "/"
+from rag.source_urls import normalize_url, sist_article_id
 
 
 def source_matches(observed_url: str, expected_url: str) -> bool:
@@ -29,7 +10,11 @@ def source_matches(observed_url: str, expected_url: str) -> bool:
     expected = normalize_url(expected_url)
     if expected.endswith("/"):
         return observed == expected or observed.startswith(expected)
-    return observed == expected or observed.startswith(f"{expected}/")
+    if observed == expected or observed.startswith(f"{expected}/"):
+        return True
+    observed_article_id = sist_article_id(observed)
+    expected_article_id = sist_article_id(expected)
+    return observed_article_id is not None and observed_article_id == expected_article_id
 
 
 def source_metrics(

@@ -1,6 +1,6 @@
 # Retrieval Evaluation Experiments
 
-Last updated: 2026-06-12
+Last updated: 2026-06-13
 
 This document records the current report-facing retrieval evaluation for the ShanghaiTech/SIST RAG system. The old
 12-question Phase 2 pilot is historical only; the locked retrieval test paradigm is now the structured 100-question
@@ -15,8 +15,8 @@ The official before/after retrieval convention for the report is:
 
 | role | retrieval mode | purpose |
 | --- | --- | --- |
-| Before optimization | `dense` | Pre-optimization condition using FAISS over `BAAI/bge-m3` embeddings. |
-| After optimization | `hybrid` | Optimized condition using BM25+dense RRF fusion, source de-duplication, and packed contexts. |
+| Before optimization | `dense` | Dense-only FAISS retrieval over `BAAI/bge-m3`, before BM25 fusion, RRF, de-duplication, enriched index text, weighted RRF, reranking, or query expansion. |
+| After optimization | `hybrid` | Optimized retrieval using BM25+dense candidates, RRF fusion, source de-duplication/context packing, enriched index text, weighted dense RRF, strict source diversity, and selective local reranking. |
 | Diagnostic baseline | `bm25` | Optional sparse diagnostic only; not part of the official before/after comparison. |
 
 Locked inputs:
@@ -49,6 +49,10 @@ Metric policy:
 - URL normalization removes query strings and fragments and treats SIST template path segments such as `_t335` as aliases
   of the same non-template official path after commit `44bfec4`.
 - Root expected URLs, such as `https://sist.shanghaitech.edu.cn/`, match same-site subpages after commit `6230f75`.
+- Same SIST article IDs under different column paths, such as `c2863a1120270/page.htm` and
+  `c7339a1120270/page.htm`, match after Fix 4.
+- These URL/root/qrels canonicalization rules are evaluation hygiene. They apply to both before and after conditions and
+  are not counted as retrieval optimizations.
 - `source_hit@k` is 1 when any expected official source appears in the top `k`.
 - `source_recall@k`, `mrr@k`, `ndcg@k`, and `precision@k` are retrieval diagnostics, not answer correctness.
 - Retrieval-only runs intentionally produce `manual_review` correctness status because no generated answer is judged.
@@ -88,12 +92,12 @@ manifest `data/eval/retrieval_pilot_manifest_2026-05-31.jsonl` remains at the ro
     results_before_after_remote_retrieve_full_rootfix_20260611.xlsx
 ```
 
-Use the `20260611T222046Z_remote_retrieve_full_rootfix/` directory for report numbers. The earlier
-`20260611T220856Z_remote_retrieve_full/` run is retained only as a pre-root-prefix-fix diagnostic.
+Use the report-facing comparison below for retrieval-only report diagnostics. The timestamped rootfix directory is
+retained as a control anchor, not as the final before/after result.
 
-## Final Retrieval Results
+## Control Anchor Retrieval Results
 
-Final run:
+Control anchor run:
 
 ```text
 run_id: remote_retrieve_full_rootfix_20260611
@@ -135,8 +139,12 @@ Interpretation:
 
 ## Controlled Optimization Runs
 
-The `remote_retrieve_full_rootfix_20260611` run above is the control anchor. Each follow-up run changes one factor and
-uses the same 100-question file, corpus snapshot, RAG artifacts, retrieval modes, and `top_k=5`.
+The `remote_retrieve_full_rootfix_20260611` run above is the pre-Fix-1 control anchor. Each follow-up run changes one
+factor and uses the same 100-question file, corpus snapshot, retrieval modes, and `top_k=5`.
+
+Fix 1 through Fix 3 tables preserve their original remote summary JSON metrics. The Fix 4 and report-facing tables use
+the shared same-article-ID evaluation alias; where needed, earlier immutable JSONL artifacts were rescored rather than
+retrieved again.
 
 ### Fix 1: URL Canonicalization and Qrels Alias Matching
 
@@ -335,6 +343,249 @@ Interpretation:
 - Hybrid `source_hit@1` is unchanged, so the effect is deeper top-5 evidence ordering rather than first-rank correction.
 - The remaining both-missed top-5 set is 13 questions, down from 14 after Fix 2.
 
+### Fix 4: Strict Source Diversity and Same-Article Evaluation Alias
+
+Change:
+
+- local implementation: strict final source diversity in hybrid retrieval.
+- behavior: hybrid final top-5 now defaults to `url_cap=1` and de-duplicates by normalized URL, document ID, and SIST
+  article ID family.
+- evaluation hygiene: source metrics now treat same SIST article IDs under different column paths as aliases. This
+  canonicalization is applied to all conditions and is not counted as a retrieval optimization.
+- no candidate pool size, index text, reranker, query expansion, or generation changes.
+
+Remote run:
+
+```text
+run_id: remote_retrieve_strict_diversity_articlealias_20260612
+remote worktree: /home/richard/cs290s-project3-RAG-retrieval-urlcanon
+remote artifacts:
+  data/eval/run_remote_retrieve_strict_diversity_articlealias_20260612.jsonl
+  data/eval/summary_remote_retrieve_strict_diversity_articlealias_20260612.json
+  data/eval/review_queue_remote_retrieve_strict_diversity_articlealias_20260612.csv
+  data/eval/gap_notes_remote_retrieve_strict_diversity_articlealias_20260612.md
+  data/eval/results_before_after_remote_retrieve_strict_diversity_articlealias_20260612.xlsx
+records: 200
+status: dense 100 ok / 0 errors; hybrid 100 ok / 0 errors
+```
+
+The table below uses the shared same-article evaluation alias for both rows. The Fix 3 row was rescored from its
+existing immutable JSONL artifact; the retrieval itself was not rerun.
+
+| mode | source_hit@1 | source_hit@5 | source_recall@5 | mrr@5 | ndcg@5 | precision@5 | avg latency (s) |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| Fix 3 `hybrid`, rescored | 0.66 | 0.83 | 0.798333 | 0.727500 | 0.728041 | 0.192 | 2.989514 |
+| Fix 4 `hybrid` | 0.66 | 0.85 | 0.811667 | 0.735333 | 0.716696 | 0.182 | 2.969989 |
+| Delta | +0.00 | +0.02 | +0.013334 | +0.007833 | -0.011345 | -0.010 | -0.019525 |
+
+Per-question top-5 source-hit overlap after Fix 4:
+
+| dense hit@5 | hybrid hit@5 | questions |
+| ---: | ---: | ---: |
+| 0 | 0 | 11 |
+| 0 | 1 | 4 |
+| 1 | 0 | 4 |
+| 1 | 1 | 81 |
+
+Interpretation:
+
+- Strict source diversity improves coverage: hybrid `source_hit@5` rises from 0.83 to 0.85 under the shared
+  same-article evaluation policy, and `source_recall@5` rises from 0.798333 to 0.811667.
+- The improvement comes from recovering `q039` and `q066` in hybrid top-5 by preventing repeated source variants from
+  consuming final slots.
+- This is a coverage-oriented optimization, not a uniform win: `ndcg@5` drops by 0.011345 and `precision@5` drops by
+  0.010 because some repeated relevant hits are replaced by diverse but non-relevant sources.
+
+### Fix 5: Local CrossEncoder Rerank over Top-50 Hybrid Candidates
+
+Change:
+
+- eval plumbing: expose hybrid candidate, fusion, rerank, RRF, and URL-cap knobs through `rag-evaluate`.
+- local reranker runtime: cache local `CrossEncoder` instances per `Retriever` and resolved model path so a full eval
+  does not reload the reranker for every hybrid query.
+- control setting: hybrid sparse candidate depth 50, dense candidate depth 50, fused depth 50, rerank depth 50, final
+  top 5, and strict source diversity unchanged.
+- reranker model: local `BAAI/bge-reranker-v2-m3` snapshot at `/home/richard/models/bge-reranker-v2-m3`.
+- no source-type priors, structured sidecar retrieval, query expansion, qrels edits, or index-text changes.
+
+Remote run:
+
+```text
+run_id: remote_retrieve_hybrid_rerank_bge_v2_m3_retry_20260612
+remote worktree: /home/richard/cs290s-project3-RAG-retrieval-urlcanon
+commits:
+  a5b20b0 Expose hybrid retrieval knobs in evaluation
+  3a7fa37 Cache local hybrid reranker models
+remote artifacts:
+  data/eval/run_remote_retrieve_hybrid_rerank_bge_v2_m3_retry_20260612.jsonl
+  data/eval/summary_remote_retrieve_hybrid_rerank_bge_v2_m3_retry_20260612.json
+  data/eval/review_queue_remote_retrieve_hybrid_rerank_bge_v2_m3_retry_20260612.csv
+  data/eval/gap_notes_remote_retrieve_hybrid_rerank_bge_v2_m3_retry_20260612.md
+  data/eval/results_before_after_remote_retrieve_hybrid_rerank_bge_v2_m3_retry_20260612.xlsx
+records: 200
+status: dense 100 ok / 0 errors; hybrid 100 ok / 0 errors
+```
+
+The first attached-SSH attempt, `remote_retrieve_hybrid_rerank_bge_v2_m3_20260612`, is discarded because the SSH stdout
+pipe broke during the run and produced 84 retrieval errors. The retry above ran detached with stdout redirected.
+
+The Top-50 pool-only control was run before enabling the reranker:
+
+| run | source_hit@1 | source_hit@5 | source_recall@5 | mrr@5 | ndcg@5 | precision@5 | avg latency (s) |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| Fix 4 `hybrid` | 0.66 | 0.85 | 0.811667 | 0.735333 | 0.716696 | 0.182 | 2.969989 |
+| Top-50 pool-only `hybrid` | 0.65 | 0.84 | 0.815000 | 0.727333 | 0.712832 | 0.180 | 2.925436 |
+| Delta | -0.01 | -0.01 | +0.003333 | -0.008000 | -0.003864 | -0.002 | -0.044553 |
+
+The reranker result compared with the Fix 4 anchor:
+
+| mode | source_hit@1 | source_hit@5 | source_recall@5 | mrr@5 | ndcg@5 | precision@5 | avg latency (s) |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| Fix 4 `hybrid` | 0.66 | 0.85 | 0.811667 | 0.735333 | 0.716696 | 0.182 | 2.969989 |
+| Fix 5 `hybrid` + local reranker | 0.58 | 0.86 | 0.826667 | 0.685500 | 0.682113 | 0.188 | 85.482282 |
+| Delta | -0.08 | +0.01 | +0.015000 | -0.049833 | -0.034583 | +0.006 | +82.512293 |
+
+Interpretation:
+
+- The local CrossEncoder directly improves top-5 coverage: `source_hit@5` rises from 0.85 to 0.86 and
+  `source_recall@5` rises from 0.811667 to 0.826667.
+- It is not a clean default optimization. Top-rank quality regresses sharply: `source_hit@1` drops by 0.08, `mrr@5`
+  drops by 0.049833, and `ndcg@5` drops by 0.034583.
+- CPU latency is too high for the current deployment path. Even with model caching, hybrid latency rises from 2.969989s
+  to 85.482282s per query on the remote host, where no GPU was visible.
+- The report-facing after-optimization condition should remain Fix 4 unless the report explicitly chooses top-5
+  coverage as the only optimization target. Fix 5 is best treated as evidence that full CrossEncoder reranking needs a
+  lighter or more selective variant before adoption.
+
+### Fix 6: Selective Top-20 Local Rerank with Fused Top-2 Preservation
+
+Change:
+
+- local implementation: add `rerank_preserve_top_k` to hybrid retrieval so the first N fused candidates keep their RRF
+  order and only candidates after that preserved prefix are passed to the local CrossEncoder.
+- eval plumbing: expose `--rerank-preserve-top-k` through `rag-retrieve`, `rag-evaluate`, and `EvaluationConfig`.
+- control setting: hybrid sparse candidate depth 50, dense candidate depth 50, fused depth 50, rerank depth 20,
+  preserve fused top 2, final top 5, and strict source diversity unchanged.
+- reranker model: local `BAAI/bge-reranker-v2-m3` snapshot at `/home/richard/models/bge-reranker-v2-m3`.
+- no source-type priors, structured sidecar retrieval, query expansion, qrels edits, or index-text changes.
+
+Remote run:
+
+```text
+run_id: remote_retrieve_hybrid_rerank_preserve2_top20_20260612
+remote worktree: /home/richard/cs290s-project3-RAG-retrieval-urlcanon
+commit:
+  f260aa2 Add selective hybrid rerank prefix preservation
+remote artifacts:
+  data/eval/run_remote_retrieve_hybrid_rerank_preserve2_top20_20260612.jsonl
+  data/eval/summary_remote_retrieve_hybrid_rerank_preserve2_top20_20260612.json
+  data/eval/review_queue_remote_retrieve_hybrid_rerank_preserve2_top20_20260612.csv
+  data/eval/gap_notes_remote_retrieve_hybrid_rerank_preserve2_top20_20260612.md
+  data/eval/results_before_after_remote_retrieve_hybrid_rerank_preserve2_top20_20260612.xlsx
+records: 200
+status: dense 100 ok / 0 errors; hybrid 100 ok / 0 errors
+```
+
+The selective reranker result compared with the Fix 4 anchor:
+
+| mode | source_hit@1 | source_hit@5 | source_recall@5 | mrr@5 | ndcg@5 | precision@5 | avg latency (s) |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| Fix 4 `hybrid` | 0.66 | 0.85 | 0.811667 | 0.735333 | 0.716696 | 0.182 | 2.969989 |
+| Fix 6 `hybrid` + selective reranker | 0.65 | 0.88 | 0.853333 | 0.748333 | 0.738153 | 0.192 | 33.603731 |
+| Delta | -0.01 | +0.03 | +0.041666 | +0.013000 | +0.021457 | +0.010 | +30.633742 |
+
+Compared with the full top-50 CrossEncoder reranker from Fix 5:
+
+| mode | source_hit@1 | source_hit@5 | source_recall@5 | mrr@5 | ndcg@5 | precision@5 | avg latency (s) |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| Fix 5 full top-50 rerank | 0.58 | 0.86 | 0.826667 | 0.685500 | 0.682113 | 0.188 | 85.482282 |
+| Fix 6 selective top-20 rerank | 0.65 | 0.88 | 0.853333 | 0.748333 | 0.738153 | 0.192 | 33.603731 |
+| Delta | +0.07 | +0.02 | +0.026666 | +0.062833 | +0.056040 | +0.004 | -51.878551 |
+
+Per-question top-5 source-hit changes:
+
+| comparison | gained | lost |
+| --- | --- | --- |
+| Fix 6 vs Fix 4 | `q021`, `q031`, `q037`, `q072` | `q013` |
+| Fix 6 vs Fix 5 full top-50 rerank | `q031`, `q066`, `q069`, `q088` | `q013`, `q041` |
+
+Interpretation:
+
+- Selective reranking is the strongest retrieval-only result so far on top-5 coverage: `source_hit@5` reaches 0.88 and
+  `source_recall@5` reaches 0.853333.
+- Preserving the fused top 2 prevents most of the first-rank damage seen in full CrossEncoder reranking. `source_hit@1`
+  is still 0.01 below Fix 4, but far above the full top-50 reranker at 0.58.
+- Rank-quality diagnostics improve over Fix 4: `mrr@5` rises by 0.013000 and `ndcg@5` rises by 0.021457.
+- Latency remains expensive on CPU at 33.603731s per hybrid query, but it is much lower than full top-50 reranking.
+  This is a report-usable accuracy optimization only if the report clearly states the latency tradeoff.
+
+## Report-Facing Before/After Comparison
+
+The official retrieval-only report comparison uses a shared evaluation-canonicalization policy for both conditions:
+
+| condition | source_hit@1 | source_hit@5 | source_recall@5 | mrr@5 | ndcg@5 | precision@5 |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Before optimization: Fix 1 `dense`, rescored | 0.52 | 0.74 | 0.723333 | 0.594833 | 0.614946 | 0.172 |
+| After optimization: Fix 6 `hybrid` selective reranker | 0.65 | 0.88 | 0.853333 | 0.748333 | 0.738153 | 0.192 |
+| Delta | +0.13 | +0.14 | +0.130000 | +0.153500 | +0.123207 | +0.020 |
+
+This is the clean report-facing retrieval comparison because Fix 1 applies the shared URL/qrels canonicalization without
+changing retrieval ranking, while Fix 6 includes the implemented retrieval optimizations. The main caveat is runtime:
+Fix 6 improves retrieval accuracy but increases hybrid CPU latency from 2.969989s in Fix 4 to 33.603731s.
+
+The Fix 6 `dense` row is a diagnostic ceiling, not the official before-optimization baseline. It uses the enriched
+index text introduced as an optimization, so comparing latest `dense` directly against latest `hybrid` answers a
+different diagnostic question: whether hybrid fusion and selective reranking beat dense after both modes receive the
+same enriched index. On that diagnostic view, latest `hybrid` is ahead on `source_hit@5` 0.88 versus dense 0.85 and
+`mrr@5` 0.748333 versus dense 0.742667, while dense is essentially tied on `ndcg@5` 0.738275 versus hybrid 0.738153.
+
+## Remaining Failure Taxonomy
+
+After Fix 6, the top-5 source-hit overlap is:
+
+| result type | question count | question IDs |
+| --- | ---: | --- |
+| Both hit | 81 | not listed individually |
+| Both miss | 8 | `q006`, `q022`, `q023`, `q024`, `q032`, `q033`, `q041`, `q046` |
+| Dense-only hit | 4 | `q003`, `q013`, `q018`, `q050` |
+| Hybrid-only hit | 7 | `q029`, `q031`, `q037`, `q039`, `q066`, `q072`, `q099` |
+
+Both-missed questions are dominated by factual and comparative cases. The
+expected URLs for checked disputed questions are present in the enriched chunk index, so the remaining issue is usually
+ranking, sibling pages, or qrels narrowness rather than complete corpus absence.
+
+Main observed causes:
+
+- Selective reranking recovered several expected sources that previously sat below top 5, including `q021`, `q031`,
+  `q037`, and `q072`, but did not resolve `q022`.
+- Strict source diversity and selective reranking fixed some repeated-source failures, including `q039`, `q066`, and
+  `q072`, but course-table and faculty profile cases still need stronger intent signals.
+- Some official pages are answer-bearing siblings but fail the current qrels, such as Chinese/English sibling pages and
+  faculty `main.htm` versus list/profile variants.
+- Course-table and faculty/course join questions need more structured retrieval signals than chunk similarity alone.
+- Hybrid selective reranking is the strongest top-5 retrieval condition so far, but sparse terms and reranker scores can
+  still lift sibling pages or old list pages above the exact expected URL.
+
+## Next Optimization Candidates
+
+Prioritize actual retrieval changes separately from metric/qrels cleanup:
+
+1. If continuing the reranker route, test a lighter or selective reranking variant rather than full CPU CrossEncoder
+   top-50 reranking. The first successful selective variant is preserve fused top 2 + rerank candidates 3-20; any next
+   reranker experiment should change only one knob, such as `rerank_top_k=10` with the same preserved prefix to test
+   whether latency can drop without losing the Fix 6 coverage gain.
+2. Add source-type priors for recurring query intents: faculty pages for office/email/profile questions, course tables
+   for course-code and semester questions, research-center pages for center/lab questions, and canonical article pages
+   for news/admission questions.
+3. Build structured sidecar retrieval for courses, faculty, and research centers if there is time after the lower-risk
+   improvements.
+
+Keep qrels cleanup separate from retrieval optimization. The next qrels audit should target Chinese/English official
+siblings and answer-bearing faculty/list pages; same-article-ID aliases are already covered by the shared evaluation
+canonicalization policy. Existing remote diagnostics suggest that larger hybrid candidate pools alone were worse, and
+the simple metadata boost trial matched the weighted RRF metrics exactly, so neither should be the next priority without
+a more specific hypothesis.
+
 ## Verification
 
 The root URL matching fix, URL-canonicalization fix, and evaluation module were checked locally:
@@ -343,6 +594,29 @@ The root URL matching fix, URL-canonicalization fix, and evaluation module were 
 uv run --locked --no-sync --offline python -m pytest tests/unit/test_evaluate_core.py tests/integration/test_evaluate_phase5.py -q
 uv run --locked --no-sync --offline ruff check src/evaluate tests/unit/test_evaluate_core.py tests/integration/test_evaluate_phase5.py
 ```
+
+The eval-plumbing and reranker-cache changes were checked locally:
+
+```bash
+uv run --locked --no-sync --offline python -m pytest tests/integration/test_evaluate_phase5.py -q
+uv run --locked --no-sync --offline ruff check src/evaluate/cli.py src/evaluate/runner.py tests/integration/test_evaluate_phase5.py
+uv run --locked --no-sync --offline python -m pytest tests/integration/test_rag_ingest_index.py::test_hybrid_reranker_reorders_with_local_model tests/integration/test_rag_ingest_index.py::test_hybrid_reranker_reuses_local_model_for_same_retriever tests/integration/test_rag_ingest_index.py::test_hybrid_reranker_reports_missing_local_model -q
+uv run --locked --no-sync --offline ruff check src/rag/retrieve.py tests/integration/test_rag_ingest_index.py
+```
+
+The reranker-cache patch was also checked on the remote worktree with the same focused reranker tests and ruff command.
+The final reranker retry wrote 200 JSONL records, 201 review-queue CSV lines, 202 gap-note lines, a summary JSON, and
+the Excel workbook listed above.
+
+The selective reranker prefix-preservation change was checked locally and remotely:
+
+```bash
+uv run --locked --no-sync --offline python -m pytest tests/integration/test_rag_ingest_index.py::test_hybrid_reranker_can_preserve_fused_prefix tests/integration/test_rag_ingest_index.py::test_hybrid_reranker_skips_prediction_when_preserved_prefix_covers_window tests/integration/test_rag_ingest_index.py::test_hybrid_reranker_reorders_with_local_model tests/integration/test_rag_ingest_index.py::test_hybrid_cli_json_includes_hits_contexts_and_config tests/integration/test_evaluate_phase5.py::test_evaluate_retrieve_passes_hybrid_knobs_only_to_hybrid -q
+uv run --locked --no-sync --offline ruff check src/rag/retrieve.py src/evaluate/cli.py src/evaluate/runner.py tests/integration/test_rag_ingest_index.py tests/integration/test_evaluate_phase5.py
+```
+
+The remote selective reranker run used one cached CrossEncoder load and 200 dense encoder loads, then wrote 200 JSONL
+records, 201 review-queue CSV lines, 202 gap-note lines, a summary JSON, and the Excel workbook listed above.
 
 The enriched index text change was checked locally:
 
@@ -356,6 +630,13 @@ The weighted RRF change was checked locally:
 ```bash
 uv run --locked --no-sync --offline python -m pytest tests/integration/test_rag_ingest_index.py tests/integration/test_evaluate_phase5.py tests/unit/test_evaluate_core.py -q
 uv run --locked --no-sync --offline ruff check src/rag/retrieve.py tests/integration/test_rag_ingest_index.py
+```
+
+The strict source diversity and same-article alias changes were checked locally and remotely:
+
+```bash
+uv run --locked --no-sync --offline python -m pytest tests/unit/test_evaluate_core.py tests/integration/test_rag_ingest_index.py tests/integration/test_evaluate_phase5.py -q
+uv run --locked --no-sync --offline ruff check src/rag src/evaluate tests/unit/test_evaluate_core.py tests/integration/test_rag_ingest_index.py tests/integration/test_evaluate_phase5.py
 ```
 
 Remote validation:
@@ -373,6 +654,12 @@ gap_notes_remote_retrieve_enriched_index_20260612.md: 202 lines
 run_remote_retrieve_weighted_rrf_dense15_20260612.jsonl: 200 lines
 review_queue_remote_retrieve_weighted_rrf_dense15_20260612.csv: 201 lines including header
 gap_notes_remote_retrieve_weighted_rrf_dense15_20260612.md: 202 lines
+run_remote_retrieve_strict_diversity_articlealias_20260612.jsonl: 200 lines
+review_queue_remote_retrieve_strict_diversity_articlealias_20260612.csv: 201 lines including header
+gap_notes_remote_retrieve_strict_diversity_articlealias_20260612.md: 202 lines
+run_remote_retrieve_hybrid_rerank_preserve2_top20_20260612.jsonl: 200 lines
+review_queue_remote_retrieve_hybrid_rerank_preserve2_top20_20260612.csv: 201 lines including header
+gap_notes_remote_retrieve_hybrid_rerank_preserve2_top20_20260612.md: 202 lines
 workbook sheets: submission, diagnostics, retrieval_metrics, review_queue
 workbook rows: submission 101; diagnostics 201; retrieval_metrics 3; review_queue 201
 ```

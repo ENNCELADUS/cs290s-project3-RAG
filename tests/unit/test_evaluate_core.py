@@ -70,6 +70,25 @@ def test_source_metrics_match_sist_template_and_query_variants() -> None:
     assert metrics["source_recall@5"] == 1.0
 
 
+def test_source_metrics_match_sist_same_article_id_across_columns() -> None:
+    observed = "https://sist.shanghaitech.edu.cn/2026/0327/c2863a1120270/page.htm"
+    expected = "https://sist.shanghaitech.edu.cn/2026/0327/c7339a1120270/page.htm"
+
+    assert source_matches(observed, expected)
+    assert source_metrics([observed], [expected])["source_hit@1"] == 1.0
+
+
+def test_source_metrics_do_not_article_alias_unrelated_or_non_sist_urls() -> None:
+    assert not source_matches(
+        "https://sist.shanghaitech.edu.cn/2026/0327/c2863a1120270/page.htm",
+        "https://sist.shanghaitech.edu.cn/2026/0327/c2863a1120271/page.htm",
+    )
+    assert not source_matches(
+        "https://example.edu/2026/0327/c2863a1120270/page.htm",
+        "https://example.edu/2026/0327/c7339a1120270/page.htm",
+    )
+
+
 def test_judge_exact_required_manual_and_forbidden_cases(tmp_path: Path) -> None:
     questions_path = tmp_path / "questions.csv"
     _write_question_csv(questions_path)
