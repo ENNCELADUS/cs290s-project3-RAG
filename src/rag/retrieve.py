@@ -61,6 +61,7 @@ class HybridRetrievalConfig:
     reranker_model: str | None = None
     reranker_device: str = "cpu"
     url_cap: int = DEFAULT_URL_CAP
+    expanded_queries: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -174,6 +175,7 @@ class Retriever:
         reranker_model: str | None = None,
         reranker_device: str = "cpu",
         url_cap: int = DEFAULT_URL_CAP,
+        expanded_queries: tuple[str, ...] = (),
     ) -> list[RetrievalHit] | HybridRetrievalResult:
         if mode == "bm25":
             return self._retrieve_bm25(query, top_k)
@@ -193,6 +195,7 @@ class Retriever:
                 reranker_model=reranker_model,
                 reranker_device=reranker_device,
                 url_cap=url_cap,
+                expanded_queries=tuple(query for query in expanded_queries if query.strip()),
             )
             return self._retrieve_hybrid(query, config)
         raise ValueError(f"unsupported retrieval mode: {mode}")
@@ -249,8 +252,17 @@ class Retriever:
         return hits
 
     def _retrieve_hybrid(self, query: str, config: HybridRetrievalConfig) -> HybridRetrievalResult:
-        sparse_hits = self._retrieve_bm25_matching(query, config.sparse_top_k)
-        dense_hits = self._retrieve_dense(query, config.dense_top_k)
+        if config.expanded_queries:
+            queries = (query, *config.expanded_queries)
+            sparse_hits = _merge_ranked_hits(
+                [self._retrieve_bm25_matching(candidate_query, config.sparse_top_k) for candidate_query in queries]
+            )
+            dense_hits = _merge_ranked_hits(
+                [self._retrieve_dense(candidate_query, config.dense_top_k) for candidate_query in queries]
+            )
+        else:
+            sparse_hits = self._retrieve_bm25_matching(query, config.sparse_top_k)
+            dense_hits = self._retrieve_dense(query, config.dense_top_k)
         fused = _reciprocal_rank_fuse(
             sparse_hits,
             dense_hits,
@@ -440,6 +452,16 @@ def _reciprocal_rank_fuse(
     return sorted(candidates.values(), key=_candidate_sort_key)
 
 
+def _merge_ranked_hits(hit_sets: list[list[RetrievalHit]]) -> list[RetrievalHit]:
+    best_hits: dict[int, RetrievalHit] = {}
+    for hits in hit_sets:
+        for hit in hits:
+            current = best_hits.get(hit.chunk_id)
+            if current is None or (hit.rank, -hit.score) < (current.rank, -current.score):
+                best_hits[hit.chunk_id] = hit
+    return sorted(best_hits.values(), key=lambda hit: (hit.rank, -hit.score, hit.chunk_id))
+
+
 def _candidate_sort_key(candidate: dict[str, object]) -> tuple[float, int, int]:
     ranks = [rank for rank in (candidate["sparse_rank"], candidate["dense_rank"]) if isinstance(rank, int)]
     best_rank = min(ranks) if ranks else sys.maxsize
@@ -595,6 +617,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--dense-weight", type=float, default=DEFAULT_DENSE_WEIGHT)
     parser.add_argument("--reranker-model", default=None)
     parser.add_argument("--reranker-device", default="cpu")
+    parser.add_argument("--expanded-query", action="append", default=None)
     parser.add_argument("--url-cap", type=int, default=DEFAULT_URL_CAP)
     parser.add_argument("--db", type=Path, default=DEFAULT_DB)
     parser.add_argument("--bm25", type=Path, default=DEFAULT_BM25)
@@ -604,6 +627,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--dense-model", default=None)
     parser.add_argument("--json", action="store_true", help="Print machine-readable JSON instead of text.")
     args = parser.parse_args(argv)
+    if args.expanded_query and args.mode != "hybrid":
+        parser.error("--expanded-query is only supported with --mode hybrid")
 
     retriever = Retriever.from_paths(
         db_path=args.db,
@@ -628,6 +653,7 @@ def main(argv: list[str] | None = None) -> int:
         reranker_model=args.reranker_model,
         reranker_device=args.reranker_device,
         url_cap=args.url_cap,
+        expanded_queries=tuple(args.expanded_query or ()),
     )
     if args.json:
         if isinstance(result, HybridRetrievalResult):

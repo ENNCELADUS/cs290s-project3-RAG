@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import csv
+import json
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -35,6 +36,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--model-path", type=Path, default=None)
     parser.add_argument("--reranker-model", type=Path, default=None)
     parser.add_argument("--reranker-device", default=None)
+    parser.add_argument("--expanded-query", action="append", default=None)
+    parser.add_argument("--expanded-queries-jsonl", type=Path, default=None)
     parser.add_argument("--device", choices=["auto", "cpu", "cuda"], default="auto")
     parser.add_argument("--max-new-tokens", type=int, default=None)
     parser.add_argument("--dense-model", default=None)
@@ -51,6 +54,8 @@ def main(argv: list[str] | None = None) -> int:
         parser.error("--diagnostic-depth must be a positive integer")
 
     modes: list[EvalMode] = list(args.modes)
+    if (args.expanded_query or args.expanded_queries_jsonl) and "hybrid" not in modes:
+        parser.error("query expansion requires --modes hybrid")
     if args.include_diagnostic_bm25:
         modes.insert(0, "bm25")
     artifacts = ArtifactPaths()
@@ -80,6 +85,12 @@ def main(argv: list[str] | None = None) -> int:
         model_path=args.model_path,
         reranker_model=args.reranker_model,
         reranker_device=args.reranker_device,
+        expanded_queries=tuple(args.expanded_query or ()),
+        expanded_queries_by_id=(
+            _load_expanded_queries_jsonl(args.expanded_queries_jsonl)
+            if args.expanded_queries_jsonl is not None
+            else None
+        ),
         device=args.device,
         max_new_tokens=args.max_new_tokens,
         artifacts=artifacts,
@@ -113,6 +124,28 @@ def _load_review_decisions(path: Path) -> dict[tuple[str, str], int]:
             raise ValueError(f"{path} row {row['id']} {row['mode']} has invalid is_correct={value!r}")
         decisions[(row["id"], row["mode"])] = int(value)
     return decisions
+
+
+def _load_expanded_queries_jsonl(path: Path) -> dict[str, tuple[str, ...]]:
+    expanded_queries: dict[str, tuple[str, ...]] = {}
+    with path.open("r", encoding="utf-8") as handle:
+        for line_number, line in enumerate(handle, start=1):
+            text = line.strip()
+            if not text:
+                continue
+            row = json.loads(text)
+            if not isinstance(row, dict):
+                raise ValueError(f"{path}:{line_number} expected JSON object")
+            question_id = row.get("id")
+            queries = row.get("expanded_queries")
+            if not isinstance(question_id, str) or not question_id.strip():
+                raise ValueError(f"{path}:{line_number} expected non-empty string id")
+            if not isinstance(queries, list) or not all(isinstance(query, str) for query in queries):
+                raise ValueError(f"{path}:{line_number} expected expanded_queries as a list of strings")
+            cleaned = tuple(query.strip() for query in queries if query.strip())
+            if cleaned:
+                expanded_queries[question_id.strip()] = cleaned
+    return expanded_queries
 
 
 if __name__ == "__main__":
