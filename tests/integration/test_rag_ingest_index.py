@@ -515,6 +515,104 @@ def test_hybrid_reranker_reorders_with_local_model(
     assert result.hits[0].trace.rerank_score == 10.0
 
 
+def test_hybrid_reranker_reuses_local_model_for_same_retriever(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    paths = _build_hybrid_artifacts(tmp_path)
+    reranker_model = tmp_path / "local-reranker"
+    reranker_model.mkdir()
+    other_reranker_model = tmp_path / "other-local-reranker"
+    other_reranker_model.mkdir()
+    stats = {"construct_count": 0, "predict_count": 0}
+
+    class FakeSentenceTransformer:
+        def __init__(self, model_name: str, device: str) -> None:
+            self.model_name = model_name
+            self.device = device
+
+        def encode(
+            self,
+            texts: list[str],
+            batch_size: int,
+            convert_to_numpy: bool,
+            normalize_embeddings: bool,
+            show_progress_bar: bool,
+        ) -> np.ndarray:
+            vectors = []
+            for text in texts:
+                if text == "exact bridge query":
+                    vectors.append([1.0, 0.0, 0.0])
+                elif "dense winner" in text:
+                    vectors.append([1.0, 0.0, 0.0])
+                elif "bridge" in text:
+                    vectors.append([0.95, 0.0, 0.0])
+                else:
+                    vectors.append([0.0, 0.1, 0.0])
+            return np.asarray(vectors, dtype="float32")
+
+    class CountingCrossEncoder:
+        def __init__(self, model_name: str, device: str) -> None:
+            stats["construct_count"] += 1
+            self.model_name = model_name
+            self.device = device
+
+        def predict(self, pairs: list[tuple[str, str]]) -> np.ndarray:
+            stats["predict_count"] += 1
+            return np.asarray([10.0 if "dense winner" in passage else 1.0 for _, passage in pairs], dtype="float32")
+
+    fake_module = types.SimpleNamespace(SentenceTransformer=FakeSentenceTransformer, CrossEncoder=CountingCrossEncoder)
+    monkeypatch.setitem(sys.modules, "sentence_transformers", fake_module)
+    retriever = Retriever.from_paths(
+        db_path=paths["db"],
+        bm25_path=paths["bm25"],
+        faiss_path=paths["faiss"],
+        chunk_index_path=paths["chunk_index"],
+        report_path=paths["report"],
+    )
+
+    first_result = retriever.retrieve(
+        "exact bridge query",
+        mode="hybrid",
+        top_k=2,
+        sparse_top_k=2,
+        dense_top_k=2,
+        fused_top_k=3,
+        rerank_top_k=2,
+        reranker_model=str(reranker_model),
+    )
+    second_result = retriever.retrieve(
+        "exact bridge query",
+        mode="hybrid",
+        top_k=2,
+        sparse_top_k=2,
+        dense_top_k=2,
+        fused_top_k=3,
+        rerank_top_k=2,
+        reranker_model=str(reranker_model),
+    )
+
+    assert isinstance(first_result, HybridRetrievalResult)
+    assert isinstance(second_result, HybridRetrievalResult)
+    assert stats == {"construct_count": 1, "predict_count": 2}
+    assert [hit.chunk_id for hit in first_result.hits] == [101, 102]
+    assert [hit.chunk_id for hit in second_result.hits] == [101, 102]
+
+    other_result = retriever.retrieve(
+        "exact bridge query",
+        mode="hybrid",
+        top_k=2,
+        sparse_top_k=2,
+        dense_top_k=2,
+        fused_top_k=3,
+        rerank_top_k=2,
+        reranker_model=str(other_reranker_model),
+    )
+
+    assert isinstance(other_result, HybridRetrievalResult)
+    assert stats == {"construct_count": 2, "predict_count": 3}
+    assert [hit.chunk_id for hit in other_result.hits] == [101, 102]
+
+
 def test_hybrid_reranker_reports_missing_local_model(
     tmp_path: Path, fake_hybrid_sentence_transformer_module
 ) -> None:

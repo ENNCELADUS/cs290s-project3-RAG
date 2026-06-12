@@ -10,7 +10,7 @@ import sqlite3
 import sys
 from dataclasses import asdict, dataclass
 from pathlib import Path
-from typing import Literal
+from typing import Any, Literal
 
 import numpy as np
 
@@ -132,6 +132,7 @@ class Retriever:
         self.dense_model = dense_model
         self._chunks = _load_chunks(db_path)
         self._chunks_by_id = {int(row["chunk_id"]): row for row in self._chunks}
+        self._reranker_models: dict[str, Any] = {}
 
     @classmethod
     def from_paths(
@@ -250,7 +251,13 @@ class Retriever:
             sparse_weight=config.sparse_weight,
             dense_weight=config.dense_weight,
         )[: config.fused_top_k]
-        reranked = _rerank_candidates(query, fused[: config.rerank_top_k], self._chunks_by_id, config.reranker_model)
+        reranked = _rerank_candidates(
+            query,
+            fused[: config.rerank_top_k],
+            self._chunks_by_id,
+            config.reranker_model,
+            self._reranker_models,
+        )
         ordered = [*reranked, *fused[config.rerank_top_k :]]
         selected = _dedupe_candidates(
             ordered,
@@ -442,6 +449,7 @@ def _rerank_candidates(
     candidates: list[dict[str, object]],
     chunks_by_id: dict[int, dict[str, object]],
     reranker_model: str | None,
+    reranker_models: dict[str, Any],
 ) -> list[dict[str, object]]:
     if reranker_model is None:
         return candidates
@@ -452,7 +460,11 @@ def _rerank_candidates(
     _allow_duplicate_openmp_on_macos()
     from sentence_transformers import CrossEncoder
 
-    model = CrossEncoder(str(model_path), device="cpu")
+    model_key = str(model_path.resolve())
+    model = reranker_models.get(model_key)
+    if model is None:
+        model = CrossEncoder(str(model_path), device="cpu")
+        reranker_models[model_key] = model
     pairs = [(query, str(chunks_by_id[int(candidate["chunk_id"])]["text"])) for candidate in candidates]
     scores = model.predict(pairs)
     scored: list[dict[str, object]] = []
