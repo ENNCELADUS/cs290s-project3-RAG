@@ -28,9 +28,16 @@ DEFAULT_RERANK_TOP_K = 10
 DEFAULT_RRF_K = 60
 DEFAULT_SPARSE_WEIGHT = 1.0
 DEFAULT_DENSE_WEIGHT = 1.5
+DEFAULT_STRUCTURED_PRIOR_WEIGHT = 2.0
 DEFAULT_URL_CAP = 1
 SNIPPET_CHARS = 240
 WHITESPACE_RE = re.compile(r"\s+")
+STRUCTURED_MATCH_COLUMNS = {
+    "courses": ("course_code", "course_name", "evidence"),
+    "faculty_members": ("name", "email", "evidence"),
+    "program_requirements": ("program_name", "requirement_type", "requirement_text", "evidence"),
+    "research_centers": ("name", "title", "center_name", "lab_name", "source_url", "evidence"),
+}
 
 
 @dataclass(frozen=True)
@@ -58,6 +65,7 @@ class HybridRetrievalConfig:
     rrf_k: int = DEFAULT_RRF_K
     sparse_weight: float = DEFAULT_SPARSE_WEIGHT
     dense_weight: float = DEFAULT_DENSE_WEIGHT
+    structured_prior_weight: float = DEFAULT_STRUCTURED_PRIOR_WEIGHT
     reranker_model: str | None = None
     url_cap: int = DEFAULT_URL_CAP
 
@@ -70,6 +78,9 @@ class RetrievalTrace:
     sparse_score: float | None
     dense_rank: int | None
     dense_score: float | None
+    structured_rank: int | None
+    structured_score: float | None
+    structured_type: str | None
     rrf_score: float
     rerank_score: float | None
     final_rank: int | None
@@ -170,6 +181,7 @@ class Retriever:
         rrf_k: int = DEFAULT_RRF_K,
         sparse_weight: float = DEFAULT_SPARSE_WEIGHT,
         dense_weight: float = DEFAULT_DENSE_WEIGHT,
+        structured_prior_weight: float = DEFAULT_STRUCTURED_PRIOR_WEIGHT,
         reranker_model: str | None = None,
         url_cap: int = DEFAULT_URL_CAP,
     ) -> list[RetrievalHit] | HybridRetrievalResult:
@@ -188,6 +200,7 @@ class Retriever:
                 rrf_k=rrf_k,
                 sparse_weight=sparse_weight,
                 dense_weight=dense_weight,
+                structured_prior_weight=structured_prior_weight,
                 reranker_model=reranker_model,
                 url_cap=url_cap,
             )
@@ -254,6 +267,8 @@ class Retriever:
             config.rrf_k,
             sparse_weight=config.sparse_weight,
             dense_weight=config.dense_weight,
+            structured_hits=self._retrieve_structured_sidecar_matches(query),
+            structured_weight=config.structured_prior_weight,
         )[: config.fused_top_k]
         preserve_top_k = max(0, min(config.rerank_preserve_top_k, config.rerank_top_k))
         reranked = _rerank_candidates(
@@ -315,6 +330,31 @@ class Retriever:
             hits.append(_hit_from_row(row, rank=rank, score=float(scores[index]), mode="bm25"))
         return hits
 
+    def _retrieve_structured_sidecar_matches(self, query: str) -> list[RetrievalHit]:
+        query_tokens = set(_tokenize(query))
+        if not query_tokens:
+            return []
+        tables = _sqlite_table_columns(self.db_path)
+        document_matches: list[tuple[int, str]] = []
+        seen_document_ids: set[int] = set()
+        for table, match_columns in STRUCTURED_MATCH_COLUMNS.items():
+            table_columns = tables.get(table)
+            if table_columns is None or "source_document_id" not in table_columns:
+                continue
+            available_match_columns = [column for column in match_columns if column in table_columns]
+            if not available_match_columns:
+                continue
+            rows = _structured_rows(self.db_path, table, ["source_document_id", *available_match_columns])
+            _append_structured_document_matches(
+                rows,
+                query_tokens,
+                available_match_columns,
+                table,
+                document_matches,
+                seen_document_ids,
+            )
+        return _structured_hits_for_documents(document_matches, self._chunks)
+
 
 def _load_chunks(db_path: Path) -> list[dict[str, object]]:
     if not db_path.exists():
@@ -339,6 +379,67 @@ def _load_chunks(db_path: Path) -> list[dict[str, object]]:
             """
         ).fetchall()
     return [dict(row) for row in rows]
+
+
+def _sqlite_table_columns(db_path: Path) -> dict[str, set[str]]:
+    sqlite_uri = f"file:{db_path.resolve().as_posix()}?mode=ro"
+    with sqlite3.connect(sqlite_uri, uri=True) as conn:
+        rows = conn.execute("SELECT name FROM sqlite_master WHERE type = 'table'").fetchall()
+        tables = {str(row[0]) for row in rows}
+        return {
+            table: {str(column[1]) for column in conn.execute(f"PRAGMA table_info({table})").fetchall()}
+            for table in STRUCTURED_MATCH_COLUMNS
+            if table in tables
+        }
+
+
+def _structured_rows(db_path: Path, table: str, columns: list[str]) -> list[dict[str, object]]:
+    sqlite_uri = f"file:{db_path.resolve().as_posix()}?mode=ro"
+    quoted_columns = ", ".join(columns)
+    with sqlite3.connect(sqlite_uri, uri=True) as conn:
+        conn.row_factory = sqlite3.Row
+        rows = conn.execute(f"SELECT {quoted_columns} FROM {table}").fetchall()
+    return [dict(row) for row in rows]
+
+
+def _structured_text_matches(query_tokens: set[str], values: list[str | None]) -> bool:
+    for value in values:
+        if value is None:
+            continue
+        value_tokens = set(_tokenize(value))
+        if value_tokens and value_tokens <= query_tokens:
+            return True
+    return False
+
+
+def _append_structured_document_matches(
+    rows: list[dict[str, object]],
+    query_tokens: set[str],
+    match_columns: list[str],
+    source_type: str,
+    document_matches: list[tuple[int, str]],
+    seen_document_ids: set[int],
+) -> None:
+    for row in rows:
+        source_document_id = _optional_int(row.get("source_document_id"))
+        if source_document_id is None or source_document_id in seen_document_ids:
+            continue
+        values = [_optional_str(row.get(column)) for column in match_columns]
+        if _structured_text_matches(query_tokens, values):
+            document_matches.append((source_document_id, source_type))
+            seen_document_ids.add(source_document_id)
+
+
+def _structured_hits_for_documents(
+    document_matches: list[tuple[int, str]], chunks: list[dict[str, object]]
+) -> list[RetrievalHit]:
+    hits: list[RetrievalHit] = []
+    for rank, (document_id, source_type) in enumerate(document_matches, start=1):
+        row = next((chunk for chunk in chunks if int(chunk["document_id"]) == document_id), None)
+        if row is None:
+            continue
+        hits.append(_hit_from_row({**row, "category": source_type}, rank=rank, score=1.0, mode="bm25"))
+    return hits
 
 
 def _hit_from_row(row: dict[str, object], *, rank: int, score: float, mode: BaselineRetrievalMode) -> RetrievalHit:
@@ -399,6 +500,8 @@ def _reciprocal_rank_fuse(
     *,
     sparse_weight: float,
     dense_weight: float,
+    structured_hits: list[RetrievalHit] | None = None,
+    structured_weight: float = DEFAULT_STRUCTURED_PRIOR_WEIGHT,
 ) -> list[dict[str, object]]:
     candidates: dict[int, dict[str, object]] = {}
     for hit in sparse_hits:
@@ -410,6 +513,9 @@ def _reciprocal_rank_fuse(
                 "sparse_score": None,
                 "dense_rank": None,
                 "dense_score": None,
+                "structured_rank": None,
+                "structured_score": None,
+                "structured_type": None,
                 "rrf_score": 0.0,
                 "rerank_score": None,
             },
@@ -426,6 +532,9 @@ def _reciprocal_rank_fuse(
                 "sparse_score": None,
                 "dense_rank": None,
                 "dense_score": None,
+                "structured_rank": None,
+                "structured_score": None,
+                "structured_type": None,
                 "rrf_score": 0.0,
                 "rerank_score": None,
             },
@@ -433,11 +542,35 @@ def _reciprocal_rank_fuse(
         candidate["dense_rank"] = hit.rank
         candidate["dense_score"] = hit.score
         candidate["rrf_score"] = float(candidate["rrf_score"]) + dense_weight / (rrf_k + hit.rank)
+    for hit in structured_hits or []:
+        candidate = candidates.setdefault(
+            hit.chunk_id,
+            {
+                "chunk_id": hit.chunk_id,
+                "sparse_rank": None,
+                "sparse_score": None,
+                "dense_rank": None,
+                "dense_score": None,
+                "structured_rank": None,
+                "structured_score": None,
+                "structured_type": None,
+                "rrf_score": 0.0,
+                "rerank_score": None,
+            },
+        )
+        candidate["structured_rank"] = hit.rank
+        candidate["structured_score"] = hit.score
+        candidate["structured_type"] = hit.category
+        candidate["rrf_score"] = float(candidate["rrf_score"]) + structured_weight / (rrf_k + hit.rank)
     return sorted(candidates.values(), key=_candidate_sort_key)
 
 
 def _candidate_sort_key(candidate: dict[str, object]) -> tuple[float, int, int]:
-    ranks = [rank for rank in (candidate["sparse_rank"], candidate["dense_rank"]) if isinstance(rank, int)]
+    ranks = [
+        rank
+        for rank in (candidate["sparse_rank"], candidate["dense_rank"], candidate.get("structured_rank"))
+        if isinstance(rank, int)
+    ]
     best_rank = min(ranks) if ranks else sys.maxsize
     return (-float(candidate["rrf_score"]), best_rank, int(candidate["chunk_id"]))
 
@@ -534,6 +667,9 @@ def _trace_from_candidate(candidate: dict[str, object], *, final_rank: int) -> R
         sparse_score=_optional_float(candidate.get("sparse_score")),
         dense_rank=_optional_int(candidate.get("dense_rank")),
         dense_score=_optional_float(candidate.get("dense_score")),
+        structured_rank=_optional_int(candidate.get("structured_rank")),
+        structured_score=_optional_float(candidate.get("structured_score")),
+        structured_type=_optional_str(candidate.get("structured_type")),
         rrf_score=float(candidate["rrf_score"]),
         rerank_score=_optional_float(candidate.get("rerank_score")),
         final_rank=final_rank,

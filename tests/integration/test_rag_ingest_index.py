@@ -407,6 +407,101 @@ def test_hybrid_retrieval_defaults_weight_dense_rrf_above_sparse_rrf_at_same_ran
     assert result.hits[chunk_ids.index(100)].trace.dense_rank is None
 
 
+def test_hybrid_retrieval_promotes_course_source_from_structured_sidecar(
+    tmp_path: Path, fake_hybrid_sentence_transformer_module
+) -> None:
+    paths = _build_structured_sidecar_artifacts(tmp_path)
+    retriever = Retriever.from_paths(
+        db_path=paths["db"],
+        bm25_path=paths["bm25"],
+        faiss_path=paths["faiss"],
+        chunk_index_path=paths["chunk_index"],
+        report_path=paths["report"],
+    )
+
+    result = retriever.retrieve(
+        "Who teaches CS181?",
+        mode="hybrid",
+        top_k=2,
+        sparse_top_k=2,
+        dense_top_k=2,
+        fused_top_k=2,
+        rerank_top_k=0,
+    )
+
+    assert isinstance(result, HybridRetrievalResult)
+    assert result.config.structured_prior_weight == 2.0
+    assert result.hits[0].chunk_id == 101
+    assert result.hits[0].document_id == 11
+    assert result.hits[0].trace.structured_type == "courses"
+
+
+def test_hybrid_retrieval_promotes_faculty_source_from_structured_sidecar(
+    tmp_path: Path, fake_hybrid_sentence_transformer_module
+) -> None:
+    paths = _build_structured_sidecar_artifacts(tmp_path)
+    retriever = Retriever.from_paths(
+        db_path=paths["db"],
+        bm25_path=paths["bm25"],
+        faiss_path=paths["faiss"],
+        chunk_index_path=paths["chunk_index"],
+        report_path=paths["report"],
+    )
+
+    result = retriever.retrieve(
+        "Where is Alice Zhang's office?",
+        mode="hybrid",
+        top_k=2,
+        sparse_top_k=2,
+        dense_top_k=2,
+        fused_top_k=3,
+        rerank_top_k=0,
+    )
+
+    assert isinstance(result, HybridRetrievalResult)
+    assert result.hits[0].chunk_id == 102
+    assert result.hits[0].document_id == 12
+    assert result.hits[0].trace.structured_type == "faculty_members"
+
+
+def test_hybrid_retrieval_keeps_order_when_no_structured_sidecar_matches(
+    tmp_path: Path, fake_hybrid_sentence_transformer_module
+) -> None:
+    paths = _build_structured_sidecar_artifacts(tmp_path)
+    retriever = Retriever.from_paths(
+        db_path=paths["db"],
+        bm25_path=paths["bm25"],
+        faiss_path=paths["faiss"],
+        chunk_index_path=paths["chunk_index"],
+        report_path=paths["report"],
+    )
+
+    default_result = retriever.retrieve(
+        "General news teaser",
+        mode="hybrid",
+        top_k=2,
+        sparse_top_k=2,
+        dense_top_k=2,
+        fused_top_k=3,
+        rerank_top_k=0,
+    )
+    disabled_result = retriever.retrieve(
+        "General news teaser",
+        mode="hybrid",
+        top_k=2,
+        sparse_top_k=2,
+        dense_top_k=2,
+        fused_top_k=3,
+        rerank_top_k=0,
+        structured_prior_weight=0.0,
+    )
+
+    assert isinstance(default_result, HybridRetrievalResult)
+    assert isinstance(disabled_result, HybridRetrievalResult)
+    assert [hit.chunk_id for hit in default_result.hits] == [hit.chunk_id for hit in disabled_result.hits]
+    assert all(hit.trace.structured_rank is None for hit in default_result.hits)
+
+
 def test_hybrid_cli_json_includes_hits_contexts_and_config(
     tmp_path: Path, fake_hybrid_sentence_transformer_module, capsys: pytest.CaptureFixture[str]
 ) -> None:
@@ -448,6 +543,7 @@ def test_hybrid_cli_json_includes_hits_contexts_and_config(
     assert payload["config"]["rerank_preserve_top_k"] == 1
     assert payload["config"]["sparse_weight"] == 1.0
     assert payload["config"]["dense_weight"] == 1.5
+    assert payload["config"]["structured_prior_weight"] == 2.0
 
 
 def test_hybrid_deduplicates_text_and_caps_canonical_url() -> None:
@@ -1082,6 +1178,113 @@ def _build_weighted_rrf_artifacts(tmp_path: Path) -> dict[str, Path]:
 
     index = faiss.IndexFlatIP(3)
     index.add(np.asarray([[0.0, 0.1, 0.0], [1.0, 0.0, 0.0]], dtype="float32"))
+    faiss.write_index(index, str(faiss_path))
+    atomic_json_dump(
+        report_path,
+        {"index": {"faiss": {"model_path": "/models/hub/snapshots/bge-m3-local", "model_id": DEFAULT_MODEL}}},
+    )
+    return {
+        "db": db_path,
+        "bm25": bm25_path,
+        "faiss": faiss_path,
+        "chunk_index": chunk_index_path,
+        "report": report_path,
+    }
+
+
+def _build_structured_sidecar_artifacts(tmp_path: Path) -> dict[str, Path]:
+    import faiss
+
+    input_dir = tmp_path / "structured-sidecar-merged"
+    input_dir.mkdir()
+    write_jsonl(
+        input_dir / "documents.jsonl",
+        [
+            {"id": 10, "url": "https://example.edu/news", "canonical_url": "https://example.edu/news", "title": "News"},
+            {
+                "id": 11,
+                "url": "https://example.edu/courses/cs181",
+                "canonical_url": "https://example.edu/courses/cs181",
+                "title": "CS181 Deep Learning",
+            },
+            {
+                "id": 12,
+                "url": "https://example.edu/faculty/alice-zhang",
+                "canonical_url": "https://example.edu/faculty/alice-zhang",
+                "title": "Alice Zhang",
+            },
+        ],
+    )
+    write_jsonl(
+        input_dir / "chunks.jsonl",
+        [
+            {
+                "id": 100,
+                "document_id": 10,
+                "chunk_index": 0,
+                "title": "News",
+                "url": "https://example.edu/news",
+                "text": "Who teaches CS181? Where is Alice Zhang's office? General news teaser.",
+                "char_count": 70,
+            },
+            {
+                "id": 101,
+                "document_id": 11,
+                "chunk_index": 0,
+                "title": "CS181 Deep Learning",
+                "url": "https://example.edu/courses/cs181",
+                "text": "Deep Learning course page. Instructor: Alice.",
+                "char_count": 46,
+            },
+            {
+                "id": 102,
+                "document_id": 12,
+                "chunk_index": 0,
+                "title": "Alice Zhang",
+                "url": "https://example.edu/faculty/alice-zhang",
+                "text": "Alice Zhang profile. Office: SIST 2-301. Email: alice@example.edu.",
+                "char_count": 66,
+            },
+        ],
+    )
+    write_jsonl(
+        input_dir / "courses.jsonl",
+        [
+            {
+                "source_document_id": 11,
+                "source_url": "https://example.edu/courses/cs181",
+                "course_code": "CS181",
+                "course_name": "Deep Learning",
+                "evidence": "CS181 Deep Learning",
+            }
+        ],
+    )
+    write_jsonl(
+        input_dir / "faculty_members.jsonl",
+        [
+            {
+                "source_document_id": 12,
+                "source_url": "https://example.edu/faculty/alice-zhang",
+                "name": "Alice Zhang",
+                "title": "Professor",
+                "email": "alice@example.edu",
+                "evidence": "Alice Zhang profile",
+            }
+        ],
+    )
+    write_jsonl(input_dir / "program_requirements.jsonl", [])
+    write_jsonl(input_dir / "events.jsonl", [])
+
+    db_path = tmp_path / "rag.sqlite"
+    bm25_path = tmp_path / "bm25.pkl"
+    faiss_path = tmp_path / "faiss.index"
+    chunk_index_path = tmp_path / "chunk_index.jsonl"
+    report_path = tmp_path / "report.json"
+    build_database(input_dir, db_path, report_path)
+    build_indexes(db_path, bm25_path, faiss_path, chunk_index_path, report_path, skip_faiss=True)
+
+    index = faiss.IndexFlatIP(3)
+    index.add(np.asarray([[0.0, 0.1, 0.0], [0.0, 0.05, 0.0], [0.0, 0.04, 0.0]], dtype="float32"))
     faiss.write_index(index, str(faiss_path))
     atomic_json_dump(
         report_path,
