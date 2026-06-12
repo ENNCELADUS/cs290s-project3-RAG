@@ -27,6 +27,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--dense-top-k", type=int, default=None)
     parser.add_argument("--fused-top-k", type=int, default=None)
     parser.add_argument("--rerank-top-k", type=int, default=None)
+    parser.add_argument("--rerank-preserve-top-k", type=int, default=None)
     parser.add_argument("--rrf-k", type=int, default=None)
     parser.add_argument("--sparse-weight", type=float, default=None)
     parser.add_argument("--dense-weight", type=float, default=None)
@@ -70,6 +71,7 @@ def main(argv: list[str] | None = None) -> int:
         dense_top_k=args.dense_top_k,
         fused_top_k=args.fused_top_k,
         rerank_top_k=args.rerank_top_k,
+        rerank_preserve_top_k=args.rerank_preserve_top_k,
         rrf_k=args.rrf_k,
         sparse_weight=args.sparse_weight,
         dense_weight=args.dense_weight,

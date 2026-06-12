@@ -52,6 +52,7 @@ class HybridRetrievalConfig:
     dense_top_k: int = DEFAULT_DENSE_TOP_K
     fused_top_k: int = DEFAULT_FUSED_TOP_K
     rerank_top_k: int = DEFAULT_RERANK_TOP_K
+    rerank_preserve_top_k: int = 0
     final_top_k: int = 5
     rrf_k: int = DEFAULT_RRF_K
     sparse_weight: float = DEFAULT_SPARSE_WEIGHT
@@ -164,6 +165,7 @@ class Retriever:
         dense_top_k: int = DEFAULT_DENSE_TOP_K,
         fused_top_k: int = DEFAULT_FUSED_TOP_K,
         rerank_top_k: int = DEFAULT_RERANK_TOP_K,
+        rerank_preserve_top_k: int = 0,
         rrf_k: int = DEFAULT_RRF_K,
         sparse_weight: float = DEFAULT_SPARSE_WEIGHT,
         dense_weight: float = DEFAULT_DENSE_WEIGHT,
@@ -180,6 +182,7 @@ class Retriever:
                 dense_top_k=dense_top_k,
                 fused_top_k=fused_top_k,
                 rerank_top_k=rerank_top_k,
+                rerank_preserve_top_k=rerank_preserve_top_k,
                 final_top_k=top_k,
                 rrf_k=rrf_k,
                 sparse_weight=sparse_weight,
@@ -251,14 +254,15 @@ class Retriever:
             sparse_weight=config.sparse_weight,
             dense_weight=config.dense_weight,
         )[: config.fused_top_k]
+        preserve_top_k = max(0, min(config.rerank_preserve_top_k, config.rerank_top_k))
         reranked = _rerank_candidates(
             query,
-            fused[: config.rerank_top_k],
+            fused[preserve_top_k : config.rerank_top_k],
             self._chunks_by_id,
             config.reranker_model,
             self._reranker_models,
         )
-        ordered = [*reranked, *fused[config.rerank_top_k :]]
+        ordered = [*fused[:preserve_top_k], *reranked, *fused[config.rerank_top_k :]]
         selected = _dedupe_candidates(
             ordered,
             self._chunks_by_id,
@@ -451,7 +455,7 @@ def _rerank_candidates(
     reranker_model: str | None,
     reranker_models: dict[str, Any],
 ) -> list[dict[str, object]]:
-    if reranker_model is None:
+    if reranker_model is None or not candidates:
         return candidates
     model_path = Path(reranker_model)
     if not model_path.exists():
@@ -568,6 +572,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--dense-top-k", type=int, default=DEFAULT_DENSE_TOP_K)
     parser.add_argument("--fused-top-k", type=int, default=DEFAULT_FUSED_TOP_K)
     parser.add_argument("--rerank-top-k", type=int, default=DEFAULT_RERANK_TOP_K)
+    parser.add_argument("--rerank-preserve-top-k", type=int, default=0)
     parser.add_argument("--rrf-k", type=int, default=DEFAULT_RRF_K)
     parser.add_argument("--sparse-weight", type=float, default=DEFAULT_SPARSE_WEIGHT)
     parser.add_argument("--dense-weight", type=float, default=DEFAULT_DENSE_WEIGHT)
@@ -598,6 +603,7 @@ def main(argv: list[str] | None = None) -> int:
         dense_top_k=args.dense_top_k,
         fused_top_k=args.fused_top_k,
         rerank_top_k=args.rerank_top_k,
+        rerank_preserve_top_k=args.rerank_preserve_top_k,
         rrf_k=args.rrf_k,
         sparse_weight=args.sparse_weight,
         dense_weight=args.dense_weight,

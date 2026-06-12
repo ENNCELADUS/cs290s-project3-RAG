@@ -44,6 +44,7 @@ class EvaluationConfig:
     dense_top_k: int | None = None
     fused_top_k: int | None = None
     rerank_top_k: int | None = None
+    rerank_preserve_top_k: int | None = None
     rrf_k: int | None = None
     sparse_weight: float | None = None
     dense_weight: float | None = None
@@ -248,6 +249,8 @@ def _hybrid_retrieve_kwargs(
             kwargs["fused_top_k"] = config.fused_top_k
     if config.rerank_top_k is not None:
         kwargs["rerank_top_k"] = config.rerank_top_k
+    if config.rerank_preserve_top_k is not None:
+        kwargs["rerank_preserve_top_k"] = config.rerank_preserve_top_k
     if config.rrf_k is not None:
         kwargs["rrf_k"] = config.rrf_k
     if config.sparse_weight is not None:

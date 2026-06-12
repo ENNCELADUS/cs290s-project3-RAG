@@ -432,6 +432,8 @@ def test_hybrid_cli_json_includes_hits_contexts_and_config(
             "2",
             "--dense-top-k",
             "2",
+            "--rerank-preserve-top-k",
+            "1",
             "--json",
         ]
     )
@@ -443,6 +445,7 @@ def test_hybrid_cli_json_includes_hits_contexts_and_config(
     assert payload["hits"][0]["trace"]["rrf_score"] > 0
     assert payload["contexts"][0]["text"]
     assert payload["config"]["sparse_top_k"] == 2
+    assert payload["config"]["rerank_preserve_top_k"] == 1
     assert payload["config"]["sparse_weight"] == 1.0
     assert payload["config"]["dense_weight"] == 1.5
 
@@ -513,6 +516,104 @@ def test_hybrid_reranker_reorders_with_local_model(
     assert isinstance(result, HybridRetrievalResult)
     assert result.hits[0].chunk_id == 101
     assert result.hits[0].trace.rerank_score == 10.0
+
+
+def test_hybrid_reranker_can_preserve_fused_prefix(
+    tmp_path: Path, fake_hybrid_sentence_transformer_module
+) -> None:
+    paths = _build_hybrid_artifacts(tmp_path)
+    reranker_model = tmp_path / "local-reranker"
+    reranker_model.mkdir()
+    retriever = Retriever.from_paths(
+        db_path=paths["db"],
+        bm25_path=paths["bm25"],
+        faiss_path=paths["faiss"],
+        chunk_index_path=paths["chunk_index"],
+        report_path=paths["report"],
+    )
+
+    result = retriever.retrieve(
+        "exact bridge query",
+        mode="hybrid",
+        top_k=3,
+        sparse_top_k=2,
+        dense_top_k=2,
+        fused_top_k=3,
+        rerank_top_k=3,
+        rerank_preserve_top_k=1,
+        reranker_model=str(reranker_model),
+    )
+
+    assert isinstance(result, HybridRetrievalResult)
+    assert [hit.chunk_id for hit in result.hits] == [102, 101, 100]
+    assert result.hits[0].trace.rerank_score is None
+    assert result.hits[1].trace.rerank_score == 10.0
+
+
+def test_hybrid_reranker_skips_prediction_when_preserved_prefix_covers_window(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    paths = _build_hybrid_artifacts(tmp_path)
+    reranker_model = tmp_path / "local-reranker"
+    reranker_model.mkdir()
+
+    class FakeSentenceTransformer:
+        def __init__(self, model_name: str, device: str) -> None:
+            self.model_name = model_name
+            self.device = device
+
+        def encode(
+            self,
+            texts: list[str],
+            batch_size: int,
+            convert_to_numpy: bool,
+            normalize_embeddings: bool,
+            show_progress_bar: bool,
+        ) -> np.ndarray:
+            vectors = []
+            for text in texts:
+                if text == "exact bridge query":
+                    vectors.append([1.0, 0.0, 0.0])
+                elif "dense winner" in text:
+                    vectors.append([1.0, 0.0, 0.0])
+                elif "bridge" in text:
+                    vectors.append([0.95, 0.0, 0.0])
+                else:
+                    vectors.append([0.0, 0.1, 0.0])
+            return np.asarray(vectors, dtype="float32")
+
+    class UnexpectedCrossEncoder:
+        def __init__(self, model_name: str, device: str) -> None:
+            raise AssertionError("CrossEncoder should not load when the preserved prefix covers the rerank window")
+
+    fake_module = types.SimpleNamespace(
+        SentenceTransformer=FakeSentenceTransformer,
+        CrossEncoder=UnexpectedCrossEncoder,
+    )
+    monkeypatch.setitem(sys.modules, "sentence_transformers", fake_module)
+    retriever = Retriever.from_paths(
+        db_path=paths["db"],
+        bm25_path=paths["bm25"],
+        faiss_path=paths["faiss"],
+        chunk_index_path=paths["chunk_index"],
+        report_path=paths["report"],
+    )
+
+    result = retriever.retrieve(
+        "exact bridge query",
+        mode="hybrid",
+        top_k=3,
+        sparse_top_k=2,
+        dense_top_k=2,
+        fused_top_k=3,
+        rerank_top_k=3,
+        rerank_preserve_top_k=3,
+        reranker_model=str(reranker_model),
+    )
+
+    assert isinstance(result, HybridRetrievalResult)
+    assert [hit.chunk_id for hit in result.hits] == [102, 101, 100]
+    assert all(hit.trace.rerank_score is None for hit in result.hits)
 
 
 def test_hybrid_reranker_reuses_local_model_for_same_retriever(
