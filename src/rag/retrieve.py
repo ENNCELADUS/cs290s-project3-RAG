@@ -134,6 +134,7 @@ class Retriever:
         self.dense_model = dense_model
         self._chunks = _load_chunks(db_path)
         self._chunks_by_id = {int(row["chunk_id"]): row for row in self._chunks}
+        self._dense_models: dict[str, Any] = {}
         self._reranker_models: dict[str, Any] = {}
 
     @classmethod
@@ -220,13 +221,11 @@ class Retriever:
             raise FileNotFoundError(f"Dense retrieval chunk_index_path does not exist: {self.chunk_index_path}")
         model_path = self.dense_model or _dense_model_from_report(self.report_path)
 
-        _allow_duplicate_openmp_on_macos()
         import faiss
-        from sentence_transformers import SentenceTransformer
 
         index = faiss.read_index(str(self.faiss_path))
         chunk_mapping = read_jsonl(self.chunk_index_path)
-        model = SentenceTransformer(model_path, device="cpu")
+        model = self._dense_encoder(model_path)
         embedding = model.encode(
             [query],
             batch_size=1,
@@ -244,6 +243,17 @@ class Retriever:
             row = self._chunks_by_id[chunk_id]
             hits.append(_hit_from_row(row, rank=rank, score=float(scores[0][rank - 1]), mode="dense"))
         return hits
+
+    def _dense_encoder(self, model_path: str) -> Any:
+        _allow_duplicate_openmp_on_macos()
+        from sentence_transformers import SentenceTransformer
+
+        model_key = _model_path_cache_key(model_path)
+        model = self._dense_models.get(model_key)
+        if model is None:
+            model = SentenceTransformer(model_path, device="cpu")
+            self._dense_models[model_key] = model
+        return model
 
     def _retrieve_hybrid(self, query: str, config: HybridRetrievalConfig) -> HybridRetrievalResult:
         sparse_hits = self._retrieve_bm25_matching(query, config.sparse_top_k)
@@ -568,6 +578,10 @@ def _dense_model_from_report(report_path: Path | None) -> str:
     if not isinstance(model_path, str) or not model_path:
         raise FileNotFoundError("Dense retrieval requires --dense-model or a build report with index.faiss.model_path")
     return model_path
+
+
+def _model_path_cache_key(model_path: str) -> str:
+    return str(Path(model_path).expanduser().resolve())
 
 
 def _allow_duplicate_openmp_on_macos() -> None:

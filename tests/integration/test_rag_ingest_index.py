@@ -274,6 +274,106 @@ def test_dense_retrieval_returns_cited_chunks(
     assert hits[0].mode == "dense"
 
 
+def test_retriever_reuses_dense_model_for_dense_and_hybrid_calls(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    paths = _build_hybrid_artifacts(tmp_path)
+    stats = {"construct_count": 0}
+
+    class CountingSentenceTransformer:
+        def __init__(self, model_name: str, device: str) -> None:
+            stats["construct_count"] += 1
+            self.model_name = model_name
+            self.device = device
+
+        def encode(
+            self,
+            texts: list[str],
+            batch_size: int,
+            convert_to_numpy: bool,
+            normalize_embeddings: bool,
+            show_progress_bar: bool,
+        ) -> np.ndarray:
+            return _hybrid_test_vectors(texts)
+
+    fake_module = types.SimpleNamespace(SentenceTransformer=CountingSentenceTransformer)
+    monkeypatch.setitem(sys.modules, "sentence_transformers", fake_module)
+    retriever = Retriever.from_paths(
+        db_path=paths["db"],
+        bm25_path=paths["bm25"],
+        faiss_path=paths["faiss"],
+        chunk_index_path=paths["chunk_index"],
+        report_path=paths["report"],
+    )
+
+    dense_hits = retriever.retrieve("exact bridge query", mode="dense", top_k=2)
+    hybrid_result = retriever.retrieve(
+        "exact bridge query",
+        mode="hybrid",
+        top_k=2,
+        sparse_top_k=2,
+        dense_top_k=2,
+        fused_top_k=3,
+        rerank_top_k=0,
+    )
+
+    assert isinstance(hybrid_result, HybridRetrievalResult)
+    assert stats == {"construct_count": 1}
+    assert [hit.chunk_id for hit in dense_hits] == [101, 102]
+    assert [hit.chunk_id for hit in hybrid_result.hits] == [102, 101]
+
+
+def test_retriever_uses_separate_dense_model_for_different_report_model_path(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    paths = _build_hybrid_artifacts(tmp_path)
+    first_model = tmp_path / "local-dense-a"
+    second_model = tmp_path / "local-dense-b"
+    first_model.mkdir()
+    second_model.mkdir()
+    constructed: list[tuple[str, str]] = []
+
+    class CountingSentenceTransformer:
+        def __init__(self, model_name: str, device: str) -> None:
+            constructed.append((model_name, device))
+            self.model_name = model_name
+            self.device = device
+
+        def encode(
+            self,
+            texts: list[str],
+            batch_size: int,
+            convert_to_numpy: bool,
+            normalize_embeddings: bool,
+            show_progress_bar: bool,
+        ) -> np.ndarray:
+            return _hybrid_test_vectors(texts)
+
+    fake_module = types.SimpleNamespace(SentenceTransformer=CountingSentenceTransformer)
+    monkeypatch.setitem(sys.modules, "sentence_transformers", fake_module)
+    atomic_json_dump(
+        paths["report"],
+        {"index": {"faiss": {"model_path": str(first_model), "model_id": DEFAULT_MODEL}}},
+    )
+    retriever = Retriever.from_paths(
+        db_path=paths["db"],
+        faiss_path=paths["faiss"],
+        chunk_index_path=paths["chunk_index"],
+        report_path=paths["report"],
+    )
+
+    first_hits = retriever.retrieve("exact bridge query", mode="dense", top_k=2)
+    atomic_json_dump(
+        paths["report"],
+        {"index": {"faiss": {"model_path": str(second_model), "model_id": DEFAULT_MODEL}}},
+    )
+    second_hits = retriever.retrieve("exact bridge query", mode="dense", top_k=2)
+
+    assert constructed == [(str(first_model), "cpu"), (str(second_model), "cpu")]
+    assert [hit.chunk_id for hit in first_hits] == [101, 102]
+    assert [hit.chunk_id for hit in second_hits] == [101, 102]
+
+
 def test_dense_retrieval_reports_missing_dense_index(tmp_path: Path, merged_input_dir: Path) -> None:
     db_path = tmp_path / "rag.sqlite"
     report_path = tmp_path / "report.json"
@@ -1094,3 +1194,17 @@ def _build_weighted_rrf_artifacts(tmp_path: Path) -> dict[str, Path]:
         "chunk_index": chunk_index_path,
         "report": report_path,
     }
+
+
+def _hybrid_test_vectors(texts: list[str]) -> np.ndarray:
+    vectors = []
+    for text in texts:
+        if text == "exact bridge query":
+            vectors.append([1.0, 0.0, 0.0])
+        elif "dense winner" in text:
+            vectors.append([1.0, 0.0, 0.0])
+        elif "bridge" in text:
+            vectors.append([0.95, 0.0, 0.0])
+        else:
+            vectors.append([0.0, 0.1, 0.0])
+    return np.asarray(vectors, dtype="float32")
