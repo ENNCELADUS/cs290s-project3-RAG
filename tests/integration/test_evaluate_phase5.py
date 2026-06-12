@@ -301,6 +301,107 @@ def test_evaluate_retrieve_can_save_diagnostic_hits_beyond_final_top_k(tmp_path:
     assert hybrid_diagnostic_call["fused_top_k"] == 25
 
 
+def test_evaluate_retrieve_passes_hybrid_knobs_only_to_hybrid(tmp_path: Path, monkeypatch) -> None:
+    questions_path = tmp_path / "questions.csv"
+    _write_questions(questions_path)
+    output_dir = tmp_path / "eval"
+    calls: list[dict[str, object]] = []
+
+    class FakeRetriever:
+        @classmethod
+        def from_paths(cls, **kwargs: object) -> FakeRetriever:
+            return cls()
+
+        def retrieve(self, query: str, *, mode: str, top_k: int, **kwargs: object) -> list[object]:
+            calls.append({"mode": mode, "top_k": top_k, **kwargs})
+            return [
+                _Hit(rank=rank, url="https://example.edu/source", title=f"{mode}-{rank}", score=1.0 / rank)
+                for rank in range(1, top_k + 1)
+            ]
+
+    monkeypatch.setattr("evaluate.runner.Retriever", FakeRetriever)
+
+    assert (
+        evaluate_main(
+            [
+                "--questions",
+                str(questions_path),
+                "--output-dir",
+                str(output_dir),
+                "--runner",
+                "retrieve",
+                "--modes",
+                "dense",
+                "hybrid",
+                "--top-k",
+                "5",
+                "--diagnostic-depth",
+                "25",
+                "--sparse-top-k",
+                "50",
+                "--dense-top-k",
+                "50",
+                "--fused-top-k",
+                "50",
+                "--rerank-top-k",
+                "50",
+                "--rrf-k",
+                "70",
+                "--sparse-weight",
+                "0.8",
+                "--dense-weight",
+                "1.7",
+                "--url-cap",
+                "2",
+                "--timestamp",
+                "20260611T090000Z",
+            ]
+        )
+        == 0
+    )
+
+    assert len(calls) == 4
+    dense_call, dense_diagnostic_call, hybrid_call, hybrid_diagnostic_call = calls
+    hybrid_keys = {
+        "sparse_top_k",
+        "dense_top_k",
+        "fused_top_k",
+        "rerank_top_k",
+        "rrf_k",
+        "sparse_weight",
+        "dense_weight",
+        "url_cap",
+    }
+    assert dense_call == {"mode": "dense", "top_k": 5}
+    assert dense_diagnostic_call == {"mode": "dense", "top_k": 25}
+    assert hybrid_keys.isdisjoint(dense_call)
+    assert hybrid_keys.isdisjoint(dense_diagnostic_call)
+    assert hybrid_call == {
+        "mode": "hybrid",
+        "top_k": 5,
+        "sparse_top_k": 50,
+        "dense_top_k": 50,
+        "fused_top_k": 50,
+        "rerank_top_k": 50,
+        "rrf_k": 70,
+        "sparse_weight": 0.8,
+        "dense_weight": 1.7,
+        "url_cap": 2,
+    }
+    assert hybrid_diagnostic_call == {
+        "mode": "hybrid",
+        "top_k": 25,
+        "sparse_top_k": 50,
+        "dense_top_k": 50,
+        "fused_top_k": 50,
+        "rerank_top_k": 50,
+        "rrf_k": 70,
+        "sparse_weight": 0.8,
+        "dense_weight": 1.7,
+        "url_cap": 2,
+    }
+
+
 def test_evaluate_retrieve_passes_reranker_model_only_to_hybrid(tmp_path: Path, monkeypatch) -> None:
     questions_path = tmp_path / "questions.csv"
     _write_questions(questions_path)

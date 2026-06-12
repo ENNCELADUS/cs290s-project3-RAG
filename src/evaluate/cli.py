@@ -23,6 +23,14 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--offset", type=int, default=0)
     parser.add_argument("--top-k", type=int, default=5)
     parser.add_argument("--diagnostic-depth", type=int, default=None)
+    parser.add_argument("--sparse-top-k", type=int, default=None)
+    parser.add_argument("--dense-top-k", type=int, default=None)
+    parser.add_argument("--fused-top-k", type=int, default=None)
+    parser.add_argument("--rerank-top-k", type=int, default=None)
+    parser.add_argument("--rrf-k", type=int, default=None)
+    parser.add_argument("--sparse-weight", type=float, default=None)
+    parser.add_argument("--dense-weight", type=float, default=None)
+    parser.add_argument("--url-cap", type=int, default=None)
     parser.add_argument("--model-path", type=Path, default=None)
     parser.add_argument("--reranker-model", type=Path, default=None)
     parser.add_argument("--device", choices=["auto", "cpu", "cuda"], default="auto")
@@ -58,6 +66,14 @@ def main(argv: list[str] | None = None) -> int:
         modes=tuple(modes),
         top_k=args.top_k,
         diagnostic_depth=args.diagnostic_depth,
+        sparse_top_k=args.sparse_top_k,
+        dense_top_k=args.dense_top_k,
+        fused_top_k=args.fused_top_k,
+        rerank_top_k=args.rerank_top_k,
+        rrf_k=args.rrf_k,
+        sparse_weight=args.sparse_weight,
+        dense_weight=args.dense_weight,
+        url_cap=args.url_cap,
         model_path=args.model_path,
         reranker_model=args.reranker_model,
         device=args.device,

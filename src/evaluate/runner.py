@@ -40,6 +40,14 @@ class EvaluationConfig:
     modes: tuple[EvalMode, ...] = ("dense", "hybrid")
     top_k: int = 5
     diagnostic_depth: int | None = None
+    sparse_top_k: int | None = None
+    dense_top_k: int | None = None
+    fused_top_k: int | None = None
+    rerank_top_k: int | None = None
+    rrf_k: int | None = None
+    sparse_weight: float | None = None
+    dense_weight: float | None = None
+    url_cap: int | None = None
     model_path: Path | None = None
     reranker_model: Path | None = None
     device: str = "auto"
@@ -89,7 +97,7 @@ def _run_retrieve(
             question.query,
             mode=mode,
             top_k=config.top_k,
-            **_reranker_retrieve_kwargs(mode=mode, config=config),
+            **_hybrid_retrieve_kwargs(mode=mode, config=config),
         )
         hits = _hits_from_result(retrieval_result)
         observed_urls = [str(_hit_value(hit, "url") or "") for hit in hits]
@@ -111,8 +119,8 @@ def _run_retrieve(
             diagnostic_result = retriever.retrieve(
                 question.query,
                 mode=mode,
-                **_diagnostic_retrieve_kwargs(mode=mode, depth=config.diagnostic_depth),
-                **_reranker_retrieve_kwargs(mode=mode, config=config),
+                **_diagnostic_retrieve_kwargs(depth=config.diagnostic_depth),
+                **_hybrid_retrieve_kwargs(mode=mode, config=config, diagnostic_depth=config.diagnostic_depth),
             )
             record["diagnostic_hits"] = [_hit_to_dict(hit) for hit in _hits_from_result(diagnostic_result)]
         return record
@@ -214,23 +222,43 @@ def _retrieval_payload(result: object) -> dict[str, Any]:
     return {"hits": [_hit_to_dict(hit) for hit in _hits_from_result(result)]}
 
 
-def _diagnostic_retrieve_kwargs(*, mode: EvalMode, depth: int) -> dict[str, int]:
-    kwargs = {"top_k": depth}
-    if mode == "hybrid":
-        kwargs.update(
-            {
-                "sparse_top_k": max(DEFAULT_SPARSE_TOP_K, depth),
-                "dense_top_k": max(DEFAULT_DENSE_TOP_K, depth),
-                "fused_top_k": max(DEFAULT_FUSED_TOP_K, depth),
-            }
-        )
-    return kwargs
+def _diagnostic_retrieve_kwargs(*, depth: int) -> dict[str, int]:
+    return {"top_k": depth}
 
 
-def _reranker_retrieve_kwargs(*, mode: EvalMode, config: EvaluationConfig) -> dict[str, str]:
-    if mode != "hybrid" or config.reranker_model is None:
+def _hybrid_retrieve_kwargs(
+    *,
+    mode: EvalMode,
+    config: EvaluationConfig,
+    diagnostic_depth: int | None = None,
+) -> dict[str, object]:
+    if mode != "hybrid":
         return {}
-    return {"reranker_model": str(config.reranker_model)}
+    kwargs: dict[str, object] = {}
+    if diagnostic_depth is not None:
+        kwargs["sparse_top_k"] = max(config.sparse_top_k or DEFAULT_SPARSE_TOP_K, diagnostic_depth)
+        kwargs["dense_top_k"] = max(config.dense_top_k or DEFAULT_DENSE_TOP_K, diagnostic_depth)
+        kwargs["fused_top_k"] = max(config.fused_top_k or DEFAULT_FUSED_TOP_K, diagnostic_depth)
+    else:
+        if config.sparse_top_k is not None:
+            kwargs["sparse_top_k"] = config.sparse_top_k
+        if config.dense_top_k is not None:
+            kwargs["dense_top_k"] = config.dense_top_k
+        if config.fused_top_k is not None:
+            kwargs["fused_top_k"] = config.fused_top_k
+    if config.rerank_top_k is not None:
+        kwargs["rerank_top_k"] = config.rerank_top_k
+    if config.rrf_k is not None:
+        kwargs["rrf_k"] = config.rrf_k
+    if config.sparse_weight is not None:
+        kwargs["sparse_weight"] = config.sparse_weight
+    if config.dense_weight is not None:
+        kwargs["dense_weight"] = config.dense_weight
+    if config.url_cap is not None:
+        kwargs["url_cap"] = config.url_cap
+    if config.reranker_model is not None:
+        kwargs["reranker_model"] = str(config.reranker_model)
+    return kwargs
 
 
 def _hit_to_dict(hit: object) -> dict[str, Any]:
