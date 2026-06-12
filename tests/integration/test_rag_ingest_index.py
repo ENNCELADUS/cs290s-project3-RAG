@@ -434,6 +434,8 @@ def test_hybrid_cli_json_includes_hits_contexts_and_config(
             "2",
             "--rerank-preserve-top-k",
             "1",
+            "--reranker-device",
+            "cuda",
             "--json",
         ]
     )
@@ -448,6 +450,7 @@ def test_hybrid_cli_json_includes_hits_contexts_and_config(
     assert payload["config"]["rerank_preserve_top_k"] == 1
     assert payload["config"]["sparse_weight"] == 1.0
     assert payload["config"]["dense_weight"] == 1.5
+    assert payload["config"]["reranker_device"] == "cuda"
 
 
 def test_hybrid_deduplicates_text_and_caps_canonical_url() -> None:
@@ -760,6 +763,61 @@ def test_hybrid_reranker_reuses_local_model_for_same_retriever(
     assert isinstance(other_result, HybridRetrievalResult)
     assert stats == {"construct_count": 2, "predict_count": 3}
     assert [hit.chunk_id for hit in other_result.hits] == [101, 102]
+
+
+def test_hybrid_reranker_device_is_configured_and_part_of_model_cache(
+    tmp_path: Path, fake_hybrid_sentence_transformer_module
+) -> None:
+    paths = _build_hybrid_artifacts(tmp_path)
+    reranker_model = tmp_path / "local-reranker"
+    reranker_model.mkdir()
+    constructed_devices: list[str] = []
+
+    class TrackingCrossEncoder:
+        def __init__(self, model_name: str, device: str) -> None:
+            self.model_name = model_name
+            self.device = device
+            constructed_devices.append(device)
+
+        def predict(self, pairs: list[tuple[str, str]]) -> np.ndarray:
+            return np.asarray([10.0 if "dense winner" in passage else 1.0 for _, passage in pairs], dtype="float32")
+
+    fake_hybrid_sentence_transformer_module.CrossEncoder = TrackingCrossEncoder
+    retriever = Retriever.from_paths(
+        db_path=paths["db"],
+        bm25_path=paths["bm25"],
+        faiss_path=paths["faiss"],
+        chunk_index_path=paths["chunk_index"],
+        report_path=paths["report"],
+    )
+
+    cuda_result = retriever.retrieve(
+        "exact bridge query",
+        mode="hybrid",
+        top_k=2,
+        sparse_top_k=2,
+        dense_top_k=2,
+        fused_top_k=3,
+        rerank_top_k=2,
+        reranker_model=str(reranker_model),
+        reranker_device="cuda",
+    )
+    default_result = retriever.retrieve(
+        "exact bridge query",
+        mode="hybrid",
+        top_k=2,
+        sparse_top_k=2,
+        dense_top_k=2,
+        fused_top_k=3,
+        rerank_top_k=2,
+        reranker_model=str(reranker_model),
+    )
+
+    assert isinstance(cuda_result, HybridRetrievalResult)
+    assert isinstance(default_result, HybridRetrievalResult)
+    assert cuda_result.config.reranker_device == "cuda"
+    assert default_result.config.reranker_device == "cpu"
+    assert constructed_devices == ["cuda", "cpu"]
 
 
 def test_hybrid_reranker_reports_missing_local_model(

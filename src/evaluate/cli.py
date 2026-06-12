@@ -34,6 +34,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--url-cap", type=int, default=None)
     parser.add_argument("--model-path", type=Path, default=None)
     parser.add_argument("--reranker-model", type=Path, default=None)
+    parser.add_argument("--reranker-device", default=None)
     parser.add_argument("--device", choices=["auto", "cpu", "cuda"], default="auto")
     parser.add_argument("--max-new-tokens", type=int, default=None)
     parser.add_argument("--dense-model", default=None)
@@ -78,6 +79,7 @@ def main(argv: list[str] | None = None) -> int:
         url_cap=args.url_cap,
         model_path=args.model_path,
         reranker_model=args.reranker_model,
+        reranker_device=args.reranker_device,
         device=args.device,
         max_new_tokens=args.max_new_tokens,
         artifacts=artifacts,

@@ -407,7 +407,7 @@ def test_evaluate_retrieve_passes_hybrid_knobs_only_to_hybrid(tmp_path: Path, mo
     }
 
 
-def test_evaluate_retrieve_passes_reranker_model_only_to_hybrid(tmp_path: Path, monkeypatch) -> None:
+def test_evaluate_retrieve_passes_reranker_model_and_device_only_to_hybrid(tmp_path: Path, monkeypatch) -> None:
     questions_path = tmp_path / "questions.csv"
     _write_questions(questions_path)
     output_dir = tmp_path / "eval"
@@ -435,6 +435,8 @@ def test_evaluate_retrieve_passes_reranker_model_only_to_hybrid(tmp_path: Path, 
                 "retrieve",
                 "--reranker-model",
                 "/models/local-reranker",
+                "--reranker-device",
+                "cuda",
                 "--diagnostic-depth",
                 "10",
                 "--timestamp",
@@ -446,12 +448,16 @@ def test_evaluate_retrieve_passes_reranker_model_only_to_hybrid(tmp_path: Path, 
 
     assert calls[0]["mode"] == "dense"
     assert "reranker_model" not in calls[0]
+    assert "reranker_device" not in calls[0]
     assert calls[1]["mode"] == "dense"
     assert "reranker_model" not in calls[1]
+    assert "reranker_device" not in calls[1]
     assert calls[2]["mode"] == "hybrid"
     assert calls[2]["reranker_model"] == "/models/local-reranker"
+    assert calls[2]["reranker_device"] == "cuda"
     assert calls[3]["mode"] == "hybrid"
     assert calls[3]["reranker_model"] == "/models/local-reranker"
+    assert calls[3]["reranker_device"] == "cuda"
 
 
 def test_evaluate_both_runner_emits_retrieval_and_answer_records(tmp_path: Path, monkeypatch) -> None:

@@ -51,6 +51,7 @@ class EvaluationConfig:
     url_cap: int | None = None
     model_path: Path | None = None
     reranker_model: Path | None = None
+    reranker_device: str | None = None
     device: str = "auto"
     max_new_tokens: int | None = None
     artifacts: ArtifactPaths = ArtifactPaths()
@@ -261,6 +262,8 @@ def _hybrid_retrieve_kwargs(
         kwargs["url_cap"] = config.url_cap
     if config.reranker_model is not None:
         kwargs["reranker_model"] = str(config.reranker_model)
+    if config.reranker_device is not None:
+        kwargs["reranker_device"] = config.reranker_device
     return kwargs
 
 

@@ -59,6 +59,7 @@ class HybridRetrievalConfig:
     sparse_weight: float = DEFAULT_SPARSE_WEIGHT
     dense_weight: float = DEFAULT_DENSE_WEIGHT
     reranker_model: str | None = None
+    reranker_device: str = "cpu"
     url_cap: int = DEFAULT_URL_CAP
 
 
@@ -171,6 +172,7 @@ class Retriever:
         sparse_weight: float = DEFAULT_SPARSE_WEIGHT,
         dense_weight: float = DEFAULT_DENSE_WEIGHT,
         reranker_model: str | None = None,
+        reranker_device: str = "cpu",
         url_cap: int = DEFAULT_URL_CAP,
     ) -> list[RetrievalHit] | HybridRetrievalResult:
         if mode == "bm25":
@@ -189,6 +191,7 @@ class Retriever:
                 sparse_weight=sparse_weight,
                 dense_weight=dense_weight,
                 reranker_model=reranker_model,
+                reranker_device=reranker_device,
                 url_cap=url_cap,
             )
             return self._retrieve_hybrid(query, config)
@@ -261,6 +264,7 @@ class Retriever:
             fused[preserve_top_k : config.rerank_top_k],
             self._chunks_by_id,
             config.reranker_model,
+            config.reranker_device,
             self._reranker_models,
         )
         ordered = [*fused[:preserve_top_k], *reranked, *fused[config.rerank_top_k :]]
@@ -454,6 +458,7 @@ def _rerank_candidates(
     candidates: list[dict[str, object]],
     chunks_by_id: dict[int, dict[str, object]],
     reranker_model: str | None,
+    reranker_device: str,
     reranker_models: dict[str, Any],
 ) -> list[dict[str, object]]:
     if reranker_model is None or not candidates:
@@ -465,10 +470,10 @@ def _rerank_candidates(
     _allow_duplicate_openmp_on_macos()
     from sentence_transformers import CrossEncoder
 
-    model_key = str(model_path.resolve())
+    model_key = f"{model_path.resolve()}::{reranker_device}"
     model = reranker_models.get(model_key)
     if model is None:
-        model = CrossEncoder(str(model_path), device="cpu")
+        model = CrossEncoder(str(model_path), device=reranker_device)
         reranker_models[model_key] = model
     pairs = [(query, str(chunks_by_id[int(candidate["chunk_id"])]["text"])) for candidate in candidates]
     scores = model.predict(pairs)
@@ -589,6 +594,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--sparse-weight", type=float, default=DEFAULT_SPARSE_WEIGHT)
     parser.add_argument("--dense-weight", type=float, default=DEFAULT_DENSE_WEIGHT)
     parser.add_argument("--reranker-model", default=None)
+    parser.add_argument("--reranker-device", default="cpu")
     parser.add_argument("--url-cap", type=int, default=DEFAULT_URL_CAP)
     parser.add_argument("--db", type=Path, default=DEFAULT_DB)
     parser.add_argument("--bm25", type=Path, default=DEFAULT_BM25)
@@ -620,6 +626,7 @@ def main(argv: list[str] | None = None) -> int:
         sparse_weight=args.sparse_weight,
         dense_weight=args.dense_weight,
         reranker_model=args.reranker_model,
+        reranker_device=args.reranker_device,
         url_cap=args.url_cap,
     )
     if args.json:
