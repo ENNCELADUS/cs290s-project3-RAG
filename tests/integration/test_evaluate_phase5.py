@@ -355,6 +355,8 @@ def test_evaluate_retrieve_passes_hybrid_knobs_only_to_hybrid(tmp_path: Path, mo
                 "1.7",
                 "--url-cap",
                 "2",
+                "--expanded-query",
+                "synthetic expansion",
                 "--timestamp",
                 "20260611T090000Z",
             ]
@@ -374,6 +376,7 @@ def test_evaluate_retrieve_passes_hybrid_knobs_only_to_hybrid(tmp_path: Path, mo
         "sparse_weight",
         "dense_weight",
         "url_cap",
+        "expanded_queries",
     }
     assert dense_call == {"mode": "dense", "top_k": 5}
     assert dense_diagnostic_call == {"mode": "dense", "top_k": 25}
@@ -391,6 +394,7 @@ def test_evaluate_retrieve_passes_hybrid_knobs_only_to_hybrid(tmp_path: Path, mo
         "sparse_weight": 0.8,
         "dense_weight": 1.7,
         "url_cap": 2,
+        "expanded_queries": ("synthetic expansion",),
     }
     assert hybrid_diagnostic_call == {
         "mode": "hybrid",
@@ -404,6 +408,7 @@ def test_evaluate_retrieve_passes_hybrid_knobs_only_to_hybrid(tmp_path: Path, mo
         "sparse_weight": 0.8,
         "dense_weight": 1.7,
         "url_cap": 2,
+        "expanded_queries": ("synthetic expansion",),
     }
 
 
@@ -458,6 +463,53 @@ def test_evaluate_retrieve_passes_reranker_model_and_device_only_to_hybrid(tmp_p
     assert calls[3]["mode"] == "hybrid"
     assert calls[3]["reranker_model"] == "/models/local-reranker"
     assert calls[3]["reranker_device"] == "cuda"
+
+
+def test_evaluate_retrieve_passes_expanded_queries_jsonl_only_to_hybrid(tmp_path: Path, monkeypatch) -> None:
+    questions_path = tmp_path / "questions.csv"
+    _write_questions(questions_path)
+    expansions_path = tmp_path / "expanded_queries.jsonl"
+    expansions_path.write_text(
+        json.dumps({"id": "q1", "expanded_queries": ["local Qwen pseudo answer", "alternate course phrasing"]}) + "\n",
+        encoding="utf-8",
+    )
+    calls: list[dict[str, object]] = []
+
+    class FakeRetriever:
+        @classmethod
+        def from_paths(cls, **kwargs: object) -> FakeRetriever:
+            return cls()
+
+        def retrieve(self, query: str, *, mode: str, top_k: int, **kwargs: object) -> list[object]:
+            calls.append({"mode": mode, "top_k": top_k, **kwargs})
+            return [_Hit(rank=1, url="https://example.edu/source", title=mode, score=1.0)]
+
+    monkeypatch.setattr("evaluate.runner.Retriever", FakeRetriever)
+
+    assert (
+        evaluate_main(
+            [
+                "--questions",
+                str(questions_path),
+                "--output-dir",
+                str(tmp_path / "eval"),
+                "--runner",
+                "retrieve",
+                "--expanded-queries-jsonl",
+                str(expansions_path),
+                "--timestamp",
+                "20260611T100000Z",
+            ]
+        )
+        == 0
+    )
+
+    assert calls[0] == {"mode": "dense", "top_k": 5}
+    assert calls[1] == {
+        "mode": "hybrid",
+        "top_k": 5,
+        "expanded_queries": ("local Qwen pseudo answer", "alternate course phrasing"),
+    }
 
 
 def test_evaluate_both_runner_emits_retrieval_and_answer_records(tmp_path: Path, monkeypatch) -> None:

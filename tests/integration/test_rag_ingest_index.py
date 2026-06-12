@@ -407,6 +407,46 @@ def test_hybrid_retrieval_defaults_weight_dense_rrf_above_sparse_rrf_at_same_ran
     assert result.hits[chunk_ids.index(100)].trace.dense_rank is None
 
 
+def test_hybrid_retrieval_can_add_candidates_from_expanded_queries(
+    tmp_path: Path, fake_hybrid_sentence_transformer_module
+) -> None:
+    paths = _build_hybrid_artifacts(tmp_path)
+    retriever = Retriever.from_paths(
+        db_path=paths["db"],
+        bm25_path=paths["bm25"],
+        faiss_path=paths["faiss"],
+        chunk_index_path=paths["chunk_index"],
+        report_path=paths["report"],
+    )
+
+    baseline = retriever.retrieve(
+        "dense winner",
+        mode="hybrid",
+        top_k=2,
+        sparse_top_k=1,
+        dense_top_k=1,
+        fused_top_k=2,
+        rerank_top_k=0,
+    )
+    expanded = retriever.retrieve(
+        "dense winner",
+        mode="hybrid",
+        top_k=2,
+        sparse_top_k=1,
+        dense_top_k=1,
+        fused_top_k=2,
+        rerank_top_k=0,
+        expanded_queries=("sparse",),
+    )
+
+    assert isinstance(baseline, HybridRetrievalResult)
+    assert isinstance(expanded, HybridRetrievalResult)
+    assert [hit.chunk_id for hit in baseline.hits] == [101]
+    assert 100 in [hit.chunk_id for hit in expanded.hits]
+    assert expanded.query == "dense winner"
+    assert all(context.text != "sparse" for context in expanded.contexts)
+
+
 def test_hybrid_cli_json_includes_hits_contexts_and_config(
     tmp_path: Path, fake_hybrid_sentence_transformer_module, capsys: pytest.CaptureFixture[str]
 ) -> None:

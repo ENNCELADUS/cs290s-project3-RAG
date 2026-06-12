@@ -52,6 +52,8 @@ class EvaluationConfig:
     model_path: Path | None = None
     reranker_model: Path | None = None
     reranker_device: str | None = None
+    expanded_queries: tuple[str, ...] = ()
+    expanded_queries_by_id: dict[str, tuple[str, ...]] | None = None
     device: str = "auto"
     max_new_tokens: int | None = None
     artifacts: ArtifactPaths = ArtifactPaths()
@@ -99,7 +101,7 @@ def _run_retrieve(
             question.query,
             mode=mode,
             top_k=config.top_k,
-            **_hybrid_retrieve_kwargs(mode=mode, config=config),
+            **_hybrid_retrieve_kwargs(mode=mode, config=config, question=question),
         )
         hits = _hits_from_result(retrieval_result)
         observed_urls = [str(_hit_value(hit, "url") or "") for hit in hits]
@@ -122,7 +124,12 @@ def _run_retrieve(
                 question.query,
                 mode=mode,
                 **_diagnostic_retrieve_kwargs(depth=config.diagnostic_depth),
-                **_hybrid_retrieve_kwargs(mode=mode, config=config, diagnostic_depth=config.diagnostic_depth),
+                **_hybrid_retrieve_kwargs(
+                    mode=mode,
+                    config=config,
+                    question=question,
+                    diagnostic_depth=config.diagnostic_depth,
+                ),
             )
             record["diagnostic_hits"] = [_hit_to_dict(hit) for hit in _hits_from_result(diagnostic_result)]
         return record
@@ -232,6 +239,7 @@ def _hybrid_retrieve_kwargs(
     *,
     mode: EvalMode,
     config: EvaluationConfig,
+    question: QuestionSpec | None = None,
     diagnostic_depth: int | None = None,
 ) -> dict[str, object]:
     if mode != "hybrid":
@@ -264,7 +272,17 @@ def _hybrid_retrieve_kwargs(
         kwargs["reranker_model"] = str(config.reranker_model)
     if config.reranker_device is not None:
         kwargs["reranker_device"] = config.reranker_device
+    expanded_queries = _expanded_queries_for_question(config, question)
+    if expanded_queries:
+        kwargs["expanded_queries"] = expanded_queries
     return kwargs
+
+
+def _expanded_queries_for_question(config: EvaluationConfig, question: QuestionSpec | None) -> tuple[str, ...]:
+    expanded_queries = list(config.expanded_queries)
+    if question is not None and config.expanded_queries_by_id:
+        expanded_queries.extend(config.expanded_queries_by_id.get(question.id, ()))
+    return tuple(query for query in expanded_queries if query.strip())
 
 
 def _hit_to_dict(hit: object) -> dict[str, Any]:
