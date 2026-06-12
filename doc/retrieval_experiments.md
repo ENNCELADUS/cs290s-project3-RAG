@@ -519,6 +519,54 @@ Interpretation:
 - Latency remains expensive on CPU at 33.603731s per hybrid query, but it is much lower than full top-50 reranking.
   This is a report-usable accuracy optimization only if the report clearly states the latency tradeoff.
 
+### Fix 7: CUDA Local Reranker Runtime
+
+Change:
+
+- local implementation: add `reranker_device` to hybrid retrieval so the local CrossEncoder can run on `cuda` when a
+  GPU is available.
+- eval plumbing: expose `--reranker-device` through `rag-retrieve`, `rag-evaluate`, and `EvaluationConfig`.
+- control setting: hybrid sparse candidate depth 50, dense candidate depth 50, fused depth 50, rerank depth 20,
+  preserve fused top 2, final top 5, strict source diversity, and the local reranker model are unchanged.
+- reranker model: local `BAAI/bge-reranker-v2-m3` snapshot at `/home/richard/models/bge-reranker-v2-m3`.
+- no source-type priors, structured sidecar retrieval, query expansion, qrels edits, index-text changes, or generation
+  changes.
+
+Remote run:
+
+```text
+run_id: remote_retrieve_reranker_cuda_20260613
+remote worktree: /home/richard/cs290s-project3-RAG-fix7-reranker-device
+commit:
+  ffa8b22 Allow CUDA hybrid reranking
+remote artifacts:
+  data/eval/run_remote_retrieve_reranker_cuda_20260613.jsonl
+  data/eval/summary_remote_retrieve_reranker_cuda_20260613.json
+  data/eval/review_queue_remote_retrieve_reranker_cuda_20260613.csv
+  data/eval/gap_notes_remote_retrieve_reranker_cuda_20260613.md
+  data/eval/results_before_after_remote_retrieve_reranker_cuda_20260613.xlsx
+records: 200
+status: dense 100 ok / 0 errors; hybrid 100 ok / 0 errors
+```
+
+The CUDA reranker result compared with the Fix 6 CPU reranker anchor:
+
+| mode | source_hit@1 | source_hit@5 | source_recall@5 | mrr@5 | ndcg@5 | precision@5 | avg latency (s) |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| Fix 6 `hybrid` + CPU selective reranker | 0.65 | 0.88 | 0.853333 | 0.748333 | 0.738153 | 0.192 | 33.603731 |
+| Fix 7 `hybrid` + CUDA selective reranker | 0.65 | 0.88 | 0.853333 | 0.748333 | 0.738153 | 0.192 | 5.141354 |
+| Delta | +0.00 | +0.00 | +0.000000 | +0.000000 | +0.000000 | +0.000 | -28.462377 |
+
+Interpretation:
+
+- CUDA reranking keeps the Fix 6 retrieval ranking exactly unchanged while removing the CPU latency penalty.
+- Hybrid top-5 coverage remains the best accepted retrieval-only result so far: `source_hit@5` is 0.88 and
+  `source_recall@5` is 0.853333.
+- Hybrid average latency falls from 33.603731s to 5.141354s per query, a 6.5x speedup for the after-optimization
+  condition on the remote runner with one CUDA device visible.
+- This is a runtime optimization, not a retrieval-ranking optimization. It should be reported as preserving Fix 6
+  accuracy while making the selective reranker practical for GPU deployment.
+
 ## Report-Facing Before/After Comparison
 
 The official retrieval-only report comparison uses a shared evaluation-canonicalization policy for both conditions:
@@ -526,14 +574,16 @@ The official retrieval-only report comparison uses a shared evaluation-canonical
 | condition | source_hit@1 | source_hit@5 | source_recall@5 | mrr@5 | ndcg@5 | precision@5 |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
 | Before optimization: Fix 1 `dense`, rescored | 0.52 | 0.74 | 0.723333 | 0.594833 | 0.614946 | 0.172 |
-| After optimization: Fix 6 `hybrid` selective reranker | 0.65 | 0.88 | 0.853333 | 0.748333 | 0.738153 | 0.192 |
+| After optimization: Fix 7 `hybrid` CUDA selective reranker | 0.65 | 0.88 | 0.853333 | 0.748333 | 0.738153 | 0.192 |
 | Delta | +0.13 | +0.14 | +0.130000 | +0.153500 | +0.123207 | +0.020 |
 
 This is the clean report-facing retrieval comparison because Fix 1 applies the shared URL/qrels canonicalization without
-changing retrieval ranking, while Fix 6 includes the implemented retrieval optimizations. The main caveat is runtime:
-Fix 6 improves retrieval accuracy but increases hybrid CPU latency from 2.969989s in Fix 4 to 33.603731s.
+changing retrieval ranking, while Fix 7 includes the accepted retrieval optimizations plus CUDA execution for the local
+selective reranker. The main caveat is deployment-dependent runtime: Fix 7 preserves Fix 6 accuracy and reduces hybrid
+latency from 33.603731s on CPU to 5.141354s on the remote CUDA runner, but a CPU-only deployment should still expect the
+slower Fix 6 latency profile.
 
-The Fix 6 `dense` row is a diagnostic ceiling, not the official before-optimization baseline. It uses the enriched
+The Fix 7 `dense` row is a diagnostic ceiling, not the official before-optimization baseline. It uses the enriched
 index text introduced as an optimization, so comparing latest `dense` directly against latest `hybrid` answers a
 different diagnostic question: whether hybrid fusion and selective reranking beat dense after both modes receive the
 same enriched index. On that diagnostic view, latest `hybrid` is ahead on `source_hit@5` 0.88 versus dense 0.85 and
@@ -541,7 +591,7 @@ same enriched index. On that diagnostic view, latest `hybrid` is ahead on `sourc
 
 ## Remaining Failure Taxonomy
 
-After Fix 6, the top-5 source-hit overlap is:
+After Fix 7, the top-5 source-hit overlap is unchanged from Fix 6:
 
 | result type | question count | question IDs |
 | --- | ---: | --- |
@@ -563,28 +613,25 @@ Main observed causes:
 - Some official pages are answer-bearing siblings but fail the current qrels, such as Chinese/English sibling pages and
   faculty `main.htm` versus list/profile variants.
 - Course-table and faculty/course join questions need more structured retrieval signals than chunk similarity alone.
-- Hybrid selective reranking is the strongest top-5 retrieval condition so far, but sparse terms and reranker scores can
-  still lift sibling pages or old list pages above the exact expected URL.
+- Hybrid CUDA selective reranking is the strongest accepted top-5 retrieval condition so far, but sparse terms and
+  reranker scores can still lift sibling pages or old list pages above the exact expected URL.
 
 ## Next Optimization Candidates
 
 Prioritize actual retrieval changes separately from metric/qrels cleanup:
 
-1. If continuing the reranker route, test a lighter or selective reranking variant rather than full CPU CrossEncoder
-   top-50 reranking. The first successful selective variant is preserve fused top 2 + rerank candidates 3-20; any next
-   reranker experiment should change only one knob, such as `rerank_top_k=10` with the same preserved prefix to test
-   whether latency can drop without losing the Fix 6 coverage gain.
-2. Add source-type priors for recurring query intents: faculty pages for office/email/profile questions, course tables
-   for course-code and semester questions, research-center pages for center/lab questions, and canonical article pages
-   for news/admission questions.
-3. Build structured sidecar retrieval for courses, faculty, and research centers if there is time after the lower-risk
-   improvements.
+1. Test local Query2doc or HyDE-style query expansion as a retrieval-only candidate generator. Expanded text must remain
+   retrieval-only and must never become packed context or a citation source.
+2. Try contextual chunk enrichment v2 in a separate generated index, focusing on breadcrumbs, source type, update date,
+   entity aliases, and Chinese/English sibling hints while keeping displayed contexts as original official text.
+3. Revisit source-type priors only with narrower intent-specific rules. A broad structured-sidecar prior trial on
+   2026-06-13 regressed hybrid `source_hit@5` from 0.88 to 0.86, so the next version needs a more specific hypothesis.
 
 Keep qrels cleanup separate from retrieval optimization. The next qrels audit should target Chinese/English official
 siblings and answer-bearing faculty/list pages; same-article-ID aliases are already covered by the shared evaluation
-canonicalization policy. Existing remote diagnostics suggest that larger hybrid candidate pools alone were worse, and
-the simple metadata boost trial matched the weighted RRF metrics exactly, so neither should be the next priority without
-a more specific hypothesis.
+canonicalization policy. Existing remote diagnostics suggest that larger hybrid candidate pools alone were worse,
+`rerank_top_k=10` lost top-5 coverage, and the simple metadata boost trial matched the weighted RRF metrics exactly, so
+none of those should be the next priority without a more specific hypothesis.
 
 ## Verification
 
@@ -617,6 +664,17 @@ uv run --locked --no-sync --offline ruff check src/rag/retrieve.py src/evaluate/
 
 The remote selective reranker run used one cached CrossEncoder load and 200 dense encoder loads, then wrote 200 JSONL
 records, 201 review-queue CSV lines, 202 gap-note lines, a summary JSON, and the Excel workbook listed above.
+
+The CUDA reranker device change was checked locally and remotely:
+
+```bash
+uv run --locked --no-sync --offline python -m pytest tests/integration/test_rag_ingest_index.py tests/integration/test_evaluate_phase5.py -q
+uv run --locked --no-sync --offline ruff check src/rag/retrieve.py src/evaluate/cli.py src/evaluate/runner.py tests/integration/test_rag_ingest_index.py tests/integration/test_evaluate_phase5.py
+```
+
+The remote CUDA run used `PYTHONPATH=src` so the branch worktree source, rather than the shared virtualenv's editable
+install path, supplied `evaluate.cli` and `rag.retrieve`. A one-question CUDA smoke run completed before the full
+100-question retrieval evaluation.
 
 The enriched index text change was checked locally:
 
@@ -660,6 +718,9 @@ gap_notes_remote_retrieve_strict_diversity_articlealias_20260612.md: 202 lines
 run_remote_retrieve_hybrid_rerank_preserve2_top20_20260612.jsonl: 200 lines
 review_queue_remote_retrieve_hybrid_rerank_preserve2_top20_20260612.csv: 201 lines including header
 gap_notes_remote_retrieve_hybrid_rerank_preserve2_top20_20260612.md: 202 lines
+run_remote_retrieve_reranker_cuda_20260613.jsonl: 200 lines
+review_queue_remote_retrieve_reranker_cuda_20260613.csv: 201 lines including header
+gap_notes_remote_retrieve_reranker_cuda_20260613.md: 202 lines
 workbook sheets: submission, diagnostics, retrieval_metrics, review_queue
 workbook rows: submission 101; diagnostics 201; retrieval_metrics 3; review_queue 201
 ```
