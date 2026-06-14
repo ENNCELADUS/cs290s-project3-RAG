@@ -364,6 +364,86 @@ def test_evaluate_answer_flags_answer_synthesis_miss_when_retrieval_found_expect
     assert "answer_synthesis_miss" in diagnostic_headers
 
 
+def test_evaluate_answer_loose_judge_autogrades_cited_expected_answers(tmp_path: Path, monkeypatch) -> None:
+    questions_path = tmp_path / "questions.csv"
+    rows = [
+        {
+            "id": "q1",
+            "category": "Factual",
+            "language": "en",
+            "query": "Where is the office and email?",
+            "gt_answer": "office 3-530, wanghy@example.edu",
+            "primary_source_url": "https://example.edu/source",
+            "acceptable_source_urls": json.dumps(["https://example.edu/source"]),
+            "evidence_snippet": "office 3-530 email wanghy@example.edu",
+            "required_facts": json.dumps(["office 3-530", "wanghy@example.edu"]),
+            "acceptable_answers": json.dumps(["office 3-530 and email is wanghy@example.edu"]),
+            "forbidden_facts": json.dumps([]),
+            "grading_notes": "test row",
+            "judge_type": "required_facts_with_manual_review",
+            "complexity": "Low",
+            "sys_resp_before_opt": "",
+            "sys_resp_after_opt": "",
+            "is_correct_before_opt": "",
+            "is_correct_after_opt": "",
+            "cited_expected_source_hit_before_opt": "",
+            "cited_expected_source_hit_after_opt": "",
+        }
+    ]
+    with questions_path.open("w", encoding="utf-8", newline="") as handle:
+        writer = csv.DictWriter(handle, fieldnames=list(rows[0]))
+        writer.writeheader()
+        writer.writerows(rows)
+    output_dir = tmp_path / "eval"
+
+    class FakeRetriever:
+        @classmethod
+        def from_paths(cls, **kwargs: object) -> FakeRetriever:
+            return cls()
+
+    class FakeAnswerer:
+        def __init__(self, retriever: object, **kwargs: object) -> None:
+            pass
+
+        def answer(self, query: str, *, mode: str, top_k: int) -> _AnswerResult:
+            return _AnswerResult(
+                status="answered",
+                answer="office: office 3-530; email: wanghy@example.edu [1].",
+                sources=[_Source(1, "https://example.edu/source", "Expected")],
+                retrieval={"mode": mode, "hits": []},
+                generation_path="extractive_fallback",
+            )
+
+    monkeypatch.setattr("evaluate.runner.Retriever", FakeRetriever)
+    monkeypatch.setattr("evaluate.runner.RagAnswerer", FakeAnswerer)
+
+    assert (
+        evaluate_main(
+            [
+                "--questions",
+                str(questions_path),
+                "--output-dir",
+                str(output_dir),
+                "--runner",
+                "answer",
+                "--model-path",
+                str(tmp_path),
+                "--timestamp",
+                "20260611T052000Z",
+            ]
+        )
+        == 0
+    )
+
+    run_records = [
+        json.loads(line)
+        for line in (output_dir / "run_20260611T052000Z.jsonl").read_text(encoding="utf-8").splitlines()
+    ]
+    assert run_records[0]["metrics"]["cited_expected_source_hit@5"] == 1.0
+    assert run_records[0]["judge"]["status"] == "correct"
+    assert run_records[0]["judge"]["is_correct"] == 1
+
+
 def test_evaluate_answer_exports_answer_context_order_diagnostics(tmp_path: Path, monkeypatch) -> None:
     questions_path = tmp_path / "questions.csv"
     _write_questions(questions_path)

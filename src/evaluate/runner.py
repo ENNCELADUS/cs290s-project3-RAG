@@ -181,6 +181,12 @@ def _run_answer(
         )  # type: ignore[arg-type]
         retrieved_urls = [str(source.url) for source in answer_result.sources]
         cited_urls = _cited_source_urls(answer_result.answer, answer_result.sources)
+        metrics = _answer_source_metrics(
+            cited_urls,
+            retrieved_urls,
+            question.acceptable_source_urls,
+            answer_status=answer_result.status,
+        )
         judge = (
             JudgeResult(
                 status="evidence_insufficient",
@@ -188,7 +194,11 @@ def _run_answer(
                 reason="evidence insufficient answer",
             )
             if answer_result.status == "insufficient_evidence"
-            else judge_answer(question, answer_result.answer)
+            else judge_answer(
+                question,
+                answer_result.answer,
+                cited_expected_source_hit=bool(metrics.get("cited_expected_source_hit@5")),
+            )
         )
         return {
             **base,
@@ -201,12 +211,7 @@ def _run_answer(
             "top_titles": [source.title or "" for source in answer_result.sources[: config.top_k]],
             "retrieval": answer_result.retrieval,
             "judge": asdict(judge),
-            "metrics": _answer_source_metrics(
-                cited_urls,
-                retrieved_urls,
-                question.acceptable_source_urls,
-                answer_status=answer_result.status,
-            ),
+            "metrics": metrics,
             "generation_path": getattr(answer_result, "generation_path", None),
             "generation_rejection_reason": getattr(answer_result, "generation_rejection_reason", None),
             "fallback_source_rank": getattr(answer_result, "fallback_source_rank", None),

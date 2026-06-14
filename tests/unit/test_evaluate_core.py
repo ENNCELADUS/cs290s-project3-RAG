@@ -111,6 +111,29 @@ def test_judge_exact_required_manual_and_forbidden_cases(tmp_path: Path) -> None
     assert judge_answer(question, "wrong forbidden fact").status == "incorrect"
 
 
+def test_judge_uses_cited_expected_source_for_loose_auto_decisions(tmp_path: Path) -> None:
+    questions_path = tmp_path / "questions.csv"
+    _write_question_csv(questions_path)
+    question = load_questions(questions_path)[0]
+    manual_question = question.__class__(**{**question.__dict__, "judge_type": "required_facts_with_manual_review"})
+
+    correct = judge_answer(
+        manual_question,
+        "The office is office 3-530 and email is wanghy@example.edu. [1]",
+        cited_expected_source_hit=True,
+    )
+    assert correct.status == "correct"
+    assert correct.is_correct == 1
+
+    incorrect = judge_answer(
+        manual_question,
+        "The office is office 3-530. [1]",
+        cited_expected_source_hit=True,
+    )
+    assert incorrect.status == "incorrect"
+    assert incorrect.is_correct == 0
+
+
 def _write_question_csv(path: Path) -> None:
     row = {
         "id": "q1",
