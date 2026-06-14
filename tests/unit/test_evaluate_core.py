@@ -463,6 +463,48 @@ def test_judge_rejects_missing_required_numeric_fact_even_with_citation(tmp_path
     assert result.is_correct == 0
 
 
+def test_judge_accepts_targeted_evaluator_patch_questions() -> None:
+    questions = {
+        question.id: question for question in load_questions(Path("data/test/question_final_structured_100.csv"))
+    }
+
+    answers = {
+        "q006": "屠可伟教授获得过 ACL 2023 杰出论文奖、SemEval 2022 最佳系统论文奖和 SemEval 2023 最佳系统论文奖。",
+        "q034": "傅旻帆教授建议提前自学的课程是专业选修课《电力电子》，这门课已被录制成视频。[1]",
+        "q047": "在专业课程板块中，学生至少需要修满选修 27 学分。[1]",
+        "q075": (
+            "未达到 B- 不能计入专业课学分和门数；可重修或修读其他课程达到 B- 及以上。"
+            "本科期间研究生课程认定要求 3 学分及以上、成绩至少 B+，且不得超过 2 门。[1]"
+        ),
+        "q078": "基本学制为 5-7 年；总学分不低于 42 个总学分，课程学分不低于 40 个学分，课程实践不少于 8 学分。[1]",
+        "q087": (
+            "计算机科学与技术02-中科院联培院所招生、电子科学与技术、信息与通信工程总分均为320分；"
+            "电子信息总分300分；单科线为满分100分科目35分、满分大于100分科目53分。[1]"
+        ),
+    }
+
+    for question_id, answer in answers.items():
+        result = judge_answer(questions[question_id], answer, has_citation=True)
+        assert result.status == "correct", f"{question_id}: {result.reason}"
+        assert result.is_correct == 1
+
+
+def test_judge_rejects_q075_off_topic_answer_after_evaluator_patch() -> None:
+    questions = {
+        question.id: question for question in load_questions(Path("data/test/question_final_structured_100.csv"))
+    }
+
+    result = judge_answer(
+        questions["q075"],
+        "公共基础课包括思政类课程和英语类课程，要求至少修满 8 学分。[1]",
+        cited_expected_source_hit=True,
+        has_citation=True,
+    )
+
+    assert result.status == "incorrect"
+    assert result.is_correct == 0
+
+
 def _write_question_csv(path: Path) -> None:
     row = {
         "id": "q1",

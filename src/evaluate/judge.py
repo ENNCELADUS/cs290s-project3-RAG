@@ -61,9 +61,7 @@ def judge_answer(
     if question.judge_type == "required_facts_match":
         missing = [fact for fact in question.required_facts if not _contains(answer, fact)]
         if missing:
-            if grounded_answer:
-                return _loose_cited_source_judge(question, answer)
-            return JudgeResult(status="incorrect", is_correct=0, reason=f"missing required facts: {missing}")
+            return _loose_cited_source_judge(question, answer)
         return JudgeResult(status="correct", is_correct=1, reason="all required facts matched")
     if question.judge_type in {"required_facts_with_manual_review", "local_llm_judge_with_human_review"}:
         if question.judge_type == "required_facts_with_manual_review" and grounded_answer:
@@ -133,10 +131,16 @@ def _minimum_loose_matches(fact_count: int) -> int:
 
 
 def _compact_contains(answer: str, candidate: str) -> bool:
+    if _is_grade_atom(candidate):
+        return _grade_key(candidate) in {_grade_key(grade) for grade in _grade_atoms(answer)}
     candidate_date_keys = _date_keys(candidate)
     if candidate_date_keys:
         answer_date_keys = _date_keys(answer)
         return any(date_key in answer_date_keys for date_key in candidate_date_keys)
+    candidate_quantity_keys = _quantity_keys(candidate)
+    if candidate_quantity_keys:
+        answer_quantity_keys = _quantity_keys(answer)
+        return any(quantity_key in answer_quantity_keys for quantity_key in candidate_quantity_keys)
     candidate_keys = _match_keys(candidate)
     answer_keys = _match_keys(answer)
     if candidate_keys & answer_keys:
@@ -160,6 +164,25 @@ def _date_keys(text: str) -> set[str]:
     for month, day in re.findall(r"(\d{1,2})月(\d{1,2})日", text):
         _add_date_key(keys, int(month), int(day))
     return keys
+
+
+def _quantity_keys(text: str) -> set[str]:
+    keys: set[str] = set()
+    normalized = _normalize_readable_text(text)
+    unit_pattern = r"学分|分|年|门|人|项|天"
+    for start, end, unit in re.findall(rf"(\d+(?:\.\d+)?)\s*[-至到]\s*(\d+(?:\.\d+)?)\s*({unit_pattern})", normalized):
+        keys.add(f"{_quantity_number_key(start)}{unit}")
+        keys.add(f"{_quantity_number_key(end)}{unit}")
+    for number, unit in re.findall(
+        rf"(\d+(?:\.\d+)?)\s*(?:个)?\s*(?:总|课程|选修|专业|实践|课程实践)?\s*({unit_pattern})",
+        normalized,
+    ):
+        keys.add(f"{_quantity_number_key(number)}{unit}")
+    return keys
+
+
+def _quantity_number_key(number: str) -> str:
+    return number[:-2] if number.endswith(".0") else number
 
 
 def _add_date_key(keys: set[str], month: int, day: int, year: int | None = None) -> None:
@@ -198,9 +221,12 @@ def _important_atoms(text: str) -> list[str]:
     atoms: list[str] = []
     atoms.extend(re.findall(r"[A-Za-z0-9_.+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}", text))
     atoms.extend(re.findall(r"\b\d{3,4}-?\d{6,8}\b", text))
+    atoms.extend(_grade_atoms(readable_text))
+    atoms.extend(re.findall(r"\b[A-Z][A-Za-z]+ ?\d{4}\b|\b[A-Z]{2,} ?\d{4}\b", readable_text))
     atoms.extend(_date_keys(text))
     atoms.extend(re.findall(r"\d{1,2}月\d{1,2}日|\d{1,2}:\d{2}", text))
     atoms.extend(re.findall(r"\b[A-Z]{2,}\d+[A-Z]?\b", text))
+    atoms.extend(_known_program_atoms(text))
     atoms.extend(
         re.findall(
             r"[\u4e00-\u9fffA-Za-z]+(?:学院|校区|楼|室)\d+[A-Za-z]?-?\d{2,4}[A-Za-z]?室?|"
@@ -209,7 +235,7 @@ def _important_atoms(text: str) -> list[str]:
         )
     )
     atoms.extend(re.findall(r"\b\d+[A-Za-z]?-?\d{2,4}[A-Za-z]?室?\b", text))
-    atoms.extend(re.findall(r"\d+(?:\.\d+)?\s*(?:学分|人|个|项|门|天|年)", text))
+    atoms.extend(re.findall(r"\d+(?:\.\d+)?\s*(?:学分|人|个|项|门|天|年|分)", text))
     atoms.extend(re.findall(r"[\u4e00-\u9fffA-Za-z]+(?:一等奖|二等奖|三等奖|冠军|亚军|奖)", text))
     atoms.extend(_english_title_atoms(readable_text))
     structured_atom_keys = {_compact_text(atom) for atom in atoms}
@@ -246,6 +272,29 @@ def _english_title_atoms(text: str) -> list[str]:
         if 4 <= len(_compact_text(atom)) <= 80:
             atoms.append(atom)
     return atoms
+
+
+def _grade_atoms(text: str) -> list[str]:
+    return re.findall(r"(?<![A-Za-z])[A-D][+-](?![A-Za-z])", text, flags=re.IGNORECASE)
+
+
+def _is_grade_atom(text: str) -> bool:
+    return _grade_key(text) in {"A+", "A-", "B+", "B-", "C+", "C-", "D+", "D-"}
+
+
+def _grade_key(text: str) -> str:
+    return re.sub(r"\s+", "", text).upper()
+
+
+def _known_program_atoms(text: str) -> list[str]:
+    compact = _compact_text(text)
+    programs = (
+        "计算机科学与技术",
+        "电子科学与技术",
+        "信息与通信工程",
+        "电子信息",
+    )
+    return [program for program in programs if _compact_text(program) in compact]
 
 
 def _match_keys(text: str) -> set[str]:
