@@ -236,6 +236,97 @@ def test_evaluate_answer_metrics_use_cited_sources_only(tmp_path: Path, monkeypa
     assert run_records[0]["retrieved_source_urls"] == ["https://example.edu/noise", "https://example.edu/source"]
 
 
+def test_evaluate_answer_passes_hybrid_knobs_to_generation_retrieval_only(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    questions_path = tmp_path / "questions.csv"
+    _write_questions(questions_path)
+    calls: list[dict[str, object]] = []
+
+    class FakeRetriever:
+        @classmethod
+        def from_paths(cls, **kwargs: object) -> FakeRetriever:
+            return cls()
+
+        def retrieve(self, query: str, *, mode: str, top_k: int, **kwargs: object) -> list[object]:
+            calls.append({"mode": mode, "top_k": top_k, **kwargs})
+            return []
+
+        def contexts_for_hits(self, hits: list[object]) -> list[object]:
+            return []
+
+    monkeypatch.setattr("evaluate.runner.Retriever", FakeRetriever)
+
+    assert (
+        evaluate_main(
+            [
+                "--questions",
+                str(questions_path),
+                "--output-dir",
+                str(tmp_path / "eval"),
+                "--runner",
+                "answer",
+                "--modes",
+                "dense",
+                "hybrid",
+                "--model-path",
+                str(tmp_path),
+                "--device",
+                "cpu",
+                "--top-k",
+                "5",
+                "--sparse-top-k",
+                "50",
+                "--dense-top-k",
+                "60",
+                "--fused-top-k",
+                "25",
+                "--rerank-top-k",
+                "20",
+                "--rerank-preserve-top-k",
+                "2",
+                "--rrf-k",
+                "70",
+                "--sparse-weight",
+                "0.8",
+                "--dense-weight",
+                "1.7",
+                "--url-cap",
+                "2",
+                "--reranker-model",
+                "/models/local-reranker",
+                "--reranker-device",
+                "cpu",
+                "--expanded-query",
+                "synthetic expansion",
+                "--timestamp",
+                "20260611T110000Z",
+            ]
+        )
+        == 0
+    )
+
+    assert calls == [
+        {"mode": "dense", "top_k": 5},
+        {
+            "mode": "hybrid",
+            "top_k": 5,
+            "sparse_top_k": 50,
+            "dense_top_k": 60,
+            "fused_top_k": 25,
+            "rerank_top_k": 20,
+            "rerank_preserve_top_k": 2,
+            "rrf_k": 70,
+            "sparse_weight": 0.8,
+            "dense_weight": 1.7,
+            "url_cap": 2,
+            "reranker_model": "/models/local-reranker",
+            "reranker_device": "cpu",
+            "expanded_queries": ("synthetic expansion",),
+        },
+    ]
+
+
 def test_evaluate_retrieve_can_save_diagnostic_hits_beyond_final_top_k(tmp_path: Path, monkeypatch) -> None:
     questions_path = tmp_path / "questions.csv"
     _write_questions(questions_path)

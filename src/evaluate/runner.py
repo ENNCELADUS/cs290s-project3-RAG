@@ -166,7 +166,12 @@ def _run_answer(
     try:
         if answerer is None:
             raise ValueError("answer runner is not configured")
-        answer_result = answerer.answer(question.query, mode=mode, top_k=config.top_k)  # type: ignore[arg-type]
+        answer_result = answerer.answer(
+            question.query,
+            mode=mode,
+            top_k=config.top_k,
+            **_hybrid_retrieve_kwargs(mode=mode, config=config, question=question),
+        )  # type: ignore[arg-type]
         retrieved_urls = [str(source.url) for source in answer_result.sources]
         cited_urls = _cited_source_urls(answer_result.answer, answer_result.sources)
         judge = judge_answer(question, answer_result.answer)

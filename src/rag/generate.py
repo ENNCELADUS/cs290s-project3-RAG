@@ -81,12 +81,22 @@ class RagAnswerer:
         self._tokenizer: Any | None = None
         self._model: Any | None = None
 
-    def answer(self, query: str, *, mode: AnswerMode = "hybrid", top_k: int = DEFAULT_TOP_K) -> RagAnswerResult:
+    def answer(
+        self,
+        query: str,
+        *,
+        mode: AnswerMode = "hybrid",
+        top_k: int = DEFAULT_TOP_K,
+        **retrieve_kwargs: Any,
+    ) -> RagAnswerResult:
         if mode not in ("dense", "hybrid"):
             raise ValueError(f"unsupported answer mode: {mode}")
         started = time.perf_counter()
         retrieval_started = time.perf_counter()
-        retrieval_result = self.retriever.retrieve(query, mode=mode, top_k=top_k)
+        if mode == "hybrid":
+            retrieval_result = self.retriever.retrieve(query, mode=mode, top_k=top_k, **retrieve_kwargs)
+        else:
+            retrieval_result = self.retriever.retrieve(query, mode=mode, top_k=top_k)
         retrieval_s = time.perf_counter() - retrieval_started
 
         contexts = _contexts_from_retrieval(self.retriever, retrieval_result)
