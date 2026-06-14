@@ -198,6 +198,7 @@ def _run_answer(
                 question,
                 answer_result.answer,
                 cited_expected_source_hit=bool(metrics.get("cited_expected_source_hit@5")),
+                has_citation=bool(cited_urls),
             )
         )
         return {

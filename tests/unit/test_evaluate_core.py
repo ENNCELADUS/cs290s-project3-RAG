@@ -108,6 +108,16 @@ def test_judge_exact_required_manual_and_forbidden_cases(tmp_path: Path) -> None
 
     manual_question = question.__class__(**{**question.__dict__, "judge_type": "required_facts_with_manual_review"})
     assert judge_answer(manual_question, "office 3-530, wanghy@example.edu").status == "manual_review"
+    no_facts_question = question.__class__(
+        **{
+            **question.__dict__,
+            "gt_answer": "",
+            "required_facts": [],
+            "acceptable_answers": [],
+            "judge_type": "required_facts_with_manual_review",
+        }
+    )
+    assert judge_answer(no_facts_question, "This needs review.").status == "manual_review"
     assert judge_answer(question, "wrong forbidden fact").status == "incorrect"
 
 
@@ -132,6 +142,178 @@ def test_judge_uses_cited_expected_source_for_loose_auto_decisions(tmp_path: Pat
     )
     assert incorrect.status == "incorrect"
     assert incorrect.is_correct == 0
+
+
+def test_judge_loose_manual_review_matches_office_email_atoms_across_labels(tmp_path: Path) -> None:
+    questions_path = tmp_path / "questions.csv"
+    _write_question_csv(questions_path)
+    question = load_questions(questions_path)[0]
+    manual_question = question.__class__(
+        **{
+            **question.__dict__,
+            "gt_answer": "他的办公室在信息学院3-530，工作邮箱是 wanghy@shanghaitech.edu.cn。",
+            "required_facts": ["他的办公室在信息学院3-530，工作邮箱是 wanghy@shanghaitech.edu.cn。"],
+            "acceptable_answers": [],
+            "judge_type": "required_facts_with_manual_review",
+        }
+    )
+
+    result = judge_answer(
+        manual_question,
+        "office: 信息学院3-530; email: wanghy@shanghaitech.edu.cn [3].",
+        cited_expected_source_hit=True,
+    )
+
+    assert result.status == "correct"
+    assert result.is_correct == 1
+
+
+def test_judge_loose_manual_review_matches_credit_atoms_without_source_hit(tmp_path: Path) -> None:
+    questions_path = tmp_path / "questions.csv"
+    _write_question_csv(questions_path)
+    question = load_questions(questions_path)[0]
+    manual_question = question.__class__(
+        **{
+            **question.__dict__,
+            "gt_answer": "人文社科通识板块要求45学分，自然科学通识板块要求32学分。",
+            "required_facts": ["人文社科通识板块要求45学分，自然科学通识板块要求32学分。"],
+            "acceptable_answers": [],
+            "judge_type": "required_facts_with_manual_review",
+        }
+    )
+
+    result = judge_answer(
+        manual_question,
+        "人文社科通识板块：45学分；自然科学通识板块：32学分 [1]",
+        cited_expected_source_hit=False,
+    )
+
+    assert result.status == "correct"
+    assert result.is_correct == 1
+
+
+def test_judge_loose_manual_review_matches_credit_atoms_across_sentence_boundaries(tmp_path: Path) -> None:
+    questions_path = tmp_path / "questions.csv"
+    _write_question_csv(questions_path)
+    question = load_questions(questions_path)[0]
+    manual_question = question.__class__(
+        **{
+            **question.__dict__,
+            "gt_answer": "人文社科通识板块要求修满45学分，自然科学通识板块要求修满32学分。",
+            "required_facts": ["人文社科通识板块要求修满45学分，自然科学通识板块要求修满32学分。"],
+            "acceptable_answers": [],
+            "judge_type": "required_facts_with_manual_review",
+        }
+    )
+
+    result = judge_answer(
+        manual_question,
+        "2025级本科生培养方案EE专业：人文社科通识板块（45学分），自然科学通识板块（32学分）。 [1]",
+        cited_expected_source_hit=True,
+    )
+
+    assert result.status == "correct"
+    assert result.is_correct == 1
+
+
+def test_judge_loose_manual_review_normalizes_date_atoms(tmp_path: Path) -> None:
+    questions_path = tmp_path / "questions.csv"
+    _write_question_csv(questions_path)
+    question = load_questions(questions_path)[0]
+    manual_question = question.__class__(
+        **{
+            **question.__dict__,
+            "gt_answer": "2025级硕士、博士培养方案的发布日期是2025年09月04日。",
+            "required_facts": ["2025级硕士、博士培养方案的发布日期是2025年09月04日。"],
+            "acceptable_answers": [],
+            "judge_type": "required_facts_with_manual_review",
+        }
+    )
+
+    result = judge_answer(
+        manual_question,
+        "培养方案列表包括：2025级硕士、博士培养方案 2025-09-04。 [1]",
+        cited_expected_source_hit=True,
+    )
+
+    assert result.status == "correct"
+    assert result.is_correct == 1
+
+
+def test_judge_content_coverage_can_pass_without_expected_source_hit(tmp_path: Path) -> None:
+    questions_path = tmp_path / "questions.csv"
+    _write_question_csv(questions_path)
+    question = load_questions(questions_path)[0]
+    manual_question = question.__class__(
+        **{
+            **question.__dict__,
+            "gt_answer": "申乔木，北京理工大学（珠海），李权，2026年4月28日上午10:15，创管学院106。",
+            "required_facts": [
+                "演讲者是申乔木",
+                "单位是北京理工大学（珠海）",
+                "邀请人是李权",
+                "时间是2026年4月28日上午10:15",
+                "地点是创管学院106",
+            ],
+            "acceptable_answers": [],
+            "judge_type": "required_facts_with_manual_review",
+        }
+    )
+
+    result = judge_answer(
+        manual_question,
+        "演讲者:申乔木，北京理工大学（珠海）；时间:2026年4月28日，上午10:15；"
+        "邀请人:李权；地点:创管学院106。 [3]",
+        cited_expected_source_hit=False,
+        has_citation=True,
+    )
+
+    assert result.status == "correct"
+    assert result.is_correct == 1
+
+
+def test_judge_loose_manual_review_matches_chinese_and_iso_dates(tmp_path: Path) -> None:
+    questions_path = tmp_path / "questions.csv"
+    _write_question_csv(questions_path)
+    question = load_questions(questions_path)[0]
+    manual_question = question.__class__(
+        **{
+            **question.__dict__,
+            "gt_answer": "报名截止日期是2025年09月04日。",
+            "required_facts": ["报名截止日期是2025年09月04日。"],
+            "acceptable_answers": [],
+            "judge_type": "required_facts_with_manual_review",
+        }
+    )
+
+    result = judge_answer(manual_question, "报名截止日期为 2025-09-04。 [1]")
+
+    assert result.status == "correct"
+    assert result.is_correct == 1
+
+
+def test_judge_exact_or_alias_can_be_content_correct_without_source_hit(tmp_path: Path) -> None:
+    questions_path = tmp_path / "questions.csv"
+    _write_question_csv(questions_path)
+    question = load_questions(questions_path)[0]
+    exact_question = question.__class__(
+        **{
+            **question.__dict__,
+            "gt_answer": "他的办公室在信息学院3-530，工作邮箱是 wanghy@shanghaitech.edu.cn。",
+            "required_facts": ["他的办公室在信息学院3-530，工作邮箱是 wanghy@shanghaitech.edu.cn。"],
+            "acceptable_answers": ["他的办公室在信息学院3-530，工作邮箱是 wanghy@shanghaitech.edu.cn。"],
+            "judge_type": "exact_or_alias_match",
+        }
+    )
+
+    result = judge_answer(
+        exact_question,
+        "office: 信息学院3-530; email: wanghy@shanghaitech.edu.cn. [1]",
+        cited_expected_source_hit=False,
+    )
+
+    assert result.status == "correct"
+    assert result.is_correct == 1
 
 
 def _write_question_csv(path: Path) -> None:
