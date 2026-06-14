@@ -1,0 +1,38 @@
+id,mode,query,gt_answer,answer,judge_reason,observed_source_urls
+q010,dense,我是一名对电动汽车和光伏储能方向非常感兴趣的学生，希望在信息学院找一位入选过“上海领军人才”的教授做我的导师，请问我最应该联系哪位老师？,你应该联系王浩宇教授。他入选了上海领军人才，且核心研究方向正好包括电动汽车与光伏储能。,"根据提供的资料，您可以联系**王浩宇**教授。他是信息学院“可再生能源”方向的研究导师，其团队近期提出了适用于电动汽车车顶光伏充电系统的800V新方案，研究方向与您的兴趣高度契合 [4]。此外，在2026年电子信息工程博士招生简介中，王浩宇教授的研究方向也明确为“算力电源管理芯片” [1]。
+
+**最应该联系的老师是：王浩宇**",local_llm_judge_with_human_review requires review,"[""https://sist.shanghaitech.edu.cn/2025/0811/c2858a1114213/page.htm"", ""https://sist.shanghaitech.edu.cn/2026/0422/c2826a1121023/page.htm""]"
+q011,dense,2025级EE专业本科生在大一下学期（即一(2)学期）推荐修读的专业必修课中，有一门是由UC Berkeley合作开设的，这门课叫什么名字？理论和实验课加起来一共占几学分？,这门课是《电路基础》（含电路基础实验）。理论课占4学分，实验课占1学分，总计5学分。,"2025级EE专业本科生在大一下学期（一（2）学期）推荐修读的专业必修课中，由UC Berkeley合作开设的课程是**电路基础**，理论和实验课加起来一共占**5**学分。
+
+根据提供的《2024级本科生培养方案》[1]，在大一下学期（一（2））的课程列表中，**电路基础**被标记为“专业必修课”，且学分标注为“（4+1）”，其中加“*”号的课程为UC Berkeley课程。该课程由理论课4学分和实验课1学分组成，合计5学分。",local_llm_judge_with_human_review requires review,"[""https://faculty.sist.shanghaitech.edu.cn/office/Academics/Undergraduate/Degree%20Programmes/2024%20Bachelor%20Degree%20Programs%20in%20EE.htm""]"
+q016,dense,针对2025级电子信息工程专业（EE专业）本科生，修读由美国加州大学伯克利分校（UC Berkeley）合作开设的专业必修课程，安排在哪个学年哪个学期推荐修读？这门课程的理论课和实验课课程代码分别是什么？,标有“*”号的UC Berkeley合作必修课程为《电路基础》（含电路基础实验），其推荐修读时间为大一学年的第二学期（一（2）学期）。其理论课课程代码为EE111，实验课课程代码为EE111L。,"根据提供的来源，**2025 级电子信息工程专业（EE 专业）本科生**的培养方案中**并未包含**由美国加州大学伯克利分校（UC Berkeley）合作开设的专业必修课程列表。
+
+提供的来源 [4] 详细列出了 2025 级**计算机专业（CS 专业）** 的课程安排，其中包含 UC Berkeley 合作课程（如“电路基础”、“控制原理”等），但这些课程属于 CS 专业的“机器人与自动化方向”或“软件与系统方向”，而非电子信息工程专业（EE 专业）。来源 [2] 和 [5",local_llm_judge_with_human_review requires review,"[""https://faculty.sist.shanghaitech.edu.cn/office/Academics/Undergraduate/Degree%20Programmes/2025%20Bachelor%20Degree%20Programs%20in%20CS.htm"", ""https://faculty.sist.shanghaitech.edu.cn/office/Academics/Undergraduate/Course/Undergraduate_Course_list_for_transfer_program.xlsx""]"
+q018,dense,信息学院中有一位毕业于香港中文大学、核心研究方向包含“AI驱动的芯片设计自动化(AI4EDA)”的女性常任教授/研究员，请问她的办公室在信息学院几号楼的几楼几号房间？工作邮箱是什么？,该老师为张芯韵（助理教授、研究员、博导），她的办公室在信息学院3-210室（即3号楼2层530或210等，此处精准为3号楼210）；工作邮箱是 zhangxy12@shanghaitech.edu.cn。,"根据提供的资料，信息学院中毕业于香港中文大学、核心研究方向包含""AI驱动的芯片设计自动化 (AI4EDA)""的女性常任教授/研究员是张芯韵。
+
+她的办公室位于信息学院3号楼3楼30210室（资料中显示为""3-210""），工作邮箱是 zhangxy12@shanghaitech.edu.cn。
+
+[3]",local_llm_judge_with_human_review requires review,"[""https://sist.shanghaitech.edu.cn/zxy1/""]"
+q024,dense,依据排课与师资信息，信息学院开设的专业必修课《控制原理》（EE160）与选修课《强化学习》（SI252），各自负责教授的主讲常任教授分别是谁？,《控制原理》（EE160）的主讲常任教授是 Boris Houska；《强化学习》（SI252）的主讲常任教授是邵子瑜。,"依据提供的排课与师资信息，无法确定信息学院开设的专业必修课《控制原理》（EE160）与选修课《强化学习》（SI252）的主讲常任教授。
+
+提供的来源中：
+1. 来源 [2] 和 [4] 的 2017-2018 学年课程表中列出了《控制原理》（EE160），其授课教师为 Boris Houska，但该信息未明确区分“主讲常任教授”与“客座教授”，且未包含《强化学习》（SI252）",required_facts_with_manual_review requires review,"[""https://faculty.sist.shanghaitech.edu.cn/office/Academics/Courses/SIST_2018-2019_Courses.htm""]"
+q032,dense,寇煦丰教授（Xufeng Kou）和周平强教授（Pingqiang Zhou）在信息科学与技术学院均担任副院长（Associate Dean）职务。请问他们两位老师在信息学院大楼（SIST Building）的官方办公室房间号分别是多少？,寇煦丰副院长的办公室在信息学院大楼 3-318 室；周平强副院长的办公室在信息学院大楼 1A-221 室。,"根据提供的官方信息，周平强教授（Pingqiang Zhou）的办公室位于信息科学与技术学院大楼（SIST Building）1A-219 室 [1]；而寇煦丰教授（Xufeng Kou）的职务为执行院长（Executive Dean），其办公室位于信息科学与技术学院大楼（SIST Building）3-318 室 [3]。
+
+需要注意的是，问题中提到的“均担任副院长（Associate Dean）”这一前提与提供的官方信息不完全一致：周平强教授担任的是副院长（Vice Dean）[1]，而寇煦丰教授担任",required_facts_with_manual_review requires review,"[""https://sist.shanghaitech.edu.cn/zhoupq_en/main.htm"", ""https://sist.shanghaitech.edu.cn/kouxf_en/main.htm""]"
+q033,dense,同样是信息学院的专业基础必修课《信号与系统》（课程代码：EE150），根据历年的排课开课记录，由周勇老师负责执教的学期和由廉黎祥老师负责执教的学期有什么明显的季节不同？,周勇老师负责执教的学期是春季学期（Spring）；而廉黎祥老师负责执教的学期则是秋季学期（Fall）。,"根据提供的来源，无法确定由周勇老师和廉黎祥老师负责执教的《信号与系统》课程（EE150）在“季节”上存在明显不同。
+
+来源 [1] 显示，周勇老师执教的《信号与系统》（EE150.01）排课信息中包含学期代码""[1-16]""，这通常代表春季学期（Spring Semester）。来源 [2] 显示，廉黎祥老师执教的课程为《压缩感知》（EE253B.01），而非《信号与系统》，且其排课信息同样",required_facts_with_manual_review requires review,"[""https://oaa.shanghaitech.edu.cn/_upload/article/files/27/7e/4528b0154360aea74f274af4f4de/06229f18-2fb4-4ccf-a9a7-f64b288d5b7d.pdf""]"
+q037,dense,常任副教授傅旻帆当年的本科背景是毕业于上海交通大学密西根学院。请问，根据信息学院历年教务排课大表的公开记录，由傅旻帆老师负责授课的专业课程《电路基础》的官方标准课程代码是什么？,傅旻帆老师负责授课的《电路基础》标准课程代码是 EE111。,"根据提供的资料，无法确定傅旻帆老师负责授课的《电路基础》课程的官方标准课程代码。
+
+虽然资料确认了傅旻帆老师毕业于上海交通大学密西根学院 [1]，且他目前主要讲授《电力电子》课程 [1][5]，但提供的来源中并未包含“信息学院历年教务排课大表”或任何关于《电路基础》课程及其对应官方标准课程代码的具体记录。",required_facts_with_manual_review requires review,"[""https://sist.shanghaitech.edu.cn/fumf/main.htm"", ""https://aepcl.sist.shanghaitech.edu.cn/""]"
+q046,dense,对比信息学院两位副院长何旭明（Xuming He）与屠可伟（Kewei Tu）的长聘教职工概况主页，他们各自在信息学院大楼（SIST Building）的官方办公室房间号分别是什么？,何旭明副院长的办公室房间号是 1A-221；屠可伟副院长的办公室房间号是 1A-304B。,根据提供的资料，何旭明（Xuming He）在信息学院大楼（SIST Building）的官方办公室房间号是 1A-221 [3][4]；屠可伟（Kewei Tu）在信息学院大楼（SIST Building）的官方办公室房间号是 1A-304.B [1][2]。,required_facts_with_manual_review requires review,"[""https://sist.shanghaitech.edu.cn/hexm/list.htm"", ""https://sist.shanghaitech.edu.cn/hexm/"", ""https://faculty.sist.shanghaitech.edu.cn/office/Academics/Graduate/Students%20seat%20arrangement.htm""]"
+q069,dense,2025级CS专业本科生在专业限选课程中，如果同时多修读了“电路基础加实验”和“信号与系统加实验”这组二选一课程，多出的学分会如何计入？同一规则还适用于哪一组二选一课程？,“电路基础加实验”和“信号与系统加实验”至少二选一；如果多选，多余学分记入本学科选修34学分中。同样的二选一规则也适用于“操作系统I”和“人工智能I”。,2025 级 CS 专业本科生在专业限选课程中，如果同时多修读了“电路基础加实验”和“信号与系统加实验”这组二选一课程，多出的学分会记在本学科选修的 31 学分中 [5]。同一规则还适用于“操作系统”和“人工智能”这组二选一课程 [5]。,required_facts_with_manual_review requires review,"[""https://faculty.sist.shanghaitech.edu.cn/office/Academics/Undergraduate/Degree%20Programmes/2020%20Bachelor%20Degree%20Programs%20in%20CS.html""]"
+q070,dense,如果2025级CS本科生选择人工智能方向，方向必修课包含哪些课程？其中《深度学习》在2025-2026学年课程表中秋季和春季分别由谁授课？,人工智能方向必修课包含《人工智能I》《机器学习引论》《深度学习》。其中《深度学习》（CS280）在2025-2026学年秋季由许岚授课，春季由曹迎授课。,"根据提供的来源，无法回答2025级CS本科生人工智能方向必修课包含哪些课程，也无法确定《深度学习》在2025-2026学年秋季和春季的具体授课教师。
+
+提供的来源中：
+1. 来源 [1] 和 [3] 分别是2025-2026学年春季和秋季的课程推介，但文本内容仅包含标题，未列出具体课程列表或授课教师信息。
+2. 来源 [2] 和 [4] 分别是2023年和2024年研究生春季课程表，虽然显示了",local_llm_judge_with_human_review requires review,"[""https://oaa.shanghaitech.edu.cn/2025/1224/c4228a1118327/page.htm"", ""https://oaa.shanghaitech.edu.cn/2025/0630/c4228a1112342/page.htm"", ""https://faculty.sist.shanghaitech.edu.cn/office/Academics/Graduate/Courses/Schedule_2023_Spring_Graduate_cn.htm"", ""https://faculty.sist.shanghaitech.edu.cn/office/Academics/Graduate/Courses/Schedule_2024_Spring_Graduate_cn.htm""]"
+q072,dense,在2025-2026学年信息学院课程表中，《深度学习》（CS280）和《机器学习》（CS282）的开课学期与任课教师有什么不同？,CS280《深度学习》秋季由许岚授课、春季由曹迎授课；CS282《机器学习》春季由王浩授课、秋季由任侃授课。两门课均为4学分。,"根据提供的来源，无法回答关于2025-2026学年信息学院课程表中《深度学习》（CS280）和《机器学习》（CS282）的开课学期与任课教师的问题。
+
+提供的来源仅包含2023-2024学年和2024-2025学年的课程表，其中没有2025-2026学年的数据。虽然来源[2]显示2023年春季学期CS280由曹迎教授讲授，来源[5]显示2024年秋季学期CS2",required_facts_with_manual_review requires review,"[""https://faculty.sist.shanghaitech.edu.cn/office/Academics/Graduate/Courses/Schedule_2023_Spring_Graduate_cn.htm"", ""https://faculty.sist.shanghaitech.edu.cn/office/Academics/Graduate/Courses/Schedule_2024_Fall_Graduate_cn.htm""]"

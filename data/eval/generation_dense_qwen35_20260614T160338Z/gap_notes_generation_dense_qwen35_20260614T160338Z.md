@@ -1,0 +1,94 @@
+# Evaluation Gap Notes
+
+- `q003` `dense`: loose atom judge matched 0/5 atoms
+- `q004` `dense`: loose atom judge matched 1/3 atoms
+- `q005` `dense`: loose atom judge matched 0/3 atoms
+- `q006` `dense`: loose atom judge matched 0/3 atoms
+- `q007` `dense`: evidence insufficient answer
+- `q008` `dense`: retrieved expected source but answer synthesis missed citation or abstained
+- `q009` `dense`: loose atom judge matched 1/4 atoms
+- `q010` `dense`: expected official source not found in top 5
+- `q011` `dense`: expected official source not found in top 5
+- `q012` `dense`: retrieved expected source but answer synthesis missed citation or abstained
+- `q013` `dense`: evidence insufficient answer
+- `q014` `dense`: loose atom judge matched 0/8 atoms
+- `q015` `dense`: loose atom judge matched 0/5 atoms
+- `q016` `dense`: expected official source not found in top 5
+- `q017` `dense`: retrieved expected source but answer synthesis missed citation or abstained
+- `q018` `dense`: retrieved expected source but answer synthesis missed citation or abstained
+- `q019` `dense`: retrieved expected source but answer synthesis missed citation or abstained
+- `q020` `dense`: evidence insufficient answer
+- `q021` `dense`: evidence insufficient answer
+- `q022` `dense`: expected official source not found in top 5
+- `q023` `dense`: evidence insufficient answer
+- `q024` `dense`: expected official source not found in top 5
+- `q025` `dense`: retrieved expected source but answer synthesis missed citation or abstained
+- `q026` `dense`: loose atom judge matched 0/3 atoms
+- `q028` `dense`: retrieved expected source but answer synthesis missed citation or abstained
+- `q029` `dense`: loose atom judge matched 1/4 atoms
+- `q030` `dense`: retrieved expected source but answer synthesis missed citation or abstained
+- `q031` `dense`: evidence insufficient answer
+- `q032` `dense`: expected official source not found in top 5
+- `q033` `dense`: expected official source not found in top 5
+- `q034` `dense`: retrieved expected source but answer synthesis missed citation or abstained
+- `q035` `dense`: loose atom judge matched 0/4 atoms
+- `q036` `dense`: retrieved expected source but answer synthesis missed citation or abstained
+- `q037` `dense`: evidence insufficient answer
+- `q038` `dense`: loose atom judge matched 0/10 atoms
+- `q039` `dense`: expected official source not found in top 5
+- `q040` `dense`: retrieved expected source but answer synthesis missed citation or abstained
+- `q041` `dense`: expected official source not found in top 5
+- `q042` `dense`: retrieved expected source but answer synthesis missed citation or abstained
+- `q043` `dense`: retrieved expected source but answer synthesis missed citation or abstained
+- `q045` `dense`: retrieved expected source but answer synthesis missed citation or abstained
+- `q046` `dense`: expected official source not found in top 5
+- `q047` `dense`: loose atom judge matched 1/3 atoms
+- `q048` `dense`: retrieved expected source but answer synthesis missed citation or abstained
+- `q049` `dense`: loose atom judge matched 0/9 atoms
+- `q050` `dense`: retrieved expected source but answer synthesis missed citation or abstained
+- `q051` `dense`: retrieved expected source but answer synthesis missed citation or abstained
+- `q052` `dense`: retrieved expected source but answer synthesis missed citation or abstained
+- `q053` `dense`: retrieved expected source but answer synthesis missed citation or abstained
+- `q055` `dense`: loose atom judge matched 2/10 atoms
+- `q056` `dense`: loose atom judge matched 2/8 atoms
+- `q057` `dense`: loose atom judge matched 2/8 atoms
+- `q058` `dense`: loose atom judge matched 2/7 atoms
+- `q059` `dense`: loose atom judge matched 2/9 atoms
+- `q060` `dense`: loose atom judge matched 2/9 atoms
+- `q061` `dense`: loose atom judge matched 2/11 atoms
+- `q062` `dense`: retrieved expected source but answer synthesis missed citation or abstained
+- `q063` `dense`: evidence insufficient answer
+- `q064` `dense`: retrieved expected source but answer synthesis missed citation or abstained
+- `q065` `dense`: loose atom judge matched 1/10 atoms
+- `q066` `dense`: retrieved expected source but answer synthesis missed citation or abstained
+- `q067` `dense`: loose atom judge matched 1/5 atoms
+- `q068` `dense`: loose atom judge matched 0/4 atoms
+- `q069` `dense`: expected official source not found in top 5
+- `q070` `dense`: expected official source not found in top 5
+- `q071` `dense`: loose atom judge matched 2/4 atoms
+- `q072` `dense`: expected official source not found in top 5
+- `q073` `dense`: loose atom judge matched 0/8 atoms
+- `q074` `dense`: loose atom judge matched 1/9 atoms
+- `q075` `dense`: loose atom judge matched 3/9 atoms
+- `q077` `dense`: expected official source not found in top 5
+- `q078` `dense`: retrieved expected source but answer synthesis missed citation or abstained
+- `q079` `dense`: loose atom judge matched 0/12 atoms
+- `q080` `dense`: retrieved expected source but answer synthesis missed citation or abstained
+- `q081` `dense`: retrieved expected source but answer synthesis missed citation or abstained
+- `q083` `dense`: loose atom judge matched 0/15 atoms
+- `q084` `dense`: loose atom judge matched 1/15 atoms
+- `q085` `dense`: loose atom judge matched 1/13 atoms
+- `q086` `dense`: retrieved expected source but answer synthesis missed citation or abstained
+- `q087` `dense`: retrieved expected source but answer synthesis missed citation or abstained
+- `q088` `dense`: retrieved expected source but answer synthesis missed citation or abstained
+- `q089` `dense`: loose atom judge matched 2/14 atoms
+- `q090` `dense`: evidence insufficient answer
+- `q091` `dense`: loose atom judge matched 1/6 atoms
+- `q092` `dense`: loose atom judge matched 4/8 atoms
+- `q093` `dense`: retrieved expected source but answer synthesis missed citation or abstained
+- `q094` `dense`: loose atom judge matched 0/17 atoms
+- `q095` `dense`: loose atom judge matched 0/14 atoms
+- `q096` `dense`: retrieved expected source but answer synthesis missed citation or abstained
+- `q097` `dense`: retrieved expected source but answer synthesis missed citation or abstained
+- `q098` `dense`: loose atom judge matched 7/13 atoms
+- `q100` `dense`: retrieved expected source but answer synthesis missed citation or abstained

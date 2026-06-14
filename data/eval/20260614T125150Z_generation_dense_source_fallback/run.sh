@@ -1,1 +1,0 @@
-PYTHONPATH=src uv run --locked --no-sync --offline python -m evaluate.cli --questions data/test/question_final_structured_100.csv --runner answer --modes dense --top-k 5 --model-path /home/richard/models/Qwen3-0.6B --device cuda --output-dir data/eval/20260614T125150Z_generation_dense_source_fallback --timestamp generation_dense_source_fallback_20260614T125150Z
