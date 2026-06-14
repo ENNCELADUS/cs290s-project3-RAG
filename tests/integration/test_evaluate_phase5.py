@@ -228,12 +228,74 @@ def test_evaluate_answer_metrics_use_cited_sources_only(tmp_path: Path, monkeypa
 
     summary = json.loads((output_dir / "summary_20260611T040000Z.json").read_text(encoding="utf-8"))
     assert summary["modes"]["dense"]["source_hit@5"] == 0.0
+    assert summary["modes"]["dense"]["cited_expected_source_hit@5"] == 0.0
     run_records = [
         json.loads(line)
         for line in (output_dir / "run_20260611T040000Z.jsonl").read_text(encoding="utf-8").splitlines()
     ]
     assert run_records[0]["cited_source_urls"] == ["https://example.edu/noise"]
     assert run_records[0]["retrieved_source_urls"] == ["https://example.edu/noise", "https://example.edu/source"]
+    workbook = load_workbook(output_dir / "results_before_after_20260611T040000Z.xlsx")
+    diagnostic_headers = [cell.value for cell in next(workbook["diagnostics"].iter_rows(min_row=1, max_row=1))]
+    assert "cited_expected_source_hit@5" in diagnostic_headers
+
+
+def test_evaluate_answer_reports_evidence_insufficient_separately(tmp_path: Path, monkeypatch) -> None:
+    questions_path = tmp_path / "questions.csv"
+    _write_questions(questions_path)
+    output_dir = tmp_path / "eval"
+
+    class FakeRetriever:
+        @classmethod
+        def from_paths(cls, **kwargs: object) -> FakeRetriever:
+            return cls()
+
+    class FakeAnswerer:
+        def __init__(self, retriever: object, **kwargs: object) -> None:
+            pass
+
+        def answer(self, query: str, *, mode: str, top_k: int) -> _AnswerResult:
+            return _AnswerResult(
+                status="insufficient_evidence",
+                answer="Evidence is insufficient: the retrieved official sources do not contain enough information.",
+                sources=[_Source(1, "https://example.edu/source", "Expected")],
+                retrieval={"mode": mode, "hits": []},
+            )
+
+    monkeypatch.setattr("evaluate.runner.Retriever", FakeRetriever)
+    monkeypatch.setattr("evaluate.runner.RagAnswerer", FakeAnswerer)
+
+    assert (
+        evaluate_main(
+            [
+                "--questions",
+                str(questions_path),
+                "--output-dir",
+                str(output_dir),
+                "--runner",
+                "answer",
+                "--model-path",
+                str(tmp_path),
+                "--timestamp",
+                "20260611T050000Z",
+            ]
+        )
+        == 0
+    )
+
+    summary = json.loads((output_dir / "summary_20260611T050000Z.json").read_text(encoding="utf-8"))
+    assert summary["modes"]["dense"]["evidence_insufficient"] == 1
+    assert summary["modes"]["dense"]["incorrect"] == 0
+    assert summary["modes"]["dense"]["manual_review"] == 0
+
+    workbook = load_workbook(output_dir / "results_before_after_20260611T050000Z.xlsx")
+    submission_rows = list(workbook["submission"].iter_rows(values_only=True))
+    assert submission_rows[1][4] == 0
+    assert submission_rows[1][5] == 0
+    diagnostics_rows = list(workbook["diagnostics"].iter_rows(values_only=True))
+    judge_status_index = diagnostics_rows[0].index("judge_status")
+    assert diagnostics_rows[1][judge_status_index] == "evidence_insufficient"
+    assert workbook["review_queue"].max_row == 1
 
 
 def test_evaluate_answer_passes_hybrid_knobs_to_generation_retrieval_only(

@@ -86,6 +86,7 @@ def summarize_records(records: list[dict[str, Any]]) -> dict[str, Any]:
             "correct": _judge_count(ok_records, "correct"),
             "incorrect": _judge_count(ok_records, "incorrect"),
             "manual_review": _judge_count(ok_records, "manual_review"),
+            "evidence_insufficient": _judge_count(ok_records, "evidence_insufficient"),
         }
     return summary
 
@@ -157,6 +158,7 @@ def _write_workbook(
         "judge_status",
         "judge_reason",
         "source_hit@5",
+        "cited_expected_source_hit@5",
         "mrr@5",
         "latency_s",
         "observed_source_urls",
@@ -176,6 +178,7 @@ def _write_workbook(
                 judge.get("status"),
                 judge.get("reason"),
                 metrics.get("source_hit@5"),
+                metrics.get("cited_expected_source_hit@5"),
                 metrics.get("mrr@5"),
                 record.get("latency_s"),
                 json.dumps(record.get("observed_source_urls", []), ensure_ascii=False),
@@ -190,6 +193,7 @@ def _write_workbook(
         "errors",
         "source_hit@1",
         "source_hit@5",
+        "cited_expected_source_hit@5",
         "source_recall@5",
         "mrr@5",
         "ndcg@5",
@@ -258,9 +262,11 @@ def _correctness_value(record: dict[str, Any], review_decisions: dict[tuple[str,
 def _failure_reason(record: dict[str, Any]) -> str:
     if record["status"] != "ok":
         return str(record.get("error") or "run error")
+    judge = dict(record.get("judge", {}))
+    if judge.get("status") == "evidence_insufficient":
+        return str(judge.get("reason") or "evidence insufficient answer")
     if dict(record.get("metrics", {})).get("source_hit@5") != 1.0:
         return "expected official source not found in top 5"
-    judge = dict(record.get("judge", {}))
     if judge.get("status") == "manual_review":
         return str(judge.get("reason") or "manual review required")
     if judge.get("status") == "incorrect":

@@ -35,6 +35,17 @@ class FakeTokenizer:
         return self.generated_text
 
 
+class SequenceFakeTokenizer(FakeTokenizer):
+    def __init__(self, generated_texts: list[str]) -> None:
+        super().__init__(generated_texts[0])
+        self.generated_texts = generated_texts
+
+    def decode(self, token_ids: list[int], skip_special_tokens: bool) -> str:
+        if len(self.generated_texts) > 1:
+            return self.generated_texts.pop(0)
+        return self.generated_texts[0]
+
+
 class FakeChatTokenizer(FakeTokenizer):
     def __init__(self, generated_text: str) -> None:
         super().__init__(generated_text)
@@ -170,6 +181,80 @@ def test_uncited_generation_returns_insufficient_evidence(
     model_path = tmp_path / "qwen-local"
     model_path.mkdir()
     _patch_generation(monkeypatch, "The answer has no numbered citation.")
+    answerer = RagAnswerer(_retriever_from_paths(paths), model_path=model_path, device="cpu")
+
+    result = answerer.answer("exact bridge query", mode="hybrid", top_k=2)
+
+    assert result.status == "insufficient_evidence"
+    assert result.answer.startswith("Evidence is insufficient")
+
+
+def test_uncited_generation_can_be_repaired_to_cited_answer(
+    tmp_path: Path, fake_hybrid_sentence_transformer_module, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    paths = _build_generation_artifacts(tmp_path)
+    model_path = tmp_path / "qwen-local"
+    model_path.mkdir()
+    _patch_generation_sequence(
+        monkeypatch,
+        [
+            "The bridge answer is supported by the official source.",
+            '{"status": "answered", "answer": "The bridge answer is supported by the official source [1]."}',
+        ],
+    )
+    answerer = RagAnswerer(_retriever_from_paths(paths), model_path=model_path, device="cpu")
+
+    result = answerer.answer("exact bridge query", mode="hybrid", top_k=2)
+
+    assert result.status == "answered"
+    assert result.answer == "The bridge answer is supported by the official source [1]."
+
+
+def test_insufficient_generation_can_be_repaired_to_cited_answer(
+    tmp_path: Path, fake_hybrid_sentence_transformer_module, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    paths = _build_generation_artifacts(tmp_path)
+    model_path = tmp_path / "qwen-local"
+    model_path.mkdir()
+    _patch_generation_sequence(
+        monkeypatch,
+        [
+            "Evidence is insufficient to answer this question [1].",
+            '{"status": "answered", "answer": "Dense evidence supports the answer [1]."}',
+        ],
+    )
+    answerer = RagAnswerer(_retriever_from_paths(paths), model_path=model_path, device="cpu")
+
+    result = answerer.answer("exact bridge query", mode="dense", top_k=1)
+
+    assert result.status == "answered"
+    assert result.answer == "Dense evidence supports the answer [1]."
+
+
+@pytest.mark.parametrize(
+    "repair_text",
+    [
+        '{"status": "answered", "answer": "The answer cites a missing source [99]."}',
+        '{"status": "answered", "answer": "[1] Dense Winner\\nURL: https://example.edu/b\\nTEXT: leaked"}',
+        "not json",
+    ],
+)
+def test_invalid_repair_output_returns_insufficient_evidence(
+    tmp_path: Path,
+    fake_hybrid_sentence_transformer_module,
+    monkeypatch: pytest.MonkeyPatch,
+    repair_text: str,
+) -> None:
+    paths = _build_generation_artifacts(tmp_path)
+    model_path = tmp_path / "qwen-local"
+    model_path.mkdir()
+    _patch_generation_sequence(
+        monkeypatch,
+        [
+            "The bridge answer is supported by the official source.",
+            repair_text,
+        ],
+    )
     answerer = RagAnswerer(_retriever_from_paths(paths), model_path=model_path, device="cpu")
 
     result = answerer.answer("exact bridge query", mode="hybrid", top_k=2)
@@ -339,6 +424,15 @@ def test_generation_uses_chat_template_without_qwen_thinking(
 def _patch_generation(monkeypatch: pytest.MonkeyPatch, generated_text: str) -> None:
     def fake_load_model(self: RagAnswerer) -> tuple[FakeTokenizer, FakeModel]:
         return FakeTokenizer(generated_text), FakeModel()
+
+    monkeypatch.setattr(RagAnswerer, "_load_model", fake_load_model)
+
+
+def _patch_generation_sequence(monkeypatch: pytest.MonkeyPatch, generated_texts: list[str]) -> None:
+    tokenizer = SequenceFakeTokenizer(generated_texts.copy())
+
+    def fake_load_model(self: RagAnswerer) -> tuple[SequenceFakeTokenizer, FakeModel]:
+        return tokenizer, FakeModel()
 
     monkeypatch.setattr(RagAnswerer, "_load_model", fake_load_model)
 

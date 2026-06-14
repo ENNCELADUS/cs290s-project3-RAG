@@ -5,7 +5,7 @@ from typing import Literal
 
 from .schema import QuestionSpec
 
-JudgeStatus = Literal["correct", "incorrect", "manual_review"]
+JudgeStatus = Literal["correct", "incorrect", "manual_review", "evidence_insufficient"]
 
 
 @dataclass(frozen=True)

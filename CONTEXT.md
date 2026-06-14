@@ -41,6 +41,11 @@ A retrieval metric that is true when at least one top-5 retrieved URL matches a 
 URL prefix.
 _Avoid_: accuracy, correctness
 
+**Cited Expected Source Hit**:
+An answer-generation diagnostic that is true when a generated answer cites an official source matching the question's
+expected source URL.
+_Avoid_: retrieval hit, answer correctness
+
 **Packed Context**:
 A final retrieved chunk prepared for generation or UI display with source metadata and trace linkage.
 _Avoid_: answer, system response
@@ -51,8 +56,8 @@ sources. This is the answer type eligible for Phase 5 `sys_resp_before_opt` and 
 _Avoid_: packed context, retrieved snippet
 
 **Evidence-Insufficient Answer**:
-A generated-answer status used when the system cannot cite enough official-source evidence to answer safely.
-_Avoid_: failed retrieval, wrong answer
+A generated-answer abstention used when the system cannot cite enough official-source evidence to answer safely.
+_Avoid_: failed retrieval, wrong answer, manual review
 
 ## Relationships
 
@@ -62,8 +67,10 @@ _Avoid_: failed retrieval, wrong answer
 - **Diagnostic Baseline** can help interpret results but does not define assignment Excel columns.
 - **Retrieval Pilot** checks retrieved sources and **Packed Context** quality before generated answers exist.
 - **Expected Source Hit@5** measures retrieval evidence quality, not answer correctness.
+- **Cited Expected Source Hit** measures answer citation grounding, not answer correctness.
 - **Generated Answer** is produced from **Packed Context** values and can fill the final assignment response columns.
-- **Evidence-Insufficient Answer** is a valid generated-answer outcome when the retrieved evidence is not usable.
+- **Evidence-Insufficient Answer** is a valid generated-answer outcome when the retrieved evidence is not usable, but it
+  still maps to `is_correct=0` for final assignment labels.
 - Dense retrieval built on enriched index text is a diagnostic ceiling, not the official **Before Optimization** baseline,
   because enriched index text is one of the implemented optimization changes.
 
@@ -74,8 +81,8 @@ _Avoid_: failed retrieval, wrong answer
 > fill `sys_resp_after_opt` only after the generator exists."
 >
 > **Dev:** "The model returned text but no `[1]` citation. Can I keep it?"
-> **Domain expert:** "No. Treat it as an **Evidence-Insufficient Answer** because the generated answer is not grounded
-> in a cited official source."
+> **Domain expert:** "Not directly. First try citation repair against the **Packed Context** values; if it cannot
+> produce a cited **Generated Answer**, treat it as an **Evidence-Insufficient Answer**."
 
 ## Flagged Ambiguities
 
@@ -84,6 +91,7 @@ _Avoid_: failed retrieval, wrong answer
 - "Fix" can mean evaluation cleanup or retrieval optimization. Resolved: **Evaluation Canonicalization** is shared metric
   hygiene, while enriched index text, weighted hybrid RRF, and strict source diversity are retrieval optimizations.
 - "Hit" can mean source retrieval or answer correctness. Resolved: **Expected Source Hit@5** is source-level retrieval
-  evidence, while final answer correctness belongs to the Phase 5 Excel evaluation.
+  evidence, **Cited Expected Source Hit** is answer citation grounding, and final answer correctness belongs to the
+  Phase 5 Excel evaluation.
 - "Answer" can mean a generated response or a retrieved snippet. Resolved: use **Generated Answer** for model output and
   **Packed Context** for retrieved evidence.

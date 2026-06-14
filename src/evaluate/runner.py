@@ -174,7 +174,15 @@ def _run_answer(
         )  # type: ignore[arg-type]
         retrieved_urls = [str(source.url) for source in answer_result.sources]
         cited_urls = _cited_source_urls(answer_result.answer, answer_result.sources)
-        judge = judge_answer(question, answer_result.answer)
+        judge = (
+            JudgeResult(
+                status="evidence_insufficient",
+                is_correct=0,
+                reason="evidence insufficient answer",
+            )
+            if answer_result.status == "insufficient_evidence"
+            else judge_answer(question, answer_result.answer)
+        )
         return {
             **base,
             "status": "ok",
@@ -186,7 +194,7 @@ def _run_answer(
             "top_titles": [source.title or "" for source in answer_result.sources[: config.top_k]],
             "retrieval": answer_result.retrieval,
             "judge": asdict(judge),
-            "metrics": source_metrics(cited_urls, question.acceptable_source_urls),
+            "metrics": _answer_source_metrics(cited_urls, question.acceptable_source_urls),
             "latency_s": round(time.perf_counter() - started, 6),
         }
     except Exception as error:
@@ -323,3 +331,11 @@ def _cited_source_urls(answer: str, sources: list[object]) -> list[str]:
         seen.add(url)
         urls.append(url)
     return urls
+
+
+def _answer_source_metrics(cited_urls: list[str], expected_urls: list[str]) -> dict[str, float]:
+    metrics = source_metrics(cited_urls, expected_urls)
+    for name, value in list(metrics.items()):
+        if name.startswith("source_hit@"):
+            metrics[f"cited_expected_{name}"] = value
+    return metrics

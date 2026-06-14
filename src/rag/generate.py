@@ -125,6 +125,27 @@ class RagAnswerer:
         generation_s = time.perf_counter() - generation_started
         valid_source_ids = {source.source_id for source in sources}
         if not _is_acceptable_answer(generated, valid_source_ids):
+            repair_text = self._generate_text(build_repair_messages(query, contexts, generated))
+            generation_s = time.perf_counter() - generation_started
+            repaired = _parse_repair_answer(
+                repair_text,
+                valid_source_ids=valid_source_ids,
+            )
+            if repaired is not None:
+                return RagAnswerResult(
+                    query=query,
+                    mode=mode,
+                    status="answered",
+                    answer=repaired,
+                    sources=sources,
+                    retrieval=retrieval_payload,
+                    timing=AnswerTiming(
+                        retrieval_s=retrieval_s,
+                        generation_s=generation_s,
+                        total_s=time.perf_counter() - started,
+                    ),
+                    config=config,
+                )
             extracted = _extract_answer_from_contexts(query, contexts)
             if extracted is not None and _has_valid_citation(extracted, valid_source_ids):
                 return RagAnswerResult(
@@ -209,22 +230,6 @@ def build_prompt(query: str, contexts: list[ContextItem]) -> str:
 
 
 def build_messages(query: str, contexts: list[ContextItem]) -> list[dict[str, str]]:
-    context_blocks = []
-    for index, context in enumerate(contexts, start=1):
-        title = context.title or "(untitled)"
-        url = context.url or "(no url)"
-        context_blocks.append(
-            "\n".join(
-                [
-                    f"[{index}] {title}",
-                    f"URL: {url}",
-                    f"chunk_id: {context.chunk_id}",
-                    f"trace_ref: {context.trace_ref}",
-                    "TEXT:",
-                    context.text,
-                ]
-            )
-        )
     return [
         {
             "role": "system",
@@ -245,11 +250,61 @@ def build_messages(query: str, contexts: list[ContextItem]) -> list[dict[str, st
                 [
                     f"Question: {query}",
                     "Sources:",
-                    "\n\n".join(context_blocks),
+                    "\n\n".join(_context_blocks(contexts)),
                 ]
             ),
         },
     ]
+
+
+def build_repair_messages(query: str, contexts: list[ContextItem], draft: str) -> list[dict[str, str]]:
+    return [
+        {
+            "role": "system",
+            "content": "\n".join(
+                [
+                    "You repair local RAG answers for official ShanghaiTech/SIST sources.",
+                    "Answer in the same language as the user question.",
+                    "Use only the provided sources. Do not add outside facts.",
+                    "Return only one strict JSON object.",
+                    'For a supported answer, use: {"status":"answered","answer":"... [1]"}',
+                    'If the sources are insufficient, use: {"status":"insufficient_evidence","answer":""}',
+                    "The answer must include numbered citations that match the provided source numbers.",
+                ]
+            ),
+        },
+        {
+            "role": "user",
+            "content": "\n\n".join(
+                [
+                    f"Question: {query}",
+                    f"Rejected draft: {draft}",
+                    "Sources:",
+                    "\n\n".join(_context_blocks(contexts)),
+                ]
+            ),
+        },
+    ]
+
+
+def _context_blocks(contexts: list[ContextItem]) -> list[str]:
+    blocks = []
+    for index, context in enumerate(contexts, start=1):
+        title = context.title or "(untitled)"
+        url = context.url or "(no url)"
+        blocks.append(
+            "\n".join(
+                [
+                    f"[{index}] {title}",
+                    f"URL: {url}",
+                    f"chunk_id: {context.chunk_id}",
+                    f"trace_ref: {context.trace_ref}",
+                    "TEXT:",
+                    context.text,
+                ]
+            )
+        )
+    return blocks
 
 
 def _messages_to_prompt(messages: list[dict[str, str]]) -> str:
@@ -336,6 +391,24 @@ def _has_valid_citation(text: str, valid_source_ids: set[int]) -> bool:
 def _states_insufficient_evidence(text: str) -> bool:
     normalized = text.lower()
     return "evidence is insufficient" in normalized or "证据不足" in text
+
+
+def _parse_repair_answer(text: str, *, valid_source_ids: set[int]) -> str | None:
+    try:
+        payload = json.loads(text)
+    except json.JSONDecodeError:
+        return None
+    if not isinstance(payload, dict):
+        return None
+    if payload.get("status") != "answered":
+        return None
+    answer = payload.get("answer")
+    if not isinstance(answer, str) or not answer.strip():
+        return None
+    answer = answer.strip()
+    if not _is_acceptable_answer(answer, valid_source_ids):
+        return None
+    return answer
 
 
 def _extract_answer_from_contexts(query: str, contexts: list[ContextItem]) -> str | None:

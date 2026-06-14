@@ -99,7 +99,17 @@ The prompt gives the model the user question and numbered source contexts. It re
 - say that evidence is insufficient when the provided sources do not support an answer.
 
 The code returns an **Evidence-Insufficient Answer** when retrieval returns no contexts, no usable source URL is present,
-or the generated text does not contain a valid citation number.
+or both the generated text and citation-repair pass fail to produce a valid citation number.
+
+When the first generated text is uncited, cites a missing source number, states that evidence is insufficient, or leaks
+prompt/source metadata, the answerer runs one local repair pass over the same packed contexts. The repair pass must
+return a strict JSON object with either a cited answer or an explicit insufficient-evidence status. Repaired text is
+accepted only when all citation numbers map to retrieved sources and the text passes the same leakage checks as a normal
+generated answer.
+
+Evaluation reports answer citation grounding with **Cited Expected Source Hit**, which is separate from retrieval
+**Expected Source Hit@5**. An **Evidence-Insufficient Answer** is counted as an abstention diagnostic and maps to
+`is_correct=0` in the final assignment workbook.
 
 ## Output Shape
 
