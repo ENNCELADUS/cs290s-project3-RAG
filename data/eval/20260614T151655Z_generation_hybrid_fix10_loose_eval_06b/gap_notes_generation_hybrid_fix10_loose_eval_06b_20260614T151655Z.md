@@ -1,0 +1,97 @@
+# Evaluation Gap Notes
+
+- `q002` `hybrid`: loose cited-source judge matched 0/1 facts
+- `q003` `hybrid`: expected official source not found in top 5
+- `q004` `hybrid`: loose cited-source judge matched 0/1 facts
+- `q005` `hybrid`: loose cited-source judge matched 0/1 facts
+- `q006` `hybrid`: expected official source not found in top 5
+- `q007` `hybrid`: retrieved expected source but answer synthesis missed citation or abstained
+- `q008` `hybrid`: retrieved expected source but answer synthesis missed citation or abstained
+- `q009` `hybrid`: loose cited-source judge matched 0/1 facts
+- `q010` `hybrid`: retrieved expected source but answer synthesis missed citation or abstained
+- `q011` `hybrid`: expected official source not found in top 5
+- `q012` `hybrid`: evidence insufficient answer
+- `q013` `hybrid`: expected official source not found in top 5
+- `q014` `hybrid`: retrieved expected source but answer synthesis missed citation or abstained
+- `q015` `hybrid`: loose cited-source judge matched 0/1 facts
+- `q016` `hybrid`: retrieved expected source but answer synthesis missed citation or abstained
+- `q017` `hybrid`: retrieved expected source but answer synthesis missed citation or abstained
+- `q018` `hybrid`: expected official source not found in top 5
+- `q019` `hybrid`: retrieved expected source but answer synthesis missed citation or abstained
+- `q020` `hybrid`: retrieved expected source but answer synthesis missed citation or abstained
+- `q021` `hybrid`: evidence insufficient answer
+- `q022` `hybrid`: expected official source not found in top 5
+- `q023` `hybrid`: evidence insufficient answer
+- `q024` `hybrid`: expected official source not found in top 5
+- `q025` `hybrid`: retrieved expected source but answer synthesis missed citation or abstained
+- `q026` `hybrid`: loose cited-source judge matched 0/1 facts
+- `q027` `hybrid`: retrieved expected source but answer synthesis missed citation or abstained
+- `q028` `hybrid`: retrieved expected source but answer synthesis missed citation or abstained
+- `q029` `hybrid`: retrieved expected source but answer synthesis missed citation or abstained
+- `q030` `hybrid`: retrieved expected source but answer synthesis missed citation or abstained
+- `q031` `hybrid`: evidence insufficient answer
+- `q032` `hybrid`: retrieved expected source but answer synthesis missed citation or abstained
+- `q033` `hybrid`: retrieved expected source but answer synthesis missed citation or abstained
+- `q034` `hybrid`: retrieved expected source but answer synthesis missed citation or abstained
+- `q035` `hybrid`: loose cited-source judge matched 0/1 facts
+- `q036` `hybrid`: retrieved expected source but answer synthesis missed citation or abstained
+- `q037` `hybrid`: retrieved expected source but answer synthesis missed citation or abstained
+- `q038` `hybrid`: loose cited-source judge matched 0/1 facts
+- `q039` `hybrid`: expected official source not found in top 5
+- `q040` `hybrid`: retrieved expected source but answer synthesis missed citation or abstained
+- `q041` `hybrid`: evidence insufficient answer
+- `q042` `hybrid`: retrieved expected source but answer synthesis missed citation or abstained
+- `q043` `hybrid`: retrieved expected source but answer synthesis missed citation or abstained
+- `q044` `hybrid`: loose cited-source judge matched 0/1 facts
+- `q045` `hybrid`: expected official source not found in top 5
+- `q046` `hybrid`: expected official source not found in top 5
+- `q047` `hybrid`: loose cited-source judge matched 0/1 facts
+- `q048` `hybrid`: retrieved expected source but answer synthesis missed citation or abstained
+- `q049` `hybrid`: loose cited-source judge matched 0/1 facts
+- `q050` `hybrid`: evidence insufficient answer
+- `q051` `hybrid`: retrieved expected source but answer synthesis missed citation or abstained
+- `q052` `hybrid`: retrieved expected source but answer synthesis missed citation or abstained
+- `q053` `hybrid`: retrieved expected source but answer synthesis missed citation or abstained
+- `q054` `hybrid`: retrieved expected source but answer synthesis missed citation or abstained
+- `q055` `hybrid`: retrieved expected source but answer synthesis missed citation or abstained
+- `q058` `hybrid`: loose cited-source judge matched 2/4 facts
+- `q059` `hybrid`: loose cited-source judge matched 2/4 facts
+- `q060` `hybrid`: loose cited-source judge matched 2/4 facts
+- `q061` `hybrid`: loose cited-source judge matched 2/4 facts
+- `q062` `hybrid`: retrieved expected source but answer synthesis missed citation or abstained
+- `q063` `hybrid`: retrieved expected source but answer synthesis missed citation or abstained
+- `q064` `hybrid`: retrieved expected source but answer synthesis missed citation or abstained
+- `q065` `hybrid`: loose cited-source judge matched 0/4 facts
+- `q066` `hybrid`: loose cited-source judge matched 0/7 facts
+- `q067` `hybrid`: expected official source not found in top 5
+- `q068` `hybrid`: loose cited-source judge matched 0/2 facts
+- `q069` `hybrid`: loose cited-source judge matched 0/3 facts
+- `q070` `hybrid`: expected official source not found in top 5
+- `q071` `hybrid`: loose cited-source judge matched 2/4 facts
+- `q072` `hybrid`: retrieved expected source but answer synthesis missed citation or abstained
+- `q073` `hybrid`: loose cited-source judge matched 0/3 facts
+- `q074` `hybrid`: loose cited-source judge matched 1/3 facts
+- `q075` `hybrid`: loose cited-source judge matched 0/3 facts
+- `q076` `hybrid`: loose cited-source judge matched 0/2 facts
+- `q077` `hybrid`: expected official source not found in top 5
+- `q078` `hybrid`: loose cited-source judge matched 0/3 facts
+- `q079` `hybrid`: loose cited-source judge matched 0/4 facts
+- `q080` `hybrid`: retrieved expected source but answer synthesis missed citation or abstained
+- `q081` `hybrid`: retrieved expected source but answer synthesis missed citation or abstained
+- `q083` `hybrid`: loose cited-source judge matched 0/5 facts
+- `q084` `hybrid`: retrieved expected source but answer synthesis missed citation or abstained
+- `q085` `hybrid`: loose cited-source judge matched 0/5 facts
+- `q086` `hybrid`: retrieved expected source but answer synthesis missed citation or abstained
+- `q087` `hybrid`: retrieved expected source but answer synthesis missed citation or abstained
+- `q088` `hybrid`: retrieved expected source but answer synthesis missed citation or abstained
+- `q089` `hybrid`: loose cited-source judge matched 0/6 facts
+- `q090` `hybrid`: retrieved expected source but answer synthesis missed citation or abstained
+- `q091` `hybrid`: loose cited-source judge matched 1/3 facts
+- `q092` `hybrid`: loose cited-source judge matched 4/8 facts
+- `q093` `hybrid`: retrieved expected source but answer synthesis missed citation or abstained
+- `q094` `hybrid`: loose cited-source judge matched 0/8 facts
+- `q095` `hybrid`: loose cited-source judge matched 3/7 facts
+- `q096` `hybrid`: retrieved expected source but answer synthesis missed citation or abstained
+- `q097` `hybrid`: loose cited-source judge matched 0/5 facts
+- `q099` `hybrid`: loose cited-source judge matched 0/7 facts
+- `q100` `hybrid`: retrieved expected source but answer synthesis missed citation or abstained

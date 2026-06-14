@@ -1,0 +1,30 @@
+{
+  "modes": {
+    "dense": {
+      "answer_synthesis_miss": 0.37,
+      "avg_latency_s": 6.316482,
+      "cited_expected_source_hit@1": 0.37,
+      "cited_expected_source_hit@5": 0.37,
+      "correct": 1,
+      "errors": 0,
+      "evidence_insufficient": 34,
+      "incorrect": 37,
+      "manual_review": 28,
+      "mrr@1": 0.37,
+      "mrr@5": 0.37,
+      "ndcg@1": 0.37,
+      "ndcg@5": 0.339052,
+      "ok": 100,
+      "precision@1": 0.37,
+      "precision@5": 0.074,
+      "records": 100,
+      "retrieved_expected_source_hit@1": 0.52,
+      "retrieved_expected_source_hit@5": 0.74,
+      "source_hit@1": 0.37,
+      "source_hit@5": 0.37,
+      "source_recall@1": 0.35,
+      "source_recall@5": 0.35
+    }
+  },
+  "total_records": 100
+}
