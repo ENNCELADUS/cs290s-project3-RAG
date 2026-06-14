@@ -463,7 +463,7 @@ def test_answer_context_selection_uses_2025_page_for_source_derived_fallback(
             rank=3,
             title="2025级计算机科学与技术本科培养方案",
             url="https://example.edu/cs/2025-degree",
-            text="2025级计算机科学与技术本科培养方案要求学生修满140学分。",
+            text="培养方案要求学生修满140学分。",
         ),
     ]
     model_path = tmp_path / "qwen-local"
@@ -476,10 +476,81 @@ def test_answer_context_selection_uses_2025_page_for_source_derived_fallback(
     assert result.status == "answered"
     assert result.generation_path == "extractive_fallback"
     assert result.fallback_source_rank == 3
+    assert "2025级计算机科学与技术本科培养方案" in result.answer
     assert "140学分" in result.answer
     assert result.answer.endswith("[3].")
     assert [source.source_id for source in result.sources] == [1, 2, 3]
     assert result.answer_context_order[0]["source_id"] == 3
+
+
+def test_source_derived_fallback_includes_multiple_nearby_credit_facts(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    contexts = [
+        _context(
+            rank=1,
+            title="2025级计算机科学与技术本科培养方案",
+            url="https://example.edu/cs/2025-degree",
+            text=(
+                "总学分：140学分。\n"
+                "通识教育课程：42学分。\n"
+                "专业必修课程：58学分。\n"
+                "专业选修课程：28学分。"
+            ),
+        ),
+    ]
+    model_path = tmp_path / "qwen-local"
+    model_path.mkdir()
+    _patch_generation(monkeypatch, "证据不足：当前检索到的官方来源不足以回答这个问题。")
+    answerer = RagAnswerer(StaticContextRetriever(contexts), model_path=model_path, device="cpu")  # type: ignore[arg-type]
+
+    result = answerer.answer(
+        "2025级计算机科学与技术本科培养方案中通识教育课程和专业必修课程分别是多少学分？",
+        mode="dense",
+        top_k=1,
+    )
+
+    assert result.status == "answered"
+    assert result.generation_path == "extractive_fallback"
+    assert result.fallback_source_rank == 1
+    assert "42学分" in result.answer
+    assert "58学分" in result.answer
+    assert result.answer.endswith("[1].")
+
+
+def test_source_derived_fallback_prefers_factual_source_over_navigation_span(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    contexts = [
+        _context(
+            rank=1,
+            title="2025级计算机科学与技术本科培养方案导航",
+            url="https://example.edu/cs/2025-degree-nav",
+            text=(
+                "首页 | 导航 | 站点地图 | 友情链接 | 2025级计算机科学与技术本科培养方案 | "
+                "总学分140学分 | 版权所有"
+            ),
+        ),
+        _context(
+            rank=2,
+            title="2025级计算机科学与技术本科培养方案",
+            url="https://example.edu/cs/2025-degree",
+            text="2025级计算机科学与技术本科培养方案要求学生修满140学分。",
+        ),
+    ]
+    model_path = tmp_path / "qwen-local"
+    model_path.mkdir()
+    _patch_generation(monkeypatch, "证据不足：当前检索到的官方来源不足以回答这个问题。")
+    answerer = RagAnswerer(StaticContextRetriever(contexts), model_path=model_path, device="cpu")  # type: ignore[arg-type]
+
+    result = answerer.answer("2025级计算机科学与技术本科培养方案需要修满多少学分？", mode="dense", top_k=2)
+
+    assert result.status == "answered"
+    assert result.generation_path == "extractive_fallback"
+    assert result.fallback_source_rank == 2
+    assert "140学分" in result.answer
+    assert "首页" not in result.answer
+    assert result.answer.endswith("[2].")
 
 
 def test_initial_generation_prompt_uses_answer_context_order_with_original_source_ids(
@@ -516,6 +587,69 @@ def test_initial_generation_prompt_uses_answer_context_order_with_original_sourc
     user_message = tokenizer.chat_template_kwargs["messages"][1]["content"]  # type: ignore[index]
     assert user_message.index("[3] 2025级") < user_message.index("[1] 2022级")
     assert "[2]" not in user_message
+
+
+def test_weak_citation_support_triggers_repair_with_better_source(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    contexts = [
+        _context(
+            rank=1,
+            title="2024 admissions notice",
+            url="https://example.edu/admissions-2024",
+            text="The 2024 admissions notice says applications closed in 2024.",
+        ),
+        _context(
+            rank=3,
+            title="2025 admissions notice",
+            url="https://example.edu/admissions-2025",
+            text="The 2025 admissions notice says applications are open for the 2025 cohort.",
+        ),
+    ]
+    model_path = tmp_path / "qwen-local"
+    model_path.mkdir()
+    _patch_generation_sequence(
+        monkeypatch,
+        [
+            "The 2025 admissions notice says applications are open [1].",
+            '{"status": "answered", "answer": "The 2025 admissions notice says applications are open [3]."}',
+        ],
+    )
+    answerer = RagAnswerer(StaticContextRetriever(contexts), model_path=model_path, device="cpu")  # type: ignore[arg-type]
+
+    result = answerer.answer("What does the 2025 admissions notice say?", mode="dense", top_k=2)
+
+    assert result.status == "answered"
+    assert result.generation_path == "repair"
+    assert result.generation_rejection_reason == "weak_citation_support"
+    assert result.answer.endswith("[3].")
+
+
+def test_supported_citation_is_not_repaired(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    contexts = [
+        _context(
+            rank=1,
+            title="2025 admissions notice",
+            url="https://example.edu/admissions-2025",
+            text="The 2025 admissions notice says applications are open for the 2025 cohort.",
+        ),
+        _context(
+            rank=2,
+            title="2024 admissions notice",
+            url="https://example.edu/admissions-2024",
+            text="The 2024 admissions notice says applications closed in 2024.",
+        ),
+    ]
+    model_path = tmp_path / "qwen-local"
+    model_path.mkdir()
+    _patch_generation(monkeypatch, "The 2025 admissions notice says applications are open [1].")
+    answerer = RagAnswerer(StaticContextRetriever(contexts), model_path=model_path, device="cpu")  # type: ignore[arg-type]
+
+    result = answerer.answer("What does the 2025 admissions notice say?", mode="dense", top_k=2)
+
+    assert result.status == "answered"
+    assert result.generation_path == "initial"
+    assert result.answer.endswith("[1].")
 
 
 def test_missing_answer_reranker_model_path_reports_local_path_error(

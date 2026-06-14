@@ -62,7 +62,7 @@ class RagAnswerResult:
     retrieval: dict[str, Any]
     timing: AnswerTiming
     config: AnswerConfig
-    generation_path: GenerationPath
+    generation_path: GenerationPath = "initial"
     generation_rejection_reason: str | None = None
     fallback_source_rank: int | None = None
     answer_context_order: list[dict[str, Any]] = field(default_factory=list)
@@ -72,6 +72,14 @@ class RagAnswerResult:
 class ExtractiveAnswer:
     answer: str
     source_rank: int
+
+
+@dataclass(frozen=True)
+class ExtractiveCandidate:
+    text: str
+    source_rank: int
+    context_order: int
+    score: float
 
 
 class RagAnswerer:
@@ -150,10 +158,15 @@ class RagAnswerer:
         generated = self._generate_text(messages)
         generation_s = time.perf_counter() - generation_started
         valid_source_ids = {source.source_id for source in sources}
-        rejection_reason = _answer_rejection_reason(generated, valid_source_ids)
+        rejection_reason = _answer_rejection_reason(generated, valid_source_ids, query=query, contexts=ordered_contexts)
         if rejection_reason is not None:
             extracted = _extract_answer_from_contexts(query, ordered_contexts)
-            if extracted is not None and _is_acceptable_answer(extracted.answer, valid_source_ids):
+            if extracted is not None and _is_acceptable_answer(
+                extracted.answer,
+                valid_source_ids,
+                query=query,
+                contexts=ordered_contexts,
+            ):
                 return RagAnswerResult(
                     query=query,
                     mode=mode,
@@ -177,6 +190,8 @@ class RagAnswerer:
             repaired = _parse_repair_answer(
                 repair_text,
                 valid_source_ids=valid_source_ids,
+                query=query,
+                contexts=ordered_contexts,
             )
             if repaired is not None:
                 return RagAnswerResult(
@@ -561,17 +576,33 @@ def _looks_like_degree_page(text: str) -> bool:
     )
 
 
-def _is_acceptable_answer(text: str, valid_source_ids: set[int]) -> bool:
-    return _answer_rejection_reason(text, valid_source_ids) is None
+def _is_acceptable_answer(
+    text: str,
+    valid_source_ids: set[int],
+    *,
+    query: str | None = None,
+    contexts: list[ContextItem] | None = None,
+) -> bool:
+    return _answer_rejection_reason(text, valid_source_ids, query=query, contexts=contexts) is None
 
 
-def _answer_rejection_reason(text: str, valid_source_ids: set[int]) -> str | None:
+def _answer_rejection_reason(
+    text: str,
+    valid_source_ids: set[int],
+    *,
+    query: str | None = None,
+    contexts: list[ContextItem] | None = None,
+) -> str | None:
     if any(marker in text for marker in PROMPT_LEAKAGE_MARKERS):
         return "prompt_leakage"
     if _states_insufficient_evidence(text):
         return "model_reported_insufficient_evidence"
     if not _has_valid_citation(text, valid_source_ids):
         return "invalid_or_missing_citation"
+    if query is not None and contexts:
+        citation_rejection = _citation_support_rejection_reason(query, text, contexts)
+        if citation_rejection is not None:
+            return citation_rejection
     return None
 
 
@@ -585,7 +616,13 @@ def _states_insufficient_evidence(text: str) -> bool:
     return "evidence is insufficient" in normalized or "证据不足" in text
 
 
-def _parse_repair_answer(text: str, *, valid_source_ids: set[int]) -> str | None:
+def _parse_repair_answer(
+    text: str,
+    *,
+    valid_source_ids: set[int],
+    query: str | None = None,
+    contexts: list[ContextItem] | None = None,
+) -> str | None:
     try:
         payload = json.loads(text)
     except json.JSONDecodeError:
@@ -598,9 +635,78 @@ def _parse_repair_answer(text: str, *, valid_source_ids: set[int]) -> str | None
     if not isinstance(answer, str) or not answer.strip():
         return None
     answer = answer.strip()
-    if not _is_acceptable_answer(answer, valid_source_ids):
+    if not _is_acceptable_answer(answer, valid_source_ids, query=query, contexts=contexts):
         return None
     return answer
+
+
+def _citation_support_rejection_reason(query: str, answer: str, contexts: list[ContextItem]) -> str | None:
+    cited_ids = {int(match.group(1)) for match in VALID_CITATION_RE.finditer(answer)}
+    context_by_rank = {context.rank: context for context in contexts}
+    cited_contexts = [context_by_rank[source_id] for source_id in cited_ids if source_id in context_by_rank]
+    if not cited_contexts:
+        return None
+
+    scores = {context.rank: _citation_support_score(query, answer, context) for context in contexts if context.url}
+    if not scores:
+        return None
+    cited_best = max(scores.get(context.rank, 0.0) for context in cited_contexts)
+    best_rank, best_score = max(scores.items(), key=lambda item: item[1])
+    if best_rank in cited_ids:
+        return None
+
+    query_years = _years(query)
+    if query_years and _context_matches_year(context_by_rank[best_rank], query_years):
+        cited_year_match = any(_context_matches_year(context, query_years) for context in cited_contexts)
+        if not cited_year_match:
+            return "weak_citation_support"
+
+    answer_facts = _answer_fact_terms(answer)
+    if answer_facts and best_score >= 5.0 and best_score >= cited_best + 3.0:
+        return "weak_citation_support"
+    return None
+
+
+def _citation_support_score(query: str, answer: str, context: ContextItem) -> float:
+    text = _context_score_text(context)
+    normalized_text = text.lower()
+    score = 0.0
+
+    query_years = _years(query)
+    context_years = _years(text)
+    if query_years & context_years:
+        score += 4.0
+    elif query_years and context_years and max(context_years) < max(query_years):
+        score -= 2.0
+
+    answer_years = _years(answer)
+    if answer_years & context_years:
+        score += 4.0
+
+    for fact in _answer_fact_terms(answer):
+        if fact.lower() in normalized_text:
+            score += 1.0
+
+    anchor_hits = sum(1 for term in _anchor_terms(query) if term in normalized_text)
+    score += min(anchor_hits, 8) * 0.4
+    if _query_wants_degree_page(query) and _looks_like_degree_page(text):
+        score += 2.0
+    if _query_wants_contact(query) and _has_contact_evidence(text):
+        score += 2.0
+    return score
+
+
+def _context_matches_year(context: ContextItem, years: set[int]) -> bool:
+    return bool(_years(_context_score_text(context)) & years)
+
+
+def _answer_fact_terms(answer: str) -> set[str]:
+    clean_answer = VALID_CITATION_RE.sub(" ", answer)
+    facts = set(re.findall(r"[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}", clean_answer))
+    facts.update(re.findall(r"(?<!\d)20\d{2}(?!\d)", clean_answer))
+    facts.update(re.findall(r"(?<!\d)\d+(?:\.\d+)?\s*(?:credits?|学分|%|人|项|门|个)?", clean_answer, re.I))
+    facts.update(re.findall(r"\b\d{1,2}:\d{2}\b", clean_answer))
+    return {fact.strip() for fact in facts if fact.strip()}
 
 
 def _extract_answer_from_contexts(query: str, contexts: list[ContextItem]) -> ExtractiveAnswer | None:
@@ -742,22 +848,66 @@ def _extract_compact_evidence(
     evidence_pattern: re.Pattern[str] | None,
 ) -> ExtractiveAnswer | None:
     query_terms = _anchor_terms(query)
-    for context in contexts:
+    candidates: list[ExtractiveCandidate] = []
+    for context_order, context in enumerate(contexts):
         if context.url is None:
             continue
-        for sentence in _candidate_sentences(context.text):
-            if not _has_anchor_overlap(query_terms, sentence):
+        context_header = " ".join(part for part in (context.title, context.url, context.snippet) if part)
+        for window in _candidate_windows(context.text):
+            candidate_match_text = f"{context_header} {window}"
+            anchor_overlap = _anchor_overlap_count(query_terms, candidate_match_text)
+            if anchor_overlap < _minimum_anchor_overlap(query_terms):
                 continue
-            if evidence_pattern is not None and evidence_pattern.search(sentence) is None:
+            if evidence_pattern is not None and evidence_pattern.search(window) is None:
                 continue
-            compact = _compact_sentence(sentence)
-            if compact:
-                return ExtractiveAnswer(f"{compact} [{context.rank}].", context.rank)
-    return None
+            if _has_newer_year_conflict(query, candidate_match_text):
+                continue
+            compact = _compact_sentence(_with_year_title_prefix(query, context, window))
+            if not compact or _looks_like_navigation_span(compact):
+                continue
+            score = _extractive_candidate_score(
+                query,
+                query_terms,
+                compact,
+                context=context,
+                context_order=context_order,
+                evidence_pattern=evidence_pattern,
+                anchor_overlap=anchor_overlap,
+            )
+            candidates.append(
+                ExtractiveCandidate(
+                    text=compact,
+                    source_rank=context.rank,
+                    context_order=context_order,
+                    score=score,
+                )
+            )
+    if not candidates:
+        return None
+    best = max(candidates, key=lambda candidate: (candidate.score, -candidate.context_order, -candidate.source_rank))
+    return ExtractiveAnswer(f"{best.text} [{best.source_rank}].", best.source_rank)
+
+
+def _candidate_windows(text: str) -> list[str]:
+    units = _candidate_sentences(text)
+    windows: list[str] = []
+    seen: set[str] = set()
+    for start in range(len(units)):
+        for size in (1, 2, 3):
+            window_units = units[start : start + size]
+            if len(window_units) != size:
+                continue
+            window = "; ".join(window_units)
+            normalized = re.sub(r"\s+", " ", window).strip()
+            if normalized in seen:
+                continue
+            seen.add(normalized)
+            windows.append(window)
+    return windows
 
 
 def _candidate_sentences(text: str) -> list[str]:
-    normalized = re.sub(r"\s+", " ", text).strip()
+    normalized = re.sub(r"[ \t\r\f\v]+", " ", text).strip()
     return [
         sentence.strip(" ;")
         for sentence in re.split(r"(?<=[。！？.!?])\s+|[;\n]+", normalized)
@@ -765,11 +915,128 @@ def _candidate_sentences(text: str) -> list[str]:
     ]
 
 
-def _compact_sentence(sentence: str, *, max_chars: int = 220) -> str:
+def _compact_sentence(sentence: str, *, max_chars: int = 320) -> str:
     compact = sentence.strip(" .;，,")
     if len(compact) <= max_chars:
         return compact
     return compact[: max_chars - 1].rstrip(" ,;，") + "…"
+
+
+def _with_year_title_prefix(query: str, context: ContextItem, text: str) -> str:
+    if context.title is None:
+        return text
+    query_years = _years(query)
+    if not query_years:
+        return text
+    target_year = max(query_years)
+    if str(target_year) not in context.title or str(target_year) in text:
+        return text
+    if not (_query_wants_degree_page(query) or _looks_like_degree_page(text)):
+        return text
+    return f"{context.title}：{text}"
+
+
+def _extractive_candidate_score(
+    query: str,
+    query_terms: set[str],
+    text: str,
+    *,
+    context: ContextItem,
+    context_order: int,
+    evidence_pattern: re.Pattern[str] | None,
+    anchor_overlap: int,
+) -> float:
+    context_text = _context_score_text(context)
+    score = 20.0 - context_order * 0.25
+    score += min(anchor_overlap, 10) * 1.5
+
+    evidence_count = len(evidence_pattern.findall(text)) if evidence_pattern is not None else 0
+    if evidence_count:
+        score += min(evidence_count, 6) * 4.0
+    if evidence_count > 1 and _query_wants_multiple_facts(query):
+        score += 4.0
+
+    candidate_years = _years(f"{context.title or ''} {text}")
+    score += len(_years(query) & candidate_years) * 10.0
+
+    if _query_wants_degree_page(query) and _looks_like_degree_page(f"{context.title or ''} {text}"):
+        score += 4.0
+    if _looks_like_degree_page(context_text):
+        score += 1.5
+
+    program_matches = _matched_terms(
+        query,
+        f"{context.title or ''} {text}",
+        ("cs", "computer science", "ee", "electrical", "electronic", "计算机", "电子", "电气", "信息"),
+    )
+    score += len(program_matches) * 1.5
+
+    if _looks_like_navigation_span(text):
+        score -= 30.0
+    if query_terms and not _has_anchor_overlap(query_terms, text):
+        score -= 2.0
+    return score
+
+
+def _minimum_anchor_overlap(query_terms: set[str]) -> int:
+    if not query_terms:
+        return 0
+    if len(query_terms) >= 6:
+        return 2
+    return 1
+
+
+def _anchor_overlap_count(query_terms: set[str], text: str) -> int:
+    if not query_terms:
+        return 0
+    normalized_text = text.lower()
+    return sum(1 for term in query_terms if term in normalized_text)
+
+
+def _has_newer_year_conflict(query: str, text: str) -> bool:
+    query_years = _years(query)
+    if not query_years:
+        return False
+    target_year = max(query_years)
+    text_years = _years(text)
+    if target_year in text_years:
+        return False
+    if not any(year < target_year for year in text_years):
+        return False
+    return _query_wants_degree_page(query) or _looks_like_degree_page(text)
+
+
+def _looks_like_navigation_span(text: str) -> bool:
+    lowered = text.lower()
+    nav_terms = (
+        "copyright",
+        "all rights reserved",
+        "breadcrumb",
+        "sitemap",
+        "login",
+        "footer",
+        "首页",
+        "导航",
+        "菜单",
+        "上一页",
+        "下一页",
+        "版权所有",
+        "站点地图",
+        "友情链接",
+    )
+    nav_hits = sum(1 for term in nav_terms if term in lowered)
+    if nav_hits >= 2:
+        return True
+    separators = len(re.findall(r"\s[|>›]\s", text))
+    return separators >= 4 and nav_hits >= 1
+
+
+def _query_wants_multiple_facts(query: str) -> bool:
+    lowered = query.lower()
+    return any(
+        term in lowered
+        for term in ("list", "which", "different", "difference", "compare", "respectively", "breakdown")
+    ) or any(term in query for term in ("哪些", "有什么不同", "区别", "比较", "分别", "构成", "包括"))
 
 
 def _first_match(pattern: str, text: str) -> str | None:
