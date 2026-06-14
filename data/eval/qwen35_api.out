@@ -1,0 +1,7 @@
+[DEBUG] _AppState: creating Retriever...
+[DEBUG] _AppState: Retriever OK
+[DEBUG] _AppState: creating RagAnswerer with model_path=/home/richard/models/Qwen3.5-4B
+[DEBUG] _AppState: RagAnswerer OK
+[DEBUG] main: _AppState created
+[DEBUG] main: FastAPI app built, starting uvicorn...
+INFO:     127.0.0.1:47333 - "GET /api/health HTTP/1.1" 200 OK

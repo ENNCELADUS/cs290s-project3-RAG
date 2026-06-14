@@ -1,0 +1,102 @@
+# Evaluation Gap Notes
+
+- `q001` `hybrid`: no acceptable answer matched
+- `q002` `hybrid`: no acceptable answer matched
+- `q003` `hybrid`: expected official source not found in top 5
+- `q004` `hybrid`: no acceptable answer matched
+- `q005` `hybrid`: missing required facts: ['他目前担任 IEEE Trans. Ind. Electron.、IEEE Trans. Transp. Electrif. 以及 CPSS Trans. Power Electron. Appl. 的副主编。']
+- `q006` `hybrid`: expected official source not found in top 5
+- `q007` `hybrid`: retrieved expected source but answer synthesis missed citation or abstained
+- `q008` `hybrid`: retrieved expected source but answer synthesis missed citation or abstained
+- `q009` `hybrid`: required_facts_with_manual_review requires review
+- `q010` `hybrid`: retrieved expected source but answer synthesis missed citation or abstained
+- `q011` `hybrid`: expected official source not found in top 5
+- `q012` `hybrid`: expected official source not found in top 5
+- `q013` `hybrid`: expected official source not found in top 5
+- `q014` `hybrid`: retrieved expected source but answer synthesis missed citation or abstained
+- `q015` `hybrid`: retrieved expected source but answer synthesis missed citation or abstained
+- `q016` `hybrid`: retrieved expected source but answer synthesis missed citation or abstained
+- `q017` `hybrid`: retrieved expected source but answer synthesis missed citation or abstained
+- `q018` `hybrid`: expected official source not found in top 5
+- `q019` `hybrid`: retrieved expected source but answer synthesis missed citation or abstained
+- `q020` `hybrid`: retrieved expected source but answer synthesis missed citation or abstained
+- `q021` `hybrid`: evidence insufficient answer
+- `q022` `hybrid`: evidence insufficient answer
+- `q023` `hybrid`: evidence insufficient answer
+- `q024` `hybrid`: evidence insufficient answer
+- `q025` `hybrid`: retrieved expected source but answer synthesis missed citation or abstained
+- `q026` `hybrid`: retrieved expected source but answer synthesis missed citation or abstained
+- `q027` `hybrid`: retrieved expected source but answer synthesis missed citation or abstained
+- `q028` `hybrid`: retrieved expected source but answer synthesis missed citation or abstained
+- `q029` `hybrid`: retrieved expected source but answer synthesis missed citation or abstained
+- `q030` `hybrid`: retrieved expected source but answer synthesis missed citation or abstained
+- `q031` `hybrid`: evidence insufficient answer
+- `q032` `hybrid`: retrieved expected source but answer synthesis missed citation or abstained
+- `q033` `hybrid`: retrieved expected source but answer synthesis missed citation or abstained
+- `q034` `hybrid`: retrieved expected source but answer synthesis missed citation or abstained
+- `q035` `hybrid`: required_facts_with_manual_review requires review
+- `q036` `hybrid`: retrieved expected source but answer synthesis missed citation or abstained
+- `q037` `hybrid`: retrieved expected source but answer synthesis missed citation or abstained
+- `q038` `hybrid`: retrieved expected source but answer synthesis missed citation or abstained
+- `q039` `hybrid`: expected official source not found in top 5
+- `q040` `hybrid`: retrieved expected source but answer synthesis missed citation or abstained
+- `q041` `hybrid`: evidence insufficient answer
+- `q042` `hybrid`: retrieved expected source but answer synthesis missed citation or abstained
+- `q043` `hybrid`: retrieved expected source but answer synthesis missed citation or abstained
+- `q044` `hybrid`: no acceptable answer matched
+- `q045` `hybrid`: expected official source not found in top 5
+- `q046` `hybrid`: expected official source not found in top 5
+- `q047` `hybrid`: required_facts_with_manual_review requires review
+- `q048` `hybrid`: retrieved expected source but answer synthesis missed citation or abstained
+- `q049` `hybrid`: missing required facts: ['该讲座的具体举办日期为 2026年4月27日，开始举办的确切时间是上午 11:00。']
+- `q050` `hybrid`: expected official source not found in top 5
+- `q051` `hybrid`: retrieved expected source but answer synthesis missed citation or abstained
+- `q052` `hybrid`: retrieved expected source but answer synthesis missed citation or abstained
+- `q053` `hybrid`: retrieved expected source but answer synthesis missed citation or abstained
+- `q054` `hybrid`: retrieved expected source but answer synthesis missed citation or abstained
+- `q055` `hybrid`: no acceptable answer matched
+- `q056` `hybrid`: no acceptable answer matched
+- `q057` `hybrid`: no acceptable answer matched
+- `q058` `hybrid`: retrieved expected source but answer synthesis missed citation or abstained
+- `q059` `hybrid`: retrieved expected source but answer synthesis missed citation or abstained
+- `q060` `hybrid`: retrieved expected source but answer synthesis missed citation or abstained
+- `q061` `hybrid`: retrieved expected source but answer synthesis missed citation or abstained
+- `q062` `hybrid`: retrieved expected source but answer synthesis missed citation or abstained
+- `q063` `hybrid`: retrieved expected source but answer synthesis missed citation or abstained
+- `q064` `hybrid`: retrieved expected source but answer synthesis missed citation or abstained
+- `q065` `hybrid`: no acceptable answer matched
+- `q066` `hybrid`: no acceptable answer matched
+- `q067` `hybrid`: expected official source not found in top 5
+- `q068` `hybrid`: required_facts_with_manual_review requires review
+- `q069` `hybrid`: retrieved expected source but answer synthesis missed citation or abstained
+- `q070` `hybrid`: expected official source not found in top 5
+- `q071` `hybrid`: no acceptable answer matched
+- `q072` `hybrid`: required_facts_with_manual_review requires review
+- `q073` `hybrid`: retrieved expected source but answer synthesis missed citation or abstained
+- `q074` `hybrid`: no acceptable answer matched
+- `q075` `hybrid`: required_facts_with_manual_review requires review
+- `q076` `hybrid`: required_facts_with_manual_review requires review
+- `q077` `hybrid`: expected official source not found in top 5
+- `q078` `hybrid`: local_llm_judge_with_human_review requires review
+- `q079` `hybrid`: missing required facts: ['报告人是邹长铃', '报告人单位是中国科学技术大学', '报告时间是2026年5月7日下午15:00', '地点是信息学院1A200']
+- `q080` `hybrid`: missing required facts: ['演讲者是申乔木', '单位是北京理工大学（珠海）', '邀请人是李权', '时间是2026年4月28日上午10:15', '地点是创管学院106']
+- `q081` `hybrid`: retrieved expected source but answer synthesis missed citation or abstained
+- `q082` `hybrid`: missing required facts: ['落幕日期是4月10日', '社团是GeekPie与DataTech', '作品是ChicChic——当理发遇上Token上限', '赛道是软件赛道', '奖项是一等奖']
+- `q083` `hybrid`: missing required facts: ['时间是2025年8月24日至31日', '地点是荷兰埃因霍温', '团队是上海科技大学MakeSense团队', '比赛是SensUs 2025国际大学生生物传感器设计大赛', '成绩是检测精度奖全球冠军与创新奖全球亚军']
+- `q084` `hybrid`: missing required facts: ['人物是师玉娇课题组童少文', '时间是2025年10月18日至24日', '地点是美国夏威夷', '会议是ICCV 2025', '框架名为GeoDistill', '学习模式是教师-学生学习模式']
+- `q085` `hybrid`: missing required facts: ['人物是张玉瑶课题组田烜宇', '时间是2026年1月21日至26日', '地点是新加坡', '会议是第40届AAAI人工智能大会', '研究领域是医学影像重建']
+- `q086` `hybrid`: retrieved expected source but answer synthesis missed citation or abstained
+- `q087` `hybrid`: retrieved expected source but answer synthesis missed citation or abstained
+- `q088` `hybrid`: retrieved expected source but answer synthesis missed citation or abstained
+- `q089` `hybrid`: missing required facts: ['招生方式包括直博', '招生方式包括硕博连读', '招生方式包括申请-考核制', '报名时间是2026年4月15日至2026年4月29日（含）', '学院选择信息科学与技术学院', '专项选择2026年通计划博士专项']
+- `q090` `hybrid`: retrieved expected source but answer synthesis missed citation or abstained
+- `q091` `hybrid`: no acceptable answer matched
+- `q092` `hybrid`: missing required facts: ['Power Device Measurement System', 'Load-Pull System', 'Impedance Analyzer', 'OTF-1200X开启式管式炉']
+- `q093` `hybrid`: retrieved expected source but answer synthesis missed citation or abstained
+- `q094` `hybrid`: required_facts_with_manual_review requires review
+- `q095` `hybrid`: required_facts_with_manual_review requires review
+- `q096` `hybrid`: retrieved expected source but answer synthesis missed citation or abstained
+- `q097` `hybrid`: retrieved expected source but answer synthesis missed citation or abstained
+- `q098` `hybrid`: required_facts_with_manual_review requires review
+- `q099` `hybrid`: retrieved expected source but answer synthesis missed citation or abstained
+- `q100` `hybrid`: retrieved expected source but answer synthesis missed citation or abstained
