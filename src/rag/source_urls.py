@@ -6,6 +6,8 @@ from urllib.parse import unquote, urlsplit, urlunsplit
 SIST_HOST = "sist.shanghaitech.edu.cn"
 _SIST_TEMPLATE_SEGMENT = re.compile(r"_t\d+")
 _SIST_ARTICLE_SEGMENT = re.compile(r"^c\d+a(?P<article_id>\d+)$")
+_SIST_PROFILE_SLUG = re.compile(r"[a-z][a-z0-9_]*")
+_SIST_PROFILE_PAGE_NAMES = {"main.htm", "list.htm"}
 
 
 def normalize_url(url: str) -> str:
@@ -27,6 +29,20 @@ def sist_article_id(url: str) -> str | None:
     if match is None:
         return None
     return match.group("article_id")
+
+
+def sist_profile_slug(url: str) -> str | None:
+    parsed = urlsplit(normalize_url(url))
+    if parsed.netloc != SIST_HOST:
+        return None
+    parts = [part for part in parsed.path.split("/") if part]
+    if len(parts) == 1:
+        slug = parts[0]
+    elif len(parts) == 2 and parts[1] in _SIST_PROFILE_PAGE_NAMES:
+        slug = parts[0]
+    else:
+        return None
+    return slug if _SIST_PROFILE_SLUG.fullmatch(slug) else None
 
 
 def _canonical_path(path: str, netloc: str) -> str:

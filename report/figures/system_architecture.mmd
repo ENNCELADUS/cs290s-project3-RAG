@@ -1,0 +1,66 @@
+%%{init: {
+  "theme": "base",
+  "flowchart": {
+    "curve": "monotoneY",
+    "htmlLabels": true,
+    "nodeSpacing": 50,
+    "rankSpacing": 55,
+    "padding": 16
+  },
+  "themeVariables": {
+    "fontFamily": "Times New Roman, serif",
+    "fontSize": "12px",
+    "primaryTextColor": "#1a1a2e",
+    "lineColor": "#4a5568",
+    "clusterBkg": "#f7f8fa",
+    "clusterBorder": "#cbd5e0",
+    "edgeLabelBackground": "#ffffff"
+  }
+}}%%
+flowchart LR
+  subgraph offline["Offline Indexing"]
+    direction TB
+    SRC["Data Sources<br/><i>HTML, PDF, OCR</i>"]
+    KB["Knowledge Base<br/><i>chunks + metadata</i>"]
+    BM25["BM25 Sparse"]
+    FAISS["FAISS Dense<br/><i>bge-m3</i>"]
+    SRC --> KB
+    KB --> BM25
+    KB --> FAISS
+  end
+
+  subgraph online["Online Inference"]
+    direction TB
+    QUERY(["User Query"])
+    RET["Hybrid Retrieval<br/><i>RRF + rerank + QE</i>"]
+    GEN["Qwen Generator<br/><i>citation-constrained</i>"]
+    OUT(["Cited Answer"])
+    EVAL[["Evaluation<br/><i>metrics + logs</i>"]]
+    QUERY --> RET
+    RET --> GEN
+    GEN --> OUT
+    GEN --> EVAL
+  end
+
+  %% Cross-subgraph edges
+  BM25 --> RET
+  FAISS --> RET
+
+  %% --- Styles ---
+  classDef source fill:#e8edf5,stroke:#3b5998,stroke-width:1.6px,color:#1a1a2e;
+  classDef offline fill:#f0f4f8,stroke:#4a6fa5,stroke-width:1.3px,color:#1a1a2e;
+  classDef index fill:#edf2f7,stroke:#2c5282,stroke-width:1.4px,color:#1a1a2e;
+  classDef query fill:#fff8e7,stroke:#b7791f,stroke-width:1.4px,color:#1a1a2e;
+  classDef retrieval fill:#ebf4ff,stroke:#2b6cb0,stroke-width:1.4px,color:#1a1a2e;
+  classDef generation fill:#faf5ff,stroke:#6b46c1,stroke-width:1.4px,color:#1a1a2e;
+  classDef output fill:#ffffff,stroke:#1a202c,stroke-width:1.6px,color:#1a1a2e;
+  classDef eval fill:#f7fafc,stroke:#4a5568,stroke-width:1.3px,color:#1a1a2e;
+
+  class SRC source;
+  class KB offline;
+  class BM25,FAISS index;
+  class QUERY query;
+  class RET retrieval;
+  class GEN generation;
+  class OUT output;
+  class EVAL eval;

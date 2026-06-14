@@ -78,6 +78,29 @@ def test_source_metrics_match_sist_same_article_id_across_columns() -> None:
     assert source_metrics([observed], [expected])["source_hit@1"] == 1.0
 
 
+def test_source_metrics_match_sist_profile_root_main_and_list_aliases() -> None:
+    assert source_matches(
+        "https://sist.shanghaitech.edu.cn/zxy1/list.htm",
+        "https://sist.shanghaitech.edu.cn/zxy1/main.htm",
+    )
+    assert source_matches(
+        "https://sist.shanghaitech.edu.cn/shiye/list.htm",
+        "https://sist.shanghaitech.edu.cn/shiye/main.htm",
+    )
+    assert source_matches(
+        "https://sist.shanghaitech.edu.cn/tukw/list.htm",
+        "https://sist.shanghaitech.edu.cn/tukw/main.htm",
+    )
+    assert source_matches(
+        "https://sist.shanghaitech.edu.cn/_t335/zxy1/list.htm",
+        "https://sist.shanghaitech.edu.cn/zxy1/",
+    )
+    assert source_metrics(
+        ["https://sist.shanghaitech.edu.cn/tukw/list.htm"],
+        ["https://sist.shanghaitech.edu.cn/tukw/main.htm"],
+    )["source_hit@1"] == 1.0
+
+
 def test_source_metrics_do_not_article_alias_unrelated_or_non_sist_urls() -> None:
     assert not source_matches(
         "https://sist.shanghaitech.edu.cn/2026/0327/c2863a1120270/page.htm",
@@ -86,6 +109,18 @@ def test_source_metrics_do_not_article_alias_unrelated_or_non_sist_urls() -> Non
     assert not source_matches(
         "https://example.edu/2026/0327/c2863a1120270/page.htm",
         "https://example.edu/2026/0327/c7339a1120270/page.htm",
+    )
+    assert not source_matches(
+        "https://sist.shanghaitech.edu.cn/zxy1/list.htm",
+        "https://sist.shanghaitech.edu.cn/shiye/main.htm",
+    )
+    assert not source_matches(
+        "https://sist.shanghaitech.edu.cn/zxy1/list.htm",
+        "https://sist.shanghaitech.edu.cn/zxy1_0/list.htm",
+    )
+    assert not source_matches(
+        "https://sist.shanghaitech.edu.cn/2858/list85.htm",
+        "https://sist.shanghaitech.edu.cn/2858/list.htm",
     )
 
 
@@ -314,6 +349,118 @@ def test_judge_exact_or_alias_can_be_content_correct_without_source_hit(tmp_path
 
     assert result.status == "correct"
     assert result.is_correct == 1
+
+
+def test_judge_matches_q002_office_email_paraphrase_without_expected_source_hit(tmp_path: Path) -> None:
+    questions_path = tmp_path / "questions.csv"
+    _write_question_csv(questions_path)
+    question = load_questions(questions_path)[0]
+    exact_question = question.__class__(
+        **{
+            **question.__dict__,
+            "gt_answer": "他的办公室在信息学院3-530，工作邮箱是 wanghy@shanghaitech.edu.cn。",
+            "required_facts": ["他的办公室在信息学院3-530，工作邮箱是 wanghy@shanghaitech.edu.cn。"],
+            "acceptable_answers": ["他的办公室在信息学院3-530，工作邮箱是 wanghy@shanghaitech.edu.cn。"],
+            "judge_type": "exact_or_alias_match",
+        }
+    )
+
+    result = judge_answer(
+        exact_question,
+        "王浩宇教授办公地点为 SIST 3-530，邮箱 wanghy@shanghaitech.edu.cn。[1]",
+        cited_expected_source_hit=False,
+    )
+
+    assert result.status == "correct"
+    assert result.is_correct == 1
+
+
+def test_judge_matches_q019_acl_date_location_aliases(tmp_path: Path) -> None:
+    questions_path = tmp_path / "questions.csv"
+    _write_question_csv(questions_path)
+    question = load_questions(questions_path)[0]
+    required_question = question.__class__(
+        **{
+            **question.__dict__,
+            "gt_answer": (
+                "该成果发表在第64届计算语言学协会年会（ACL 2026）上。会议将于2026年7月2日至7日"
+                "在美国加利福尼亚州圣迭戈（San Diego, California, USA）举行。"
+            ),
+            "required_facts": [
+                "该成果发表在第64届计算语言学协会年会（ACL 2026）上。会议将于2026年7月2日至7日"
+                "在美国加利福尼亚州圣迭戈（San Diego, California, USA）举行。"
+            ],
+            "acceptable_answers": [],
+            "judge_type": "required_facts_match",
+        }
+    )
+
+    result = judge_answer(
+        required_question,
+        "GiLT 被 ACL 2026 录用；会议时间是 2026年7月2日至7日，地点为美国加州圣地亚哥。[2]",
+        cited_expected_source_hit=False,
+    )
+
+    assert result.status == "correct"
+    assert result.is_correct == 1
+
+
+def test_judge_matches_q092_device_translation_aliases(tmp_path: Path) -> None:
+    questions_path = tmp_path / "questions.csv"
+    _write_question_csv(questions_path)
+    question = load_questions(questions_path)[0]
+    required_question = question.__class__(
+        **{
+            **question.__dict__,
+            "gt_answer": (
+                "页面列出的设备包括 Semiconductor Analyzer、Microelectronic Measurement System、"
+                "Low Temperature Measurement System、DLTS、Power Device Measurement System、"
+                "Load-Pull System、Impedance Analyzer 和 OTF-1200X开启式管式炉。"
+            ),
+            "required_facts": [
+                "Semiconductor Analyzer",
+                "Microelectronic Measurement System",
+                "Low Temperature Measurement System",
+                "DLTS",
+                "Power Device Measurement System",
+                "Load-Pull System",
+                "Impedance Analyzer",
+                "OTF-1200X开启式管式炉",
+            ],
+            "acceptable_answers": [],
+            "judge_type": "required_facts_match",
+        }
+    )
+
+    result = judge_answer(
+        required_question,
+        "该页面列出半导体分析仪、微电子测量系统、低温测量系统、DLTS、功率器件测量系统、"
+        "负载牵引系统、阻抗分析仪和 OTF-1200X open tube furnace。[1]",
+        cited_expected_source_hit=False,
+    )
+
+    assert result.status == "correct"
+    assert result.is_correct == 1
+
+
+def test_judge_rejects_missing_required_numeric_fact_even_with_citation(tmp_path: Path) -> None:
+    questions_path = tmp_path / "questions.csv"
+    _write_question_csv(questions_path)
+    question = load_questions(questions_path)[0]
+    exact_question = question.__class__(
+        **{
+            **question.__dict__,
+            "gt_answer": "毕业至少需要修满145学分，其中任选课占9学分。",
+            "required_facts": ["毕业至少需要修满145学分，其中任选课占9学分。"],
+            "acceptable_answers": ["毕业至少需要修满145学分，其中任选课占9学分。"],
+            "judge_type": "exact_or_alias_match",
+        }
+    )
+
+    result = judge_answer(exact_question, "毕业至少需要修满145学分。[1]", cited_expected_source_hit=False)
+
+    assert result.status == "incorrect"
+    assert result.is_correct == 0
 
 
 def _write_question_csv(path: Path) -> None:

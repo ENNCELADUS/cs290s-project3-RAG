@@ -2,13 +2,18 @@ from __future__ import annotations
 
 import csv
 import json
+from dataclasses import asdict
 from pathlib import Path
+from typing import Any
 
 import pytest
 from openpyxl import load_workbook
 
 from evaluate.cli import main as evaluate_main
 from evaluate.export import SUBMISSION_COLUMNS
+from evaluate.judge import JudgeResult, judge_answer
+from evaluate.runner import _answer_source_metrics
+from evaluate.schema import QuestionSpec
 
 
 def test_evaluate_retrieve_exports_assignment_workbook_with_diagnostics(tmp_path: Path, monkeypatch) -> None:
@@ -533,6 +538,72 @@ def test_evaluate_answer_content_correctness_is_separate_from_cited_source_hit(
     assert run_records[0]["metrics"]["cited_expected_source_hit@5"] == 0.0
     assert run_records[0]["judge"]["status"] == "correct"
     assert run_records[0]["judge"]["is_correct"] == 1
+
+
+def test_rescore_existing_answer_record_separates_judge_from_cited_expected_source_hit() -> None:
+    question = _rescore_question()
+    record = {
+        "id": question.id,
+        "runner": "answer",
+        "mode": "hybrid",
+        "status": "ok",
+        "answer_status": "answered",
+        "answer": "The office is office 3-530, email is wanghy@example.edu, and phone is 021-20685000. [1]",
+        "retrieved_source_urls": ["https://example.edu/unexpected"],
+        "cited_source_urls": ["https://example.edu/unexpected"],
+    }
+
+    rescored = _rescore_existing_answer_record(record, question)
+
+    assert rescored["metrics"]["cited_expected_source_hit@5"] == 0.0
+    assert rescored["metrics"]["retrieved_expected_source_hit@5"] == 0.0
+    assert rescored["metrics"]["answer_synthesis_miss"] == 0.0
+    assert rescored["judge"]["status"] == "correct"
+    assert rescored["judge"]["is_correct"] == 1
+
+
+def test_rescore_existing_answer_record_preserves_synthesis_miss_for_abstain_after_retrieval_hit() -> None:
+    question = _rescore_question()
+    record = {
+        "id": question.id,
+        "runner": "answer",
+        "mode": "hybrid",
+        "status": "ok",
+        "answer_status": "insufficient_evidence",
+        "answer": "Evidence is insufficient: the retrieved official sources do not contain enough information.",
+        "retrieved_source_urls": ["https://example.edu/expected"],
+        "cited_source_urls": [],
+    }
+
+    rescored = _rescore_existing_answer_record(record, question)
+
+    assert rescored["metrics"]["retrieved_expected_source_hit@5"] == 1.0
+    assert rescored["metrics"]["cited_expected_source_hit@5"] == 0.0
+    assert rescored["metrics"]["answer_synthesis_miss"] == 1.0
+    assert rescored["judge"]["status"] == "evidence_insufficient"
+    assert rescored["judge"]["is_correct"] == 0
+
+
+def test_rescore_existing_answer_record_keeps_cited_expected_source_from_overriding_missing_fact() -> None:
+    question = _rescore_question()
+    record = {
+        "id": question.id,
+        "runner": "answer",
+        "mode": "hybrid",
+        "status": "ok",
+        "answer_status": "answered",
+        "answer": "The office is office 3-530 and email is wanghy@example.edu. [1]",
+        "retrieved_source_urls": ["https://example.edu/expected"],
+        "cited_source_urls": ["https://example.edu/expected"],
+    }
+
+    rescored = _rescore_existing_answer_record(record, question)
+
+    assert rescored["metrics"]["retrieved_expected_source_hit@5"] == 1.0
+    assert rescored["metrics"]["cited_expected_source_hit@5"] == 1.0
+    assert rescored["metrics"]["answer_synthesis_miss"] == 0.0
+    assert rescored["judge"]["status"] == "incorrect"
+    assert rescored["judge"]["is_correct"] == 0
 
 
 def test_evaluate_answer_exports_answer_context_order_diagnostics(tmp_path: Path, monkeypatch) -> None:
@@ -1130,3 +1201,51 @@ def _write_questions(path: Path) -> None:
         writer = csv.DictWriter(handle, fieldnames=list(rows[0]))
         writer.writeheader()
         writer.writerows(rows)
+
+
+def _rescore_question() -> QuestionSpec:
+    return QuestionSpec(
+        id="q-rescore",
+        category="Factual",
+        language="en",
+        query="What are the office, email, and phone?",
+        gt_answer="The office is office 3-530, email is wanghy@example.edu, and phone is 021-20685000.",
+        primary_source_url="https://example.edu/expected",
+        acceptable_source_urls=["https://example.edu/expected"],
+        evidence_snippet="office 3-530 email wanghy@example.edu phone 021-20685000",
+        required_facts=["office 3-530", "wanghy@example.edu", "021-20685000"],
+        acceptable_answers=[],
+        forbidden_facts=[],
+        grading_notes="rescore existing answer records without rerunning retrieval or generation",
+        judge_type="required_facts_match",
+        complexity="Low",
+    )
+
+
+def _rescore_existing_answer_record(record: dict[str, Any], question: QuestionSpec) -> dict[str, Any]:
+    cited_urls = _string_list(record.get("cited_source_urls"))
+    retrieved_urls = _string_list(record.get("retrieved_source_urls"))
+    answer_status = str(record.get("answer_status") or "")
+    metrics = _answer_source_metrics(
+        cited_urls,
+        retrieved_urls,
+        question.acceptable_source_urls,
+        answer_status=answer_status,
+    )
+    judge = (
+        JudgeResult(status="evidence_insufficient", is_correct=0, reason="evidence insufficient answer")
+        if answer_status == "insufficient_evidence"
+        else judge_answer(
+            question,
+            str(record.get("answer") or ""),
+            cited_expected_source_hit=bool(metrics.get("cited_expected_source_hit@5")),
+            has_citation=bool(cited_urls),
+        )
+    )
+    return {**record, "metrics": metrics, "judge": asdict(judge)}
+
+
+def _string_list(value: object) -> list[str]:
+    if not isinstance(value, list):
+        return []
+    return [str(item) for item in value if item]

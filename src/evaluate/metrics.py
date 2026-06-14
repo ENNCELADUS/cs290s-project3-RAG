@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import math
 
-from rag.source_urls import normalize_url, sist_article_id
+from rag.source_urls import normalize_url, sist_article_id, sist_profile_slug
 
 
 def source_matches(observed_url: str, expected_url: str) -> bool:
@@ -11,6 +11,10 @@ def source_matches(observed_url: str, expected_url: str) -> bool:
     if expected.endswith("/"):
         return observed == expected or observed.startswith(expected)
     if observed == expected or observed.startswith(f"{expected}/"):
+        return True
+    observed_profile_slug = sist_profile_slug(observed)
+    expected_profile_slug = sist_profile_slug(expected)
+    if observed_profile_slug is not None and observed_profile_slug == expected_profile_slug:
         return True
     observed_article_id = sist_article_id(observed)
     expected_article_id = sist_article_id(expected)
