@@ -42,6 +42,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--expanded-queries-jsonl", type=Path, default=None)
     parser.add_argument("--device", choices=["auto", "cpu", "cuda"], default="auto")
     parser.add_argument("--max-new-tokens", type=int, default=None)
+    parser.add_argument("--temperature", type=float, default=None)
     parser.add_argument("--dense-model", default=None)
     parser.add_argument("--db", type=Path, default=None)
     parser.add_argument("--bm25", type=Path, default=None)
@@ -97,6 +98,7 @@ def main(argv: list[str] | None = None) -> int:
         ),
         device=args.device,
         max_new_tokens=args.max_new_tokens,
+        temperature=args.temperature,
         artifacts=artifacts,
     )
     timestamp = args.timestamp or datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")

@@ -48,6 +48,7 @@ REPORT_PATH="${REPORT_PATH:-data/rag/build_report_2026-05-27.json}"
 
 TOP_K="${TOP_K:-5}"
 MAX_NEW_TOKENS="${MAX_NEW_TOKENS:-512}"
+TEMPERATURE="${TEMPERATURE:-0.0}"
 DEVICE="${DEVICE:-cuda}"
 ANSWER_RERANKER_DEVICE="${ANSWER_RERANKER_DEVICE:-cpu}"
 
@@ -78,6 +79,7 @@ ARGS=(
   --model-path "$QWEN_MODEL_PATH"
   --device "$DEVICE"
   --max-new-tokens "$MAX_NEW_TOKENS"
+  --temperature "$TEMPERATURE"
   --dense-model "$DENSE_MODEL_PATH"
   --db "$DB_PATH"
   --bm25 "$BM25_PATH"
@@ -117,5 +119,6 @@ echo "dense_model: $DENSE_MODEL_PATH"
 echo "device: $DEVICE"
 echo "top_k: $TOP_K"
 echo "max_new_tokens: $MAX_NEW_TOKENS"
+echo "temperature: $TEMPERATURE"
 
 srun uv run --locked --no-sync --offline python -m evaluate.cli "${ARGS[@]}"

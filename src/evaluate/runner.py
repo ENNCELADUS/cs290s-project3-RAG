@@ -58,6 +58,7 @@ class EvaluationConfig:
     expanded_queries_by_id: dict[str, tuple[str, ...]] | None = None
     device: str = "auto"
     max_new_tokens: int | None = None
+    temperature: float | None = None
     artifacts: ArtifactPaths = ArtifactPaths()
 
 
@@ -82,6 +83,8 @@ def run_evaluation(questions: list[QuestionSpec], config: EvaluationConfig) -> l
         }
         if config.max_new_tokens is not None:
             answer_kwargs["max_new_tokens"] = config.max_new_tokens
+        if config.temperature is not None:
+            answer_kwargs["temperature"] = config.temperature
         answerer = RagAnswerer(retriever, **answer_kwargs)
 
     records: list[dict[str, Any]] = []

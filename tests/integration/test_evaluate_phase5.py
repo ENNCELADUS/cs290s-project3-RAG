@@ -245,6 +245,57 @@ def test_evaluate_answer_metrics_use_cited_sources_only(tmp_path: Path, monkeypa
     assert "cited_expected_source_hit@5" in diagnostic_headers
 
 
+def test_evaluate_answer_passes_temperature_to_generator(tmp_path: Path, monkeypatch) -> None:
+    questions_path = tmp_path / "questions.csv"
+    _write_questions(questions_path)
+    output_dir = tmp_path / "eval"
+    captured_answerer_kwargs: dict[str, object] = {}
+
+    class FakeRetriever:
+        @classmethod
+        def from_paths(cls, **kwargs: object) -> FakeRetriever:
+            return cls()
+
+    class FakeAnswerer:
+        def __init__(self, retriever: object, **kwargs: object) -> None:
+            captured_answerer_kwargs.update(kwargs)
+
+        def answer(self, query: str, *, mode: str, top_k: int) -> _AnswerResult:
+            return _AnswerResult(
+                status="answered",
+                answer="At the expected source. [1]",
+                sources=[_Source(1, "https://example.edu/source", "Expected")],
+                retrieval={"mode": mode, "hits": []},
+            )
+
+    monkeypatch.setattr("evaluate.runner.Retriever", FakeRetriever)
+    monkeypatch.setattr("evaluate.runner.RagAnswerer", FakeAnswerer)
+
+    assert (
+        evaluate_main(
+            [
+                "--questions",
+                str(questions_path),
+                "--output-dir",
+                str(output_dir),
+                "--runner",
+                "answer",
+                "--modes",
+                "dense",
+                "--model-path",
+                str(tmp_path),
+                "--temperature",
+                "0.0",
+                "--timestamp",
+                "20260611T041000Z",
+            ]
+        )
+        == 0
+    )
+
+    assert captured_answerer_kwargs["temperature"] == 0.0
+
+
 def test_evaluate_answer_reports_evidence_insufficient_separately(tmp_path: Path, monkeypatch) -> None:
     questions_path = tmp_path / "questions.csv"
     _write_questions(questions_path)

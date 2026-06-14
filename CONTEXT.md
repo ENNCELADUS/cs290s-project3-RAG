@@ -51,9 +51,14 @@ A final retrieved chunk prepared for generation or UI display with source metada
 _Avoid_: answer, system response
 
 **Answer Context Selection**:
-An answer-layer reordering of retrieved top-5 packed contexts before generation, source-derived fallback, and repair.
+An answer-layer reordering of retrieved top-5 packed contexts before generation, repair, and source-derived fallback.
 It uses only runtime query/context metadata and preserves original retrieval source numbers for citations.
 _Avoid_: retrieval reranking, metric canonicalization, answer-key matching
+
+**Model-First Answer Recovery**:
+An answer-layer recovery policy used after a rejected local-model draft. It gives strict JSON repair one chance before
+using deterministic source-derived fallback, then abstains if neither path produces a cited supported answer.
+_Avoid_: retrieval optimization, answer-key extraction
 
 **Generated Answer**:
 A model-produced answer grounded in retrieved official-source contexts, with citations that map back to structured
@@ -86,9 +91,11 @@ _Avoid_: retrieval miss, source_hit@5
 - **Cited Expected Source Hit** measures answer citation grounding, not answer correctness.
 - **Answer Context Selection** may change which retrieved context is shown first to the generator, but it does not change
   the retrieved top-5 set or renumber source citations.
+- **Model-First Answer Recovery** is part of generation and may convert an **Answer Synthesis Miss** into a cited
+  **Generated Answer** without changing retrieved sources.
 - **Generated Answer** is produced from **Packed Context** values and can fill the final assignment response columns.
-- **Source-Derived Generated Answer** is allowed only after a rejected local-model draft and before repair or abstention;
-  it is still a **Generated Answer** because it is synthesized and cited, not a raw packed context.
+- **Source-Derived Generated Answer** is allowed only after a rejected local-model draft and failed repair; it is still a
+  **Generated Answer** because it is synthesized and cited, not a raw packed context.
 - **Evidence-Insufficient Answer** is a valid generated-answer outcome when the retrieved evidence is not usable, but it
   still maps to `is_correct=0` for final assignment labels.
 - **Answer Synthesis Miss** separates retrieval success from generation failure when expected official sources were

@@ -99,30 +99,31 @@ The prompt gives the model the user question and numbered source contexts. It re
 - say that evidence is insufficient when the provided sources do not support an answer.
 
 The code returns an **Evidence-Insufficient Answer** when retrieval returns no contexts, no usable source URL is present,
-or the generated text, source-derived fallback, and citation-repair pass all fail to produce a valid cited answer.
+or the generated text, citation-repair pass, and source-derived fallback all fail to produce a valid cited answer.
 
 Before generation, the answerer applies **Answer Context Selection** to the retrieved top-5 packed contexts. The default
 selector is deterministic and uses only the runtime query plus retrieved title, URL, snippet, and text. It boosts matching
 cohort years, program/course terms, credit/course evidence, faculty/contact evidence, and degree/program page type; it
 penalizes older degree pages when the query names a later cohort year. A local BGE-style CrossEncoder can be configured
 with `--answer-reranker-model` and `--answer-reranker-device`; a configured missing model path fails before generation.
-The selected order is used for the initial prompt, source-derived fallback, and repair pass, but citation labels remain
+The selected order is used for the initial prompt, repair pass, and source-derived fallback, but citation labels remain
 the original retrieval source IDs. If original retrieval source `[3]` is selected first, the prompt still labels it
 `[3]` and the fallback cites `[3]`.
 
 When the first generated text is uncited, cites a missing source number, states that evidence is insufficient, or leaks
-prompt/source metadata, the answerer first tries a **Source-Derived Generated Answer** fallback. This fallback is
-deterministic and uses only the query, packed contexts, and retrieved source metadata. It does not read evaluation-only
-fields such as ground-truth answers, required facts, acceptable answers, evidence snippets, or question IDs. It covers
-compact official-source facts such as office/email, address/postcode, credits, course/teacher, dates/times/locations,
-and short list/comparison evidence when query anchors overlap the retrieved context.
+prompt/source metadata, the answerer uses **Model-First Answer Recovery**: it first runs one local repair pass over the
+same packed contexts, then tries a **Source-Derived Generated Answer** fallback if repair fails. The repair pass must
+return a strict JSON object with either a cited answer or an explicit insufficient-evidence status. Repaired text is
+accepted only when all citation numbers map to retrieved sources and the text passes the same leakage checks as a normal
+generated answer.
 
-Source-derived answers are still generated answers, not raw snippets: they are concise, include a numbered citation such
-as `[1]`, and must pass the same citation and leakage validation as local-model text. If no high-confidence context
-window is found, the answerer runs one local repair pass over the same packed contexts. The repair pass must return a
-strict JSON object with either a cited answer or an explicit insufficient-evidence status. Repaired text is accepted only
-when all citation numbers map to retrieved sources and the text passes the same leakage checks as a normal generated
-answer.
+The source-derived fallback is deterministic and uses only the query, packed contexts, and retrieved source metadata. It
+does not read evaluation-only fields such as ground-truth answers, required facts, acceptable answers, evidence snippets,
+or question IDs. It covers compact official-source facts such as office/email, address/postcode, credits,
+course/teacher, dates/times/locations, degree-plan credit tables, course-design pairs, de-duplication rules, and short
+list/comparison evidence when query anchors overlap the retrieved context. Source-derived answers are still generated
+answers, not raw snippets: they are concise, include numbered citations such as `[1]`, and must pass the same citation
+and leakage validation as local-model text.
 
 Evaluation reports answer citation grounding with **Cited Expected Source Hit**, which is separate from retrieval
 **Expected Source Hit@5**. Answer-run records also include `retrieved_expected_source_hit@5`,
@@ -131,6 +132,9 @@ Evaluation reports answer citation grounding with **Cited Expected Source Hit**,
 found an expected source in the top 5, but the final answer abstained or failed to cite an expected source. An
 **Evidence-Insufficient Answer** is counted as an abstention diagnostic and maps to `is_correct=0` in the final
 assignment workbook.
+
+For report-facing generation evaluation, `evaluate.cli` exposes `--temperature`; the Qwen3.5 SLURM scripts default it
+to `0.0` so answer recovery regressions are reproducible.
 
 ## Output Shape
 
