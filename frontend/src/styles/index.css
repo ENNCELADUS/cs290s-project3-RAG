@@ -1,0 +1,57 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply text-gray-900 dark:text-gray-100;
+  }
+}
+
+@layer components {
+  .chat-bubble-user {
+    @apply bg-blue-600 text-white rounded-2xl rounded-br-md px-4 py-2.5 max-w-[80%] ml-auto;
+  }
+
+  .chat-bubble-assistant {
+    @apply bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl rounded-bl-md px-4 py-2.5 max-w-[85%];
+  }
+
+  .source-card {
+    @apply border border-gray-200 dark:border-gray-700 rounded-lg p-3 bg-gray-50 dark:bg-gray-800/50 hover:border-blue-300 dark:hover:border-blue-600 transition-colors cursor-pointer;
+  }
+
+  .source-card.highlighted {
+    @apply border-blue-500 dark:border-blue-400 bg-blue-50 dark:bg-blue-900/20 ring-1 ring-blue-500/20;
+  }
+
+  .citation-badge {
+    @apply inline-flex items-center justify-center w-5 h-5 text-xs font-semibold bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded cursor-pointer hover:bg-blue-200 dark:hover:bg-blue-800 transition-colors;
+  }
+
+  .input-bar {
+    @apply border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4;
+  }
+
+  .settings-panel {
+    @apply bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 shadow-lg;
+  }
+}
+
+.fade-in {
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.pulse-dot {
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 1; }
+}
