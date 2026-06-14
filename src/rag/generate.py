@@ -13,6 +13,7 @@ from .retrieve import ContextItem, HybridRetrievalResult, Retriever
 
 AnswerMode = Literal["dense", "hybrid"]
 AnswerStatus = Literal["answered", "insufficient_evidence"]
+GenerationPath = Literal["initial", "extractive_fallback", "repair", "insufficient"]
 Device = Literal["auto", "cpu", "cuda"]
 
 DEFAULT_MAX_NEW_TOKENS = 512
@@ -59,6 +60,15 @@ class RagAnswerResult:
     retrieval: dict[str, Any]
     timing: AnswerTiming
     config: AnswerConfig
+    generation_path: GenerationPath
+    generation_rejection_reason: str | None = None
+    fallback_source_rank: int | None = None
+
+
+@dataclass(frozen=True)
+class ExtractiveAnswer:
+    answer: str
+    source_rank: int
 
 
 class RagAnswerer:
@@ -124,7 +134,27 @@ class RagAnswerer:
         generated = self._generate_text(messages)
         generation_s = time.perf_counter() - generation_started
         valid_source_ids = {source.source_id for source in sources}
-        if not _is_acceptable_answer(generated, valid_source_ids):
+        rejection_reason = _answer_rejection_reason(generated, valid_source_ids)
+        if rejection_reason is not None:
+            extracted = _extract_answer_from_contexts(query, contexts)
+            if extracted is not None and _is_acceptable_answer(extracted.answer, valid_source_ids):
+                return RagAnswerResult(
+                    query=query,
+                    mode=mode,
+                    status="answered",
+                    answer=extracted.answer,
+                    sources=sources,
+                    retrieval=retrieval_payload,
+                    timing=AnswerTiming(
+                        retrieval_s=retrieval_s,
+                        generation_s=generation_s,
+                        total_s=time.perf_counter() - started,
+                    ),
+                    config=config,
+                    generation_path="extractive_fallback",
+                    generation_rejection_reason=rejection_reason,
+                    fallback_source_rank=extracted.source_rank,
+                )
             repair_text = self._generate_text(build_repair_messages(query, contexts, generated))
             generation_s = time.perf_counter() - generation_started
             repaired = _parse_repair_answer(
@@ -145,22 +175,8 @@ class RagAnswerer:
                         total_s=time.perf_counter() - started,
                     ),
                     config=config,
-                )
-            extracted = _extract_answer_from_contexts(query, contexts)
-            if extracted is not None and _has_valid_citation(extracted, valid_source_ids):
-                return RagAnswerResult(
-                    query=query,
-                    mode=mode,
-                    status="answered",
-                    answer=extracted,
-                    sources=sources,
-                    retrieval=retrieval_payload,
-                    timing=AnswerTiming(
-                        retrieval_s=retrieval_s,
-                        generation_s=generation_s,
-                        total_s=time.perf_counter() - started,
-                    ),
-                    config=config,
+                    generation_path="repair",
+                    generation_rejection_reason=rejection_reason,
                 )
             return _insufficient_result(
                 query,
@@ -173,6 +189,7 @@ class RagAnswerer:
                     total_s=time.perf_counter() - started,
                 ),
                 config=config,
+                generation_rejection_reason=rejection_reason,
             )
         return RagAnswerResult(
             query=query,
@@ -187,6 +204,7 @@ class RagAnswerer:
                 total_s=time.perf_counter() - started,
             ),
             config=config,
+            generation_path="initial",
         )
 
     def _generate_text(self, messages: list[dict[str, str]]) -> str:
@@ -376,11 +394,17 @@ def _retrieval_payload(retrieval_result: object, contexts: list[ContextItem]) ->
 
 
 def _is_acceptable_answer(text: str, valid_source_ids: set[int]) -> bool:
+    return _answer_rejection_reason(text, valid_source_ids) is None
+
+
+def _answer_rejection_reason(text: str, valid_source_ids: set[int]) -> str | None:
     if any(marker in text for marker in PROMPT_LEAKAGE_MARKERS):
-        return False
+        return "prompt_leakage"
     if _states_insufficient_evidence(text):
-        return False
-    return _has_valid_citation(text, valid_source_ids)
+        return "model_reported_insufficient_evidence"
+    if not _has_valid_citation(text, valid_source_ids):
+        return "invalid_or_missing_citation"
+    return None
 
 
 def _has_valid_citation(text: str, valid_source_ids: set[int]) -> bool:
@@ -411,7 +435,19 @@ def _parse_repair_answer(text: str, *, valid_source_ids: set[int]) -> str | None
     return answer
 
 
-def _extract_answer_from_contexts(query: str, contexts: list[ContextItem]) -> str | None:
+def _extract_answer_from_contexts(query: str, contexts: list[ContextItem]) -> ExtractiveAnswer | None:
+    office_answer = _extract_office_email_answer(query, contexts)
+    if office_answer is not None:
+        return office_answer
+    address_answer = _extract_address_postcode_answer(query, contexts)
+    if address_answer is not None:
+        return address_answer
+    credit_answer = _extract_credit_answer(query, contexts)
+    if credit_answer is not None:
+        return credit_answer
+    schedule_answer = _extract_date_time_location_answer(query, contexts)
+    if schedule_answer is not None:
+        return schedule_answer
     robotics_answer = _extract_robotics_faculty_answer(query, contexts)
     if robotics_answer is not None:
         return robotics_answer
@@ -429,12 +465,87 @@ def _extract_answer_from_contexts(query: str, contexts: list[ContextItem]) -> st
             if not teacher:
                 continue
             if _is_chinese(query):
-                return f"{course_name}的任课老师是{teacher}。 [{index}]"
-            return f"{course_name} was taught by {teacher} [{index}]."
+                return ExtractiveAnswer(f"{course_name}的任课老师是{teacher}。 [{index}]", index)
+            return ExtractiveAnswer(f"{course_name} was taught by {teacher} [{index}].", index)
+    list_answer = _extract_list_or_comparison_answer(query, contexts)
+    if list_answer is not None:
+        return list_answer
     return None
 
 
-def _extract_robotics_faculty_answer(query: str, contexts: list[ContextItem]) -> str | None:
+def _extract_address_postcode_answer(query: str, contexts: list[ContextItem]) -> ExtractiveAnswer | None:
+    lowered_query = query.lower()
+    if not any(term in lowered_query for term in ("address", "postcode", "postal code")) and not any(
+        term in query for term in ("地址", "邮编")
+    ):
+        return None
+    return _extract_compact_evidence(
+        query,
+        contexts,
+        evidence_pattern=re.compile(r"(?:address|postcode|postal code|地址|邮编|\b\d{6}\b)", re.IGNORECASE),
+    )
+
+
+def _extract_office_email_answer(query: str, contexts: list[ContextItem]) -> ExtractiveAnswer | None:
+    lowered_query = query.lower()
+    if "office" not in lowered_query and "办公室" not in query and "email" not in lowered_query and "邮箱" not in query:
+        return None
+    query_terms = _anchor_terms(query)
+    for index, context in enumerate(contexts, start=1):
+        if context.url is None:
+            continue
+        normalized_text = re.sub(r"\s+", " ", context.text).strip()
+        if not _has_anchor_overlap(query_terms, normalized_text):
+            continue
+        email = _first_match(r"[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}", normalized_text)
+        room = _first_match(
+            r"\b(?:Room|Rm\.?)\s+[A-Za-z0-9][A-Za-z0-9.-]{1,20}\b|"
+            r"办公室[:：]\s*[\u4e00-\u9fffA-Za-z0-9.-]{2,30}",
+            normalized_text,
+        )
+        if room is not None and "办公室" in room:
+            room = re.sub(r"^办公室[:：]\s*", "", room).strip()
+        if email is None and room is None:
+            continue
+        facts = []
+        if room is not None:
+            facts.append(f"office: {room}")
+        if email is not None:
+            facts.append(f"email: {email}")
+        return ExtractiveAnswer(f"{'; '.join(facts)} [{index}].", index)
+    return None
+
+
+def _extract_credit_answer(query: str, contexts: list[ContextItem]) -> ExtractiveAnswer | None:
+    lowered_query = query.lower()
+    if "credit" not in lowered_query and "学分" not in query:
+        return None
+    return _extract_compact_evidence(
+        query,
+        contexts,
+        evidence_pattern=re.compile(r"\d+(?:\.\d+)?\s*(?:credits?|学分)", re.IGNORECASE),
+    )
+
+
+def _extract_date_time_location_answer(query: str, contexts: list[ContextItem]) -> ExtractiveAnswer | None:
+    lowered_query = query.lower()
+    if not any(term in lowered_query for term in ("date", "time", "when", "where", "location")) and not any(
+        term in query for term in ("日期", "时间", "地点", "哪里", "何时")
+    ):
+        return None
+    return _extract_compact_evidence(
+        query,
+        contexts,
+        evidence_pattern=re.compile(
+            r"\b\d{4}[-/.]\d{1,2}[-/.]\d{1,2}\b|\b\d{1,2}:\d{2}\b|"
+            r"\b(?:Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)\b|"
+            r"(?:日期|时间|地点|Room|Building)",
+            re.IGNORECASE,
+        ),
+    )
+
+
+def _extract_robotics_faculty_answer(query: str, contexts: list[ContextItem]) -> ExtractiveAnswer | None:
     if "robotics" not in query.lower():
         return None
     for index, context in enumerate(contexts, start=1):
@@ -443,8 +554,124 @@ def _extract_robotics_faculty_answer(query: str, contexts: list[ContextItem]) ->
         normalized_text = re.sub(r"\s+", " ", f"{context.title or ''} {context.text}")
         if "robotics" not in normalized_text.lower() or "schwertfeger" not in normalized_text.lower():
             continue
-        return f"Prof. Schwertfeger works on robotics [{index}]."
+        return ExtractiveAnswer(f"Prof. Schwertfeger works on robotics [{index}].", index)
     return None
+
+
+def _extract_list_or_comparison_answer(query: str, contexts: list[ContextItem]) -> ExtractiveAnswer | None:
+    lowered_query = query.lower()
+    if not any(term in lowered_query for term in ("list", "which", "different", "difference", "compare")) and not any(
+        term in query for term in ("哪些", "有什么不同", "区别", "比较")
+    ):
+        return None
+    return _extract_compact_evidence(query, contexts, evidence_pattern=None)
+
+
+def _extract_compact_evidence(
+    query: str,
+    contexts: list[ContextItem],
+    *,
+    evidence_pattern: re.Pattern[str] | None,
+) -> ExtractiveAnswer | None:
+    query_terms = _anchor_terms(query)
+    for index, context in enumerate(contexts, start=1):
+        if context.url is None:
+            continue
+        for sentence in _candidate_sentences(context.text):
+            if not _has_anchor_overlap(query_terms, sentence):
+                continue
+            if evidence_pattern is not None and evidence_pattern.search(sentence) is None:
+                continue
+            compact = _compact_sentence(sentence)
+            if compact:
+                return ExtractiveAnswer(f"{compact} [{index}].", index)
+    return None
+
+
+def _candidate_sentences(text: str) -> list[str]:
+    normalized = re.sub(r"\s+", " ", text).strip()
+    return [
+        sentence.strip(" ;")
+        for sentence in re.split(r"(?<=[。！？.!?])\s+|[;\n]+", normalized)
+        if len(sentence.strip()) >= 8
+    ]
+
+
+def _compact_sentence(sentence: str, *, max_chars: int = 220) -> str:
+    compact = sentence.strip(" .;，,")
+    if len(compact) <= max_chars:
+        return compact
+    return compact[: max_chars - 1].rstrip(" ,;，") + "…"
+
+
+def _first_match(pattern: str, text: str) -> str | None:
+    match = re.search(pattern, text, flags=re.IGNORECASE)
+    return match.group(0).strip(" .;,:") if match else None
+
+
+def _anchor_terms(text: str) -> set[str]:
+    ignored = {
+        "what",
+        "which",
+        "where",
+        "when",
+        "who",
+        "the",
+        "and",
+        "for",
+        "with",
+        "is",
+        "are",
+        "office",
+        "email",
+        "address",
+        "postcode",
+        "postal",
+        "code",
+        "credit",
+        "credits",
+        "date",
+        "time",
+        "location",
+        "list",
+        "different",
+        "difference",
+        "compare",
+        "多少",
+        "需要",
+        "修满",
+        "学分",
+        "什么",
+        "是谁",
+        "哪里",
+        "哪个",
+        "哪些",
+        "任课老师",
+        "教授",
+        "老师",
+        "具体",
+        "工作",
+    }
+    terms = {
+        token
+        for token in re.findall(r"[A-Za-z][A-Za-z0-9-]{2,}|\d+[A-Za-z0-9.-]*|[\u4e00-\u9fff]{2,}", text.lower())
+        if token not in ignored
+    }
+    for chunk in re.findall(r"[\u4e00-\u9fff]{2,}", text):
+        terms.update(
+            chunk[start : start + length].lower()
+            for length in range(2, min(6, len(chunk)) + 1)
+            for start in range(0, len(chunk) - length + 1)
+            if chunk[start : start + length].lower() not in ignored
+        )
+    return terms
+
+
+def _has_anchor_overlap(query_terms: set[str], text: str) -> bool:
+    if not query_terms:
+        return True
+    normalized_text = text.lower()
+    return any(term in normalized_text for term in query_terms)
 
 
 def _course_terms_from_query(query: str) -> list[str]:
@@ -470,6 +697,7 @@ def _insufficient_result(
     retrieval: dict[str, Any],
     timing: AnswerTiming,
     config: AnswerConfig,
+    generation_rejection_reason: str | None = None,
 ) -> RagAnswerResult:
     return RagAnswerResult(
         query=query,
@@ -480,6 +708,8 @@ def _insufficient_result(
         retrieval=retrieval,
         timing=timing,
         config=config,
+        generation_path="insufficient",
+        generation_rejection_reason=generation_rejection_reason,
     )
 
 

@@ -194,7 +194,15 @@ def _run_answer(
             "top_titles": [source.title or "" for source in answer_result.sources[: config.top_k]],
             "retrieval": answer_result.retrieval,
             "judge": asdict(judge),
-            "metrics": _answer_source_metrics(cited_urls, question.acceptable_source_urls),
+            "metrics": _answer_source_metrics(
+                cited_urls,
+                retrieved_urls,
+                question.acceptable_source_urls,
+                answer_status=answer_result.status,
+            ),
+            "generation_path": getattr(answer_result, "generation_path", None),
+            "generation_rejection_reason": getattr(answer_result, "generation_rejection_reason", None),
+            "fallback_source_rank": getattr(answer_result, "fallback_source_rank", None),
             "latency_s": round(time.perf_counter() - started, 6),
         }
     except Exception as error:
@@ -333,9 +341,23 @@ def _cited_source_urls(answer: str, sources: list[object]) -> list[str]:
     return urls
 
 
-def _answer_source_metrics(cited_urls: list[str], expected_urls: list[str]) -> dict[str, float]:
+def _answer_source_metrics(
+    cited_urls: list[str],
+    retrieved_urls: list[str],
+    expected_urls: list[str],
+    *,
+    answer_status: str,
+) -> dict[str, float]:
     metrics = source_metrics(cited_urls, expected_urls)
+    retrieved_metrics = source_metrics(retrieved_urls, expected_urls)
     for name, value in list(metrics.items()):
         if name.startswith("source_hit@"):
             metrics[f"cited_expected_{name}"] = value
+    for name, value in retrieved_metrics.items():
+        if name.startswith("source_hit@"):
+            metrics[f"retrieved_expected_{name}"] = value
+    retrieved_hit = retrieved_metrics.get("source_hit@5") == 1.0
+    cited_hit = metrics.get("cited_expected_source_hit@5") == 1.0
+    synthesis_missed = retrieved_hit and (answer_status == "insufficient_evidence" or not cited_hit)
+    metrics["answer_synthesis_miss"] = 1.0 if synthesis_missed else 0.0
     return metrics

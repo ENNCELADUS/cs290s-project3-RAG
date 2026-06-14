@@ -55,9 +55,20 @@ A model-produced answer grounded in retrieved official-source contexts, with cit
 sources. This is the answer type eligible for Phase 5 `sys_resp_before_opt` and `sys_resp_after_opt` fields.
 _Avoid_: packed context, retrieved snippet
 
+**Source-Derived Generated Answer**:
+A deterministic generated-answer fallback synthesized only from the user query, packed contexts, and source metadata
+when the local model draft is rejected. It must be concise, cite retrieved source numbers, and pass the same citation
+and leakage validation as model text.
+_Avoid_: answer key extraction, uncited snippet copy
+
 **Evidence-Insufficient Answer**:
 A generated-answer abstention used when the system cannot cite enough official-source evidence to answer safely.
 _Avoid_: failed retrieval, wrong answer, manual review
+
+**Answer Synthesis Miss**:
+An answer-generation diagnostic where **Expected Source Hit@5** is true for retrieved sources, but the final generated
+answer either abstains as **Evidence-Insufficient** or fails **Cited Expected Source Hit**.
+_Avoid_: retrieval miss, source_hit@5
 
 ## Relationships
 
@@ -69,8 +80,12 @@ _Avoid_: failed retrieval, wrong answer, manual review
 - **Expected Source Hit@5** measures retrieval evidence quality, not answer correctness.
 - **Cited Expected Source Hit** measures answer citation grounding, not answer correctness.
 - **Generated Answer** is produced from **Packed Context** values and can fill the final assignment response columns.
+- **Source-Derived Generated Answer** is allowed only after a rejected local-model draft and before repair or abstention;
+  it is still a **Generated Answer** because it is synthesized and cited, not a raw packed context.
 - **Evidence-Insufficient Answer** is a valid generated-answer outcome when the retrieved evidence is not usable, but it
   still maps to `is_correct=0` for final assignment labels.
+- **Answer Synthesis Miss** separates retrieval success from generation failure when expected official sources were
+  retrieved but the final answer did not cite them.
 - Dense retrieval built on enriched index text is a diagnostic ceiling, not the official **Before Optimization** baseline,
   because enriched index text is one of the implemented optimization changes.
 
@@ -95,3 +110,6 @@ _Avoid_: failed retrieval, wrong answer, manual review
   Phase 5 Excel evaluation.
 - "Answer" can mean a generated response or a retrieved snippet. Resolved: use **Generated Answer** for model output and
   **Packed Context** for retrieved evidence.
+- "source_hit@5" can be ambiguous in answer reports. Resolved: use **Expected Source Hit@5** or
+  `retrieved_expected_source_hit@5` for retrieved sources, and **Cited Expected Source Hit** or
+  `cited_expected_source_hit@5` for final answer citations.

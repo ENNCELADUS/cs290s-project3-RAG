@@ -298,6 +298,72 @@ def test_evaluate_answer_reports_evidence_insufficient_separately(tmp_path: Path
     assert workbook["review_queue"].max_row == 1
 
 
+def test_evaluate_answer_flags_answer_synthesis_miss_when_retrieval_found_expected_source(
+    tmp_path: Path, monkeypatch
+) -> None:
+    questions_path = tmp_path / "questions.csv"
+    _write_questions(questions_path)
+    output_dir = tmp_path / "eval"
+
+    class FakeRetriever:
+        @classmethod
+        def from_paths(cls, **kwargs: object) -> FakeRetriever:
+            return cls()
+
+    class FakeAnswerer:
+        def __init__(self, retriever: object, **kwargs: object) -> None:
+            pass
+
+        def answer(self, query: str, *, mode: str, top_k: int) -> _AnswerResult:
+            return _AnswerResult(
+                status="insufficient_evidence",
+                answer="Evidence is insufficient: the retrieved official sources do not contain enough information.",
+                sources=[_Source(1, "https://example.edu/source", "Expected")],
+                retrieval={"mode": mode, "hits": []},
+                generation_path="insufficient",
+                generation_rejection_reason="model_reported_insufficient_evidence",
+            )
+
+    monkeypatch.setattr("evaluate.runner.Retriever", FakeRetriever)
+    monkeypatch.setattr("evaluate.runner.RagAnswerer", FakeAnswerer)
+
+    assert (
+        evaluate_main(
+            [
+                "--questions",
+                str(questions_path),
+                "--output-dir",
+                str(output_dir),
+                "--runner",
+                "answer",
+                "--model-path",
+                str(tmp_path),
+                "--timestamp",
+                "20260611T051000Z",
+            ]
+        )
+        == 0
+    )
+
+    summary = json.loads((output_dir / "summary_20260611T051000Z.json").read_text(encoding="utf-8"))
+    assert summary["modes"]["dense"]["retrieved_expected_source_hit@5"] == 1.0
+    assert summary["modes"]["dense"]["cited_expected_source_hit@5"] == 0.0
+    assert summary["modes"]["dense"]["answer_synthesis_miss"] == 1.0
+    run_records = [
+        json.loads(line)
+        for line in (output_dir / "run_20260611T051000Z.jsonl").read_text(encoding="utf-8").splitlines()
+    ]
+    assert run_records[0]["generation_path"] == "insufficient"
+    assert run_records[0]["generation_rejection_reason"] == "model_reported_insufficient_evidence"
+    assert run_records[0]["metrics"]["retrieved_expected_source_hit@5"] == 1.0
+    assert run_records[0]["metrics"]["answer_synthesis_miss"] == 1.0
+    workbook = load_workbook(output_dir / "results_before_after_20260611T051000Z.xlsx")
+    diagnostic_headers = [cell.value for cell in next(workbook["diagnostics"].iter_rows(min_row=1, max_row=1))]
+    assert "generation_path" in diagnostic_headers
+    assert "retrieved_expected_source_hit@5" in diagnostic_headers
+    assert "answer_synthesis_miss" in diagnostic_headers
+
+
 def test_evaluate_answer_passes_hybrid_knobs_to_generation_retrieval_only(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -773,11 +839,24 @@ class _Source:
 
 
 class _AnswerResult:
-    def __init__(self, *, status: str, answer: str, sources: list[_Source], retrieval: dict[str, object]) -> None:
+    def __init__(
+        self,
+        *,
+        status: str,
+        answer: str,
+        sources: list[_Source],
+        retrieval: dict[str, object],
+        generation_path: str | None = None,
+        generation_rejection_reason: str | None = None,
+        fallback_source_rank: int | None = None,
+    ) -> None:
         self.status = status
         self.answer = answer
         self.sources = sources
         self.retrieval = retrieval
+        self.generation_path = generation_path
+        self.generation_rejection_reason = generation_rejection_reason
+        self.fallback_source_rank = fallback_source_rank
 
 
 def _write_questions(path: Path) -> None:

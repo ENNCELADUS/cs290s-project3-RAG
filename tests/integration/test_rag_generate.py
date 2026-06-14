@@ -311,6 +311,97 @@ def test_model_insufficient_evidence_text_returns_structural_insufficient_eviden
     assert result.answer.startswith("Evidence is insufficient")
 
 
+def test_model_refusal_falls_back_to_source_derived_office_email_answer(
+    tmp_path: Path, fake_hybrid_sentence_transformer_module, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    paths = _build_generation_artifacts(
+        tmp_path,
+        dense_text=(
+            "SIST Teaching Affairs Office is located at Room 1A-105. "
+            "Office email: teaching@sist.shanghaitech.edu.cn."
+        ),
+    )
+    model_path = tmp_path / "qwen-local"
+    model_path.mkdir()
+    _patch_generation_sequence(
+        monkeypatch,
+        [
+            "Evidence is insufficient.",
+            '{"status": "answered", "answer": "Repair should not be needed [1]."}',
+        ],
+    )
+    answerer = RagAnswerer(_retriever_from_paths(paths), model_path=model_path, device="cpu")
+
+    result = answerer.answer("What is the office and email for SIST Teaching Affairs?", mode="hybrid", top_k=2)
+
+    assert result.status == "answered"
+    assert result.generation_path == "extractive_fallback"
+    assert result.generation_rejection_reason == "model_reported_insufficient_evidence"
+    assert result.fallback_source_rank == 1
+    assert "Room 1A-105" in result.answer
+    assert "teaching@sist.shanghaitech.edu.cn" in result.answer
+    assert result.answer.endswith("[1].")
+    assert "Question:" not in result.answer
+    assert "TEXT:" not in result.answer
+
+
+def test_model_refusal_falls_back_to_source_derived_chinese_office_email_answer(
+    tmp_path: Path, fake_hybrid_sentence_transformer_module, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    paths = _build_generation_artifacts(
+        tmp_path,
+        dense_text=(
+            "王浩宇 副院长，正教授，博导。办公室： 信息学院3-530 "
+            "邮箱： wanghy@shanghaitech.edu.cn 研究方向：电力电子。"
+        ),
+    )
+    model_path = tmp_path / "qwen-local"
+    model_path.mkdir()
+    _patch_generation_sequence(
+        monkeypatch,
+        [
+            "证据不足：当前检索到的官方来源不足以回答这个问题。",
+            '{"status": "answered", "answer": "Repair should not be needed [1]."}',
+        ],
+    )
+    answerer = RagAnswerer(_retriever_from_paths(paths), model_path=model_path, device="cpu")
+
+    result = answerer.answer("王浩宇教授的办公室具体在哪里？他的工作邮箱是什么？", mode="hybrid", top_k=2)
+
+    assert result.status == "answered"
+    assert result.generation_path == "extractive_fallback"
+    assert "信息学院3-530" in result.answer
+    assert "wanghy@shanghaitech.edu.cn" in result.answer
+    assert result.answer.endswith("[1].")
+
+
+def test_source_derived_fallback_abstains_without_question_anchor_overlap(
+    tmp_path: Path, fake_hybrid_sentence_transformer_module, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    paths = _build_generation_artifacts(
+        tmp_path,
+        dense_text="Student Club Office is located at Room 2B-201. Office email: clubs@example.edu.",
+    )
+    model_path = tmp_path / "qwen-local"
+    model_path.mkdir()
+    _patch_generation_sequence(
+        monkeypatch,
+        [
+            "Evidence is insufficient.",
+            '{"status": "insufficient_evidence", "answer": ""}',
+        ],
+    )
+    answerer = RagAnswerer(_retriever_from_paths(paths), model_path=model_path, device="cpu")
+
+    result = answerer.answer("What is the office and email for SIST Teaching Affairs?", mode="hybrid", top_k=2)
+
+    assert result.status == "insufficient_evidence"
+    assert result.generation_path == "insufficient"
+    assert result.generation_rejection_reason == "model_reported_insufficient_evidence"
+    assert result.fallback_source_rank is None
+    assert "clubs@example.edu" not in result.answer
+
+
 def test_model_refusal_falls_back_to_explicit_course_teacher_evidence(
     tmp_path: Path, fake_hybrid_sentence_transformer_module, monkeypatch: pytest.MonkeyPatch
 ) -> None:

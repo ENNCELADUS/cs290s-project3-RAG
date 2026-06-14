@@ -158,7 +158,12 @@ def _write_workbook(
         "judge_status",
         "judge_reason",
         "source_hit@5",
+        "retrieved_expected_source_hit@5",
         "cited_expected_source_hit@5",
+        "answer_synthesis_miss",
+        "generation_path",
+        "generation_rejection_reason",
+        "fallback_source_rank",
         "mrr@5",
         "latency_s",
         "observed_source_urls",
@@ -178,7 +183,12 @@ def _write_workbook(
                 judge.get("status"),
                 judge.get("reason"),
                 metrics.get("source_hit@5"),
+                metrics.get("retrieved_expected_source_hit@5"),
                 metrics.get("cited_expected_source_hit@5"),
+                metrics.get("answer_synthesis_miss"),
+                record.get("generation_path"),
+                record.get("generation_rejection_reason"),
+                record.get("fallback_source_rank"),
                 metrics.get("mrr@5"),
                 record.get("latency_s"),
                 json.dumps(record.get("observed_source_urls", []), ensure_ascii=False),
@@ -193,7 +203,9 @@ def _write_workbook(
         "errors",
         "source_hit@1",
         "source_hit@5",
+        "retrieved_expected_source_hit@5",
         "cited_expected_source_hit@5",
+        "answer_synthesis_miss",
         "source_recall@5",
         "mrr@5",
         "ndcg@5",
@@ -263,6 +275,8 @@ def _failure_reason(record: dict[str, Any]) -> str:
     if record["status"] != "ok":
         return str(record.get("error") or "run error")
     judge = dict(record.get("judge", {}))
+    if dict(record.get("metrics", {})).get("answer_synthesis_miss") == 1.0:
+        return "retrieved expected source but answer synthesis missed citation or abstained"
     if judge.get("status") == "evidence_insufficient":
         return str(judge.get("reason") or "evidence insufficient answer")
     if dict(record.get("metrics", {})).get("source_hit@5") != 1.0:
