@@ -37,7 +37,7 @@ RUN_ID="${RUN_ID:-generation_hybrid_qwen35_$(date -u +%Y%m%dT%H%M%SZ)}"
 OUTPUT_DIR="${OUTPUT_DIR:-data/eval/${RUN_ID}}"
 QUESTIONS_PATH="${QUESTIONS_PATH:-data/test/question_final_structured_100.csv}"
 
-QWEN_MODEL_PATH="${QWEN_MODEL_PATH:-/public/home/wangar2023/models/Qwen3.5-2B}"
+QWEN_MODEL_PATH="${QWEN_MODEL_PATH:-/public/home/wangar2023/models/Qwen3.5-9B}"
 DENSE_MODEL_PATH="${DENSE_MODEL_PATH:-/public/home/wangar2023/.cache/huggingface/hub/models--BAAI--bge-m3/snapshots/5617a9f61b028005a4858fdac845db406aefb181}"
 
 DB_PATH="${DB_PATH:-data/rag/sist_merged_2026-05-27.sqlite}"
@@ -47,7 +47,7 @@ CHUNK_INDEX_PATH="${CHUNK_INDEX_PATH:-data/rag/chunk_index_2026-05-27.jsonl}"
 REPORT_PATH="${REPORT_PATH:-data/rag/build_report_2026-05-27.json}"
 
 TOP_K="${TOP_K:-5}"
-MAX_NEW_TOKENS="${MAX_NEW_TOKENS:-512}"
+MAX_NEW_TOKENS="${MAX_NEW_TOKENS:-1024}"
 TEMPERATURE="${TEMPERATURE:-0.0}"
 DEVICE="${DEVICE:-cuda}"
 ANSWER_RERANKER_DEVICE="${ANSWER_RERANKER_DEVICE:-cpu}"
