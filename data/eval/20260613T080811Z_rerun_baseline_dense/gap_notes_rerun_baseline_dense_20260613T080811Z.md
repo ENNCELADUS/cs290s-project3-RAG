@@ -1,0 +1,102 @@
+# Evaluation Gap Notes
+
+- `q001` `dense`: retrieval-only run
+- `q002` `dense`: retrieval-only run
+- `q003` `dense`: expected official source not found in top 5
+- `q004` `dense`: retrieval-only run
+- `q005` `dense`: retrieval-only run
+- `q006` `dense`: retrieval-only run
+- `q007` `dense`: expected official source not found in top 5
+- `q008` `dense`: retrieval-only run
+- `q009` `dense`: retrieval-only run
+- `q010` `dense`: expected official source not found in top 5
+- `q011` `dense`: expected official source not found in top 5
+- `q012` `dense`: retrieval-only run
+- `q013` `dense`: expected official source not found in top 5
+- `q014` `dense`: retrieval-only run
+- `q015` `dense`: retrieval-only run
+- `q016` `dense`: expected official source not found in top 5
+- `q017` `dense`: retrieval-only run
+- `q018` `dense`: expected official source not found in top 5
+- `q019` `dense`: retrieval-only run
+- `q020` `dense`: expected official source not found in top 5
+- `q021` `dense`: expected official source not found in top 5
+- `q022` `dense`: expected official source not found in top 5
+- `q023` `dense`: expected official source not found in top 5
+- `q024` `dense`: expected official source not found in top 5
+- `q025` `dense`: retrieval-only run
+- `q026` `dense`: expected official source not found in top 5
+- `q027` `dense`: retrieval-only run
+- `q028` `dense`: retrieval-only run
+- `q029` `dense`: retrieval-only run
+- `q030` `dense`: retrieval-only run
+- `q031` `dense`: expected official source not found in top 5
+- `q032` `dense`: expected official source not found in top 5
+- `q033` `dense`: expected official source not found in top 5
+- `q034` `dense`: retrieval-only run
+- `q035` `dense`: retrieval-only run
+- `q036` `dense`: retrieval-only run
+- `q037` `dense`: expected official source not found in top 5
+- `q038` `dense`: retrieval-only run
+- `q039` `dense`: expected official source not found in top 5
+- `q040` `dense`: retrieval-only run
+- `q041` `dense`: expected official source not found in top 5
+- `q042` `dense`: retrieval-only run
+- `q043` `dense`: retrieval-only run
+- `q044` `dense`: retrieval-only run
+- `q045` `dense`: retrieval-only run
+- `q046` `dense`: expected official source not found in top 5
+- `q047` `dense`: retrieval-only run
+- `q048` `dense`: retrieval-only run
+- `q049` `dense`: retrieval-only run
+- `q050` `dense`: retrieval-only run
+- `q051` `dense`: retrieval-only run
+- `q052` `dense`: retrieval-only run
+- `q053` `dense`: retrieval-only run
+- `q054` `dense`: retrieval-only run
+- `q055` `dense`: retrieval-only run
+- `q056` `dense`: retrieval-only run
+- `q057` `dense`: retrieval-only run
+- `q058` `dense`: retrieval-only run
+- `q059` `dense`: retrieval-only run
+- `q060` `dense`: retrieval-only run
+- `q061` `dense`: retrieval-only run
+- `q062` `dense`: retrieval-only run
+- `q063` `dense`: expected official source not found in top 5
+- `q064` `dense`: retrieval-only run
+- `q065` `dense`: retrieval-only run
+- `q066` `dense`: retrieval-only run
+- `q067` `dense`: retrieval-only run
+- `q068` `dense`: retrieval-only run
+- `q069` `dense`: expected official source not found in top 5
+- `q070` `dense`: expected official source not found in top 5
+- `q071` `dense`: retrieval-only run
+- `q072` `dense`: expected official source not found in top 5
+- `q073` `dense`: retrieval-only run
+- `q074` `dense`: retrieval-only run
+- `q075` `dense`: retrieval-only run
+- `q076` `dense`: retrieval-only run
+- `q077` `dense`: expected official source not found in top 5
+- `q078` `dense`: retrieval-only run
+- `q079` `dense`: retrieval-only run
+- `q080` `dense`: retrieval-only run
+- `q081` `dense`: retrieval-only run
+- `q082` `dense`: retrieval-only run
+- `q083` `dense`: retrieval-only run
+- `q084` `dense`: retrieval-only run
+- `q085` `dense`: retrieval-only run
+- `q086` `dense`: retrieval-only run
+- `q087` `dense`: retrieval-only run
+- `q088` `dense`: retrieval-only run
+- `q089` `dense`: retrieval-only run
+- `q090` `dense`: expected official source not found in top 5
+- `q091` `dense`: retrieval-only run
+- `q092` `dense`: retrieval-only run
+- `q093` `dense`: retrieval-only run
+- `q094` `dense`: retrieval-only run
+- `q095` `dense`: retrieval-only run
+- `q096` `dense`: retrieval-only run
+- `q097` `dense`: retrieval-only run
+- `q098` `dense`: retrieval-only run
+- `q099` `dense`: retrieval-only run
+- `q100` `dense`: retrieval-only run
