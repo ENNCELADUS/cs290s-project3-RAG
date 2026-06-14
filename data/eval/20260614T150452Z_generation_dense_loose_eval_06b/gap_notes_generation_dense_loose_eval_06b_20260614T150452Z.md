@@ -1,0 +1,96 @@
+# Evaluation Gap Notes
+
+- `q002` `dense`: loose cited-source judge matched 0/1 facts
+- `q003` `dense`: expected official source not found in top 5
+- `q004` `dense`: loose cited-source judge matched 0/1 facts
+- `q005` `dense`: loose cited-source judge matched 0/1 facts
+- `q006` `dense`: loose cited-source judge matched 0/1 facts
+- `q007` `dense`: evidence insufficient answer
+- `q008` `dense`: retrieved expected source but answer synthesis missed citation or abstained
+- `q009` `dense`: loose cited-source judge matched 0/1 facts
+- `q010` `dense`: evidence insufficient answer
+- `q011` `dense`: expected official source not found in top 5
+- `q012` `dense`: retrieved expected source but answer synthesis missed citation or abstained
+- `q013` `dense`: expected official source not found in top 5
+- `q014` `dense`: retrieved expected source but answer synthesis missed citation or abstained
+- `q015` `dense`: loose cited-source judge matched 0/1 facts
+- `q016` `dense`: expected official source not found in top 5
+- `q017` `dense`: retrieved expected source but answer synthesis missed citation or abstained
+- `q018` `dense`: expected official source not found in top 5
+- `q019` `dense`: retrieved expected source but answer synthesis missed citation or abstained
+- `q020` `dense`: evidence insufficient answer
+- `q021` `dense`: evidence insufficient answer
+- `q022` `dense`: evidence insufficient answer
+- `q023` `dense`: expected official source not found in top 5
+- `q024` `dense`: evidence insufficient answer
+- `q025` `dense`: retrieved expected source but answer synthesis missed citation or abstained
+- `q026` `dense`: retrieved expected source but answer synthesis missed citation or abstained
+- `q027` `dense`: loose cited-source judge matched 0/1 facts
+- `q028` `dense`: retrieved expected source but answer synthesis missed citation or abstained
+- `q029` `dense`: loose cited-source judge matched 0/1 facts
+- `q030` `dense`: retrieved expected source but answer synthesis missed citation or abstained
+- `q031` `dense`: evidence insufficient answer
+- `q032` `dense`: expected official source not found in top 5
+- `q033` `dense`: evidence insufficient answer
+- `q034` `dense`: retrieved expected source but answer synthesis missed citation or abstained
+- `q035` `dense`: loose cited-source judge matched 0/1 facts
+- `q036` `dense`: retrieved expected source but answer synthesis missed citation or abstained
+- `q037` `dense`: expected official source not found in top 5
+- `q038` `dense`: loose cited-source judge matched 0/1 facts
+- `q039` `dense`: expected official source not found in top 5
+- `q040` `dense`: retrieved expected source but answer synthesis missed citation or abstained
+- `q041` `dense`: evidence insufficient answer
+- `q042` `dense`: retrieved expected source but answer synthesis missed citation or abstained
+- `q043` `dense`: retrieved expected source but answer synthesis missed citation or abstained
+- `q044` `dense`: loose cited-source judge matched 0/1 facts
+- `q045` `dense`: retrieved expected source but answer synthesis missed citation or abstained
+- `q046` `dense`: expected official source not found in top 5
+- `q047` `dense`: loose cited-source judge matched 0/1 facts
+- `q048` `dense`: retrieved expected source but answer synthesis missed citation or abstained
+- `q049` `dense`: loose cited-source judge matched 0/1 facts
+- `q050` `dense`: retrieved expected source but answer synthesis missed citation or abstained
+- `q051` `dense`: retrieved expected source but answer synthesis missed citation or abstained
+- `q052` `dense`: retrieved expected source but answer synthesis missed citation or abstained
+- `q053` `dense`: retrieved expected source but answer synthesis missed citation or abstained
+- `q054` `dense`: retrieved expected source but answer synthesis missed citation or abstained
+- `q055` `dense`: retrieved expected source but answer synthesis missed citation or abstained
+- `q058` `dense`: loose cited-source judge matched 2/4 facts
+- `q059` `dense`: loose cited-source judge matched 2/4 facts
+- `q060` `dense`: loose cited-source judge matched 2/4 facts
+- `q061` `dense`: retrieved expected source but answer synthesis missed citation or abstained
+- `q062` `dense`: retrieved expected source but answer synthesis missed citation or abstained
+- `q063` `dense`: evidence insufficient answer
+- `q064` `dense`: retrieved expected source but answer synthesis missed citation or abstained
+- `q065` `dense`: loose cited-source judge matched 0/4 facts
+- `q066` `dense`: loose cited-source judge matched 0/7 facts
+- `q067` `dense`: loose cited-source judge matched 0/2 facts
+- `q068` `dense`: loose cited-source judge matched 0/2 facts
+- `q069` `dense`: expected official source not found in top 5
+- `q070` `dense`: expected official source not found in top 5
+- `q071` `dense`: loose cited-source judge matched 0/4 facts
+- `q072` `dense`: expected official source not found in top 5
+- `q073` `dense`: loose cited-source judge matched 0/3 facts
+- `q074` `dense`: loose cited-source judge matched 1/3 facts
+- `q075` `dense`: loose cited-source judge matched 0/3 facts
+- `q076` `dense`: loose cited-source judge matched 0/2 facts
+- `q077` `dense`: expected official source not found in top 5
+- `q078` `dense`: retrieved expected source but answer synthesis missed citation or abstained
+- `q079` `dense`: loose cited-source judge matched 0/4 facts
+- `q080` `dense`: retrieved expected source but answer synthesis missed citation or abstained
+- `q081` `dense`: retrieved expected source but answer synthesis missed citation or abstained
+- `q083` `dense`: loose cited-source judge matched 0/5 facts
+- `q084` `dense`: loose cited-source judge matched 0/6 facts
+- `q085` `dense`: loose cited-source judge matched 0/5 facts
+- `q086` `dense`: retrieved expected source but answer synthesis missed citation or abstained
+- `q087` `dense`: retrieved expected source but answer synthesis missed citation or abstained
+- `q088` `dense`: retrieved expected source but answer synthesis missed citation or abstained
+- `q089` `dense`: loose cited-source judge matched 0/6 facts
+- `q090` `dense`: evidence insufficient answer
+- `q091` `dense`: loose cited-source judge matched 1/3 facts
+- `q093` `dense`: retrieved expected source but answer synthesis missed citation or abstained
+- `q094` `dense`: loose cited-source judge matched 0/8 facts
+- `q095` `dense`: loose cited-source judge matched 0/7 facts
+- `q096` `dense`: retrieved expected source but answer synthesis missed citation or abstained
+- `q097` `dense`: retrieved expected source but answer synthesis missed citation or abstained
+- `q099` `dense`: loose cited-source judge matched 0/7 facts
+- `q100` `dense`: retrieved expected source but answer synthesis missed citation or abstained
