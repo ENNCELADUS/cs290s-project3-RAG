@@ -1,15 +1,18 @@
 from __future__ import annotations
 
 import math
+from urllib.parse import urlsplit
 
 from rag.source_urls import normalize_url, sist_article_id, sist_profile_slug
+
+_HOMEPAGE_PATHS = {"/", "/main.htm"}
 
 
 def source_matches(observed_url: str, expected_url: str) -> bool:
     observed = normalize_url(observed_url)
     expected = normalize_url(expected_url)
     if expected.endswith("/"):
-        return observed == expected or observed.startswith(expected)
+        return _same_homepage(observed, expected)
     if observed == expected or observed.startswith(f"{expected}/"):
         return True
     observed_profile_slug = sist_profile_slug(observed)
@@ -19,6 +22,12 @@ def source_matches(observed_url: str, expected_url: str) -> bool:
     observed_article_id = sist_article_id(observed)
     expected_article_id = sist_article_id(expected)
     return observed_article_id is not None and observed_article_id == expected_article_id
+
+
+def _same_homepage(observed_url: str, expected_url: str) -> bool:
+    observed = urlsplit(observed_url)
+    expected = urlsplit(expected_url)
+    return observed.netloc == expected.netloc and observed.path in _HOMEPAGE_PATHS and expected.path in _HOMEPAGE_PATHS
 
 
 def source_metrics(

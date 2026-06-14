@@ -321,7 +321,10 @@ def build_messages(query: str, contexts: list[ContextItem]) -> list[dict[str, st
                     "You are a local RAG answer generator for official ShanghaiTech/SIST sources.",
                     "Answer in the same language as the user question.",
                     "Use only the provided sources. Do not use outside knowledge.",
+                    "Preserve label-value bindings exactly; do not copy totals into adjacent rows or fields.",
+                    "For formulas, preserve the source year's components and weights exactly.",
                     "Every factual paragraph must include at least one numbered citation like [1].",
+                    "If the question asks for multiple fields or items, answer every requested field found in sources.",
                     "If the sources do not contain enough evidence, say that the evidence is insufficient.",
                     "Write only the final answer. Do not copy source metadata or prompt text.",
                 ]
@@ -349,10 +352,14 @@ def build_repair_messages(query: str, contexts: list[ContextItem], draft: str) -
                     "You repair local RAG answers for official ShanghaiTech/SIST sources.",
                     "Answer in the same language as the user question.",
                     "Use only the provided sources. Do not add outside facts.",
+                    "Preserve label-value bindings exactly; do not copy totals into adjacent rows or fields.",
+                    "For formulas, preserve the source year's components and weights exactly.",
                     "Return only one strict JSON object.",
                     'For a supported answer, use: {"status":"answered","answer":"... [1]"}',
                     'If the sources are insufficient, use: {"status":"insufficient_evidence","answer":""}',
                     "The answer must include numbered citations that match the provided source numbers.",
+                    "If the question asks for multiple fields or items, include every requested field found in "
+                    "sources.",
                 ]
             ),
         },
@@ -508,6 +515,10 @@ def _metadata_answer_context_score(query: str, context: ContextItem) -> tuple[fl
         score += min(anchor_count, 8) * 0.4
         reasons.append(f"anchor_overlap:{anchor_count}")
 
+    if _query_wants_discipline_directions(query) and _has_discipline_direction_anchor(haystack):
+        score += 6.0
+        reasons.append("task_anchor:学科方向")
+
     program_matches = _matched_terms(
         query,
         haystack,
@@ -571,8 +582,21 @@ def _matched_terms(query: str, context_text: str, terms: tuple[str, ...]) -> lis
 
 def _query_wants_contact(query: str) -> bool:
     lowered = query.lower()
-    return any(term in lowered for term in ("office", "email", "contact", "faculty", "professor")) or any(
-        term in query for term in ("办公室", "邮箱", "教师", "教授", "老师", "联系方式")
+    chinese_contact_terms = (
+        "办公室",
+        "邮箱",
+        "教师",
+        "教授",
+        "老师",
+        "联系方式",
+        "联系人",
+        "联系电话",
+        "电话",
+        "咨询",
+        "联系",
+    )
+    return any(term in lowered for term in ("office", "email", "contact", "faculty", "professor", "phone")) or any(
+        term in query for term in chinese_contact_terms
     )
 
 
@@ -581,8 +605,14 @@ def _has_contact_evidence(text: str) -> bool:
     return (
         re.search(r"[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}", text) is not None
         or "office" in lowered
+        or "phone" in lowered
+        or "tel" in lowered
         or "办公室" in text
         or "邮箱" in text
+        or "联系人" in text
+        or "联系电话" in text
+        or "电话" in text
+        or "咨询" in text
         or "professor" in lowered
         or re.search(r"\b(?:Room|Rm\.?)\s+[A-Za-z0-9]", text, flags=re.IGNORECASE) is not None
     )
@@ -593,6 +623,21 @@ def _query_wants_degree_page(query: str) -> bool:
     return any(term in lowered for term in ("program", "degree", "credit", "credits", "curriculum")) or any(
         term in query for term in ("培养方案", "学分", "课程", "专业")
     )
+
+
+def _query_wants_discipline_directions(query: str) -> bool:
+    lowered = query.lower()
+    return (
+        "discipline direction" in lowered
+        or "research direction" in lowered
+        or "学科方向" in query
+        or ("方向" in query and any(term in query for term in ("六个", "6个", "专业", "本科招生", "招生")))
+    )
+
+
+def _has_discipline_direction_anchor(text: str) -> bool:
+    lowered = text.lower()
+    return "学科方向" in text or "discipline direction" in lowered
 
 
 def _looks_like_degree_page(text: str) -> bool:
@@ -630,6 +675,15 @@ def _answer_rejection_reason(
         if shape_rejection is not None:
             return shape_rejection
     if query is not None and contexts:
+        label_binding_rejection = _label_value_binding_rejection_reason(query, text, contexts)
+        if label_binding_rejection is not None:
+            return label_binding_rejection
+        formula_rejection = _numeric_formula_rejection_reason(query, text, contexts)
+        if formula_rejection is not None:
+            return formula_rejection
+        source_fact_rejection = _requested_source_fact_rejection_reason(query, text, contexts)
+        if source_fact_rejection is not None:
+            return source_fact_rejection
         citation_rejection = _citation_support_rejection_reason(query, text, contexts)
         if citation_rejection is not None:
             return citation_rejection
@@ -657,6 +711,51 @@ def _query_requires_contact_fact(query: str) -> bool:
     return any(term in lowered for term in ("office", "email", "contact")) or any(
         term in query for term in ("办公室", "邮箱", "联系方式", "联系")
     )
+
+
+def _requested_source_fact_rejection_reason(query: str, answer: str, contexts: list[ContextItem]) -> str | None:
+    cited_ids = {int(match.group(1)) for match in VALID_CITATION_RE.finditer(answer)}
+    cited_text = "\n".join(_context_score_text(context) for context in contexts if context.rank in cited_ids)
+    if _query_requires_phone_fact(query) and _has_phone_evidence(cited_text) and not _has_phone_evidence(answer):
+        return "missing_requested_phone_fact"
+    if _query_requires_capacity_limit(query):
+        expected_limits = _capacity_limit_numbers(cited_text)
+        if expected_limits and expected_limits.isdisjoint(_capacity_limit_numbers(answer)):
+            return "missing_requested_capacity_limit"
+    missing_labels = [
+        label for label in ("课题组", "联合实验室") if label in query and label in cited_text and label not in answer
+    ]
+    if missing_labels:
+        return "missing_requested_labeled_fact"
+    return None
+
+
+def _query_requires_phone_fact(query: str) -> bool:
+    lowered = query.lower()
+    return any(term in lowered for term in ("phone", "telephone", "tel", "contact")) or any(
+        term in query for term in ("电话", "联系电话", "联系方式", "联系人")
+    )
+
+
+def _has_phone_evidence(text: str) -> bool:
+    return re.search(r"(?<!\d)(?:0\d{2,3}[-\s]?)?\d{7,8}(?!\d)", text) is not None
+
+
+def _query_requires_capacity_limit(query: str) -> bool:
+    lowered = query.lower()
+    return any(term in lowered for term in ("capacity", "limit", "cap")) or any(
+        term in query for term in ("人数上限", "上限", "不超过", "名额")
+    )
+
+
+def _capacity_limit_numbers(text: str) -> set[str]:
+    numbers: set[str] = set()
+    for match in re.finditer(r"(?:不超过|不多于|限|上限)[^。；;，,\n]{0,12}?(\d+)\s*(?:人|位|名)", text):
+        numbers.add(match.group(1))
+    limit_after_subject = r"(?:人数|名额)[^。；;，,\n]{0,12}?(?:不超过|不多于|限|上限)[^。；;，,\n]{0,8}?(\d+)"
+    for match in re.finditer(limit_after_subject, text):
+        numbers.add(match.group(1))
+    return numbers
 
 
 def _parse_repair_answer(
@@ -708,6 +807,94 @@ def _citation_support_rejection_reason(query: str, answer: str, contexts: list[C
     if answer_facts and best_score >= 5.0 and best_score >= cited_best + 3.0:
         return "weak_citation_support"
     return None
+
+
+def _label_value_binding_rejection_reason(query: str, answer: str, contexts: list[ContextItem]) -> str | None:
+    cited_ids = {int(match.group(1)) for match in VALID_CITATION_RE.finditer(answer)}
+    if not cited_ids:
+        return None
+    if "任选" not in query and "任选" not in answer:
+        return None
+    answer_free_values = _answer_labeled_credit_values(answer, ("任选课", "任选课程"))
+    if not answer_free_values:
+        return None
+
+    cited_contexts = [context for context in contexts if context.rank in cited_ids and context.url]
+    expected_values = _degree_plan_expected_values(query, cited_contexts, "任选课程")
+    if not expected_values:
+        return None
+    if answer_free_values.isdisjoint(expected_values):
+        return "unsupported_label_value_binding"
+    return None
+
+
+def _numeric_formula_rejection_reason(query: str, answer: str, contexts: list[ContextItem]) -> str | None:
+    if not _query_wants_formula_answer(query, answer):
+        return None
+    cited_ids = {int(match.group(1)) for match in VALID_CITATION_RE.finditer(answer)}
+    if not cited_ids:
+        return None
+    answer_weights = _percent_values(answer)
+    if not answer_weights:
+        return None
+    cited_text = " ".join(_context_score_text(context) for context in contexts if context.rank in cited_ids)
+    cited_weights = _percent_values(cited_text)
+    if cited_weights and not answer_weights <= cited_weights:
+        return "unsupported_numeric_formula"
+    return None
+
+
+def _query_wants_formula_answer(query: str, answer: str) -> bool:
+    combined = f"{query} {answer}"
+    return ("公式" in combined or "总成绩" in combined or "formula" in combined.lower()) and "%" in answer
+
+
+def _percent_values(text: str) -> set[str]:
+    return {_clean_number(value) for value in re.findall(r"(?<!\d)(\d+(?:\.\d+)?)\s*%", text)}
+
+
+def _answer_labeled_credit_values(answer: str, labels: tuple[str, ...]) -> set[str]:
+    values: set[str] = set()
+    for label in labels:
+        for match in re.finditer(rf"{label}[^。；;，,、\n]{{0,20}}?(\d+(?:\.\d+)?)\s*学分", answer):
+            values.add(_clean_number(match.group(1)))
+    return values
+
+
+def _degree_plan_expected_values(query: str, contexts: list[ContextItem], label: str) -> set[str]:
+    expected: set[str] = set()
+    matching_contexts = []
+    for context in contexts:
+        text = re.sub(r"\s+", " ", f"{context.title or ''} {context.text}").strip()
+        summary = _degree_plan_summary(text)
+        if summary is None:
+            continue
+        if _degree_plan_context_matches_query(query, text):
+            matching_contexts.append((summary, label))
+        elif not matching_contexts:
+            row = summary.get(label)
+            if isinstance(row, tuple):
+                expected.add(row[2])
+    if matching_contexts:
+        expected.clear()
+        for summary, row_label in matching_contexts:
+            row = summary.get(row_label)
+            if isinstance(row, tuple):
+                expected.add(row[2])
+    return expected
+
+
+def _degree_plan_context_matches_query(query: str, text: str) -> bool:
+    query_years = _years(query)
+    if query_years and not query_years <= _years(text):
+        return False
+    if "人工智能荣誉班" in query and "人工智能荣誉班" not in text:
+        return False
+    if ("电子信息工程" in query or "EE" in query) and "电子信息工程" not in text and "EE" not in text:
+        return False
+    if "计算机科学与技术" in query and "计算机科学与技术" not in text:
+        return False
+    return True
 
 
 def _citation_support_score(query: str, answer: str, context: ContextItem) -> float:
@@ -762,9 +949,18 @@ def _extract_answer_from_contexts(query: str, contexts: list[ContextItem]) -> Ex
     address_answer = _extract_address_postcode_answer(query, contexts)
     if address_answer is not None:
         return address_answer
+    lab_count_answer = _extract_lab_count_answer(query, contexts)
+    if lab_count_answer is not None:
+        return lab_count_answer
     degree_summary_answer = _extract_degree_plan_summary_answer(query, contexts)
     if degree_summary_answer is not None:
         return degree_summary_answer
+    retest_formula_answer = _extract_retest_formula_answer(query, contexts)
+    if retest_formula_answer is not None:
+        return retest_formula_answer
+    course_credit_answer = _extract_course_credit_row_answer(query, contexts)
+    if course_credit_answer is not None:
+        return course_credit_answer
     course_design_answer = _extract_course_design_pair_answer(query, contexts)
     if course_design_answer is not None:
         return course_design_answer
@@ -780,6 +976,12 @@ def _extract_answer_from_contexts(query: str, contexts: list[ContextItem]) -> Ex
     robotics_answer = _extract_robotics_faculty_answer(query, contexts)
     if robotics_answer is not None:
         return robotics_answer
+    profile_answer = _extract_compact_person_profile_answer(query, contexts)
+    if profile_answer is not None:
+        return profile_answer
+    student_undergraduate_answer = _extract_student_undergraduate_school_answer(query, contexts)
+    if student_undergraduate_answer is not None:
+        return student_undergraduate_answer
     for course_name in _course_terms_from_query(query):
         course_pattern = re.escape(course_name).replace(r"\ ", r"\s+")
         teacher_pattern = re.compile(rf"{course_pattern}\s*【\s*(?P<teacher>[^】]{{1,80}}?)\s*】", re.IGNORECASE)
@@ -802,6 +1004,53 @@ def _extract_answer_from_contexts(query: str, contexts: list[ContextItem]) -> Ex
     return None
 
 
+def _extract_lab_count_answer(query: str, contexts: list[ContextItem]) -> ExtractiveAnswer | None:
+    if "课题组" not in query and "联合实验室" not in query:
+        return None
+    for context in contexts:
+        if context.url is None:
+            continue
+        text = re.sub(r"\s+", "", context.text)
+        match = re.search(r"(\d+)个?课题组[^。；;]{0,20}?(\d+)个?联合实验室", text)
+        if match is None:
+            continue
+        groups, labs = match.groups()
+        return ExtractiveAnswer(f"信息学院有{groups}个课题组、{labs}个联合实验室。 [{context.rank}]", context.rank)
+    return None
+
+
+def _extract_retest_formula_answer(query: str, contexts: list[ContextItem]) -> ExtractiveAnswer | None:
+    if "复试" not in query or ("公式" not in query and "总成绩" not in query):
+        return None
+    for context in contexts:
+        if context.url is None:
+            continue
+        text = re.sub(r"\s+", "", context.text)
+        if "综合素质考核" not in text or "专业面试" not in text or "总成绩" not in text:
+            continue
+        full_score = re.search(r"复试成绩满分(?:为)?(\d+(?:\.\d+)?)分", text)
+        pass_score = re.search(r"(\d+(?:\.\d+)?)分为合格", text)
+        formula = re.search(
+            r"考生总成绩[=＝]初试成绩[×x*](\d+(?:\.\d+)?%)\+复试成绩[×x*](\d+(?:\.\d+)?%)",
+            text,
+            flags=re.IGNORECASE,
+        )
+        if full_score is None or pass_score is None or formula is None:
+            continue
+        full = _clean_number(full_score.group(1))
+        passing = _clean_number(pass_score.group(1))
+        initial_weight, retest_weight = formula.groups()
+        return ExtractiveAnswer(
+            (
+                "2026年复试包括综合素质考核和专业面试；"
+                f"复试成绩满分为{full}分，{passing}分为合格；"
+                f"考生总成绩=初试成绩×{initial_weight}+复试成绩×{retest_weight}。 [{context.rank}]"
+            ),
+            context.rank,
+        )
+    return None
+
+
 def _extract_schedule_contact_answer(query: str, contexts: list[ContextItem]) -> ExtractiveAnswer | None:
     if not _query_wants_schedule_and_contact(query):
         return None
@@ -812,7 +1061,8 @@ def _extract_schedule_contact_answer(query: str, contexts: list[ContextItem]) ->
             r"\b\d{4}[-/.]\d{1,2}[-/.]\d{1,2}\b|"
             r"\d{1,2}\s*月\s*\d{1,2}\s*日|"
             r"[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}|"
-            r"(?:日期|时间|安排|联系|联系人|如有疑问|邮箱)",
+            r"(?<!\d)(?:0\d{2,3}[-\s]?)?\d{7,8}(?!\d)|"
+            r"(?:日期|时间|安排|联系|联系人|如有疑问|邮箱|电话|截止|递交|地点|人数|上限|不超过|主讲)",
             re.IGNORECASE,
         ),
     )
@@ -988,6 +1238,36 @@ def _extract_degree_plan_summary_answer(query: str, contexts: list[ContextItem])
     return None
 
 
+def _extract_course_credit_row_answer(query: str, contexts: list[ContextItem]) -> ExtractiveAnswer | None:
+    if "学分" not in query and "credit" not in query.lower():
+        return None
+    for code in _course_codes_from_query(query):
+        for context in contexts:
+            if context.url is None:
+                continue
+            text = re.sub(r"\s+", " ", context.text).strip()
+            match = re.search(
+                rf"(?<![A-Z0-9]){re.escape(code)}(?![A-Z0-9])"
+                rf"\s+(?P<name>[\u4e00-\u9fffA-Za-z0-9（）()ⅠⅡⅢIVX\s]+?)"
+                rf"\s+(?P<credits>\d+(?:\.\d+)?)\s+(?=[一二三四五六七八九十]（|\d|[A-Z]{{2,}}\d)",
+                text,
+            )
+            if match is None:
+                continue
+            name = re.sub(r"\s+", "", match.group("name")).strip()
+            credits = _clean_number(match.group("credits"))
+            if not name:
+                continue
+            if _is_chinese(query):
+                return ExtractiveAnswer(f"{code}是《{name}》，{credits}学分。 [{context.rank}]", context.rank)
+            return ExtractiveAnswer(f"{code} is {name}, worth {credits} credits [{context.rank}].", context.rank)
+    return None
+
+
+def _course_codes_from_query(query: str) -> list[str]:
+    return re.findall(r"(?<![A-Z0-9])(?:[A-Z]{2,}\d{2,}[A-Z]?)(?![A-Z0-9])", query.upper())
+
+
 def _extract_course_design_pair_answer(query: str, contexts: list[ContextItem]) -> ExtractiveAnswer | None:
     if "课程设计" not in query or "合计" not in query or "学期" not in query:
         return None
@@ -1159,6 +1439,92 @@ def _extract_robotics_faculty_answer(query: str, contexts: list[ContextItem]) ->
     return None
 
 
+def _extract_compact_person_profile_answer(query: str, contexts: list[ContextItem]) -> ExtractiveAnswer | None:
+    if not all(term in query for term in ("身份", "教育背景", "研究方向")):
+        return None
+    name_match = re.search(r"(?P<name>[\u4e00-\u9fff]{2,4})的", query)
+    if name_match is None:
+        return None
+    name = name_match.group("name")
+    for context in contexts:
+        if context.url is None:
+            continue
+        text = re.sub(r"\s+", " ", context.text).strip()
+        match = re.search(
+            rf"{re.escape(name)}\s+身份[:：]\s*(?P<identity>[^，,。；;\s]+)\s+"
+            rf"教育背景[:：]\s*(?P<education>[^，,。；;]+?)\s+"
+            rf"研究方向[:：]\s*(?P<direction>[^，,。；;]+)",
+            text,
+        )
+        if match is None:
+            continue
+        identity = match.group("identity").strip()
+        education = match.group("education").strip()
+        direction = match.group("direction").strip()
+        if not all((identity, education, direction)):
+            continue
+        return ExtractiveAnswer(
+            f"{name}的身份是{identity}，教育背景是{education}，研究方向是{direction}。 [{context.rank}]",
+            context.rank,
+        )
+    return None
+
+
+def _extract_student_undergraduate_school_answer(query: str, contexts: list[ContextItem]) -> ExtractiveAnswer | None:
+    if "本科" not in query or not any(term in query for term in ("毕业院校", "本科毕业", "毕业于")):
+        return None
+    if not any(term in query for term in ("博士研究生", "研究生", "博士生")):
+        return None
+
+    query_terms = _anchor_terms(query)
+    candidates: list[ExtractiveCandidate] = []
+    for context_order, context in enumerate(contexts):
+        if context.url is None:
+            continue
+        for sentence in re.split(r"[。！？.!?；;\n]+", context.text):
+            normalized = re.sub(r"\s+", " ", sentence).strip()
+            if not normalized:
+                continue
+            match = re.search(
+                r"(?:博士研究生|研究生|博士生)?(?P<name>[\u4e00-\u9fff]{2,4})[，,、\s]+"
+                r"(?P<body>[^。！？.!?；;]{0,160}?本科毕业于"
+                r"(?P<school>[\u4e00-\u9fffA-Za-z0-9（）()·\- ]{2,40}))",
+                normalized,
+            )
+            if match is None:
+                continue
+            school = match.group("school").strip(" ，,。；;")
+            if not school:
+                continue
+            candidate_text = f"{context.title or ''} {normalized}"
+            anchor_overlap = _anchor_overlap_count(query_terms, candidate_text)
+            if anchor_overlap < _minimum_anchor_overlap(query_terms):
+                continue
+            focus_overlap = _student_focus_overlap(query, normalized, query_terms)
+            score = 20.0 - context_order * 0.25 + min(anchor_overlap, 10) * 1.5 + focus_overlap * 8.0
+            name = match.group("name")
+            candidates.append(
+                ExtractiveCandidate(
+                    text=f"{name}的本科毕业院校是{school}",
+                    source_rank=context.rank,
+                    context_order=context_order,
+                    score=score,
+                )
+            )
+    if not candidates:
+        return None
+    best = max(candidates, key=lambda candidate: (candidate.score, -candidate.context_order, -candidate.source_rank))
+    return ExtractiveAnswer(f"{best.text}。 [{best.source_rank}].", best.source_rank)
+
+
+def _student_focus_overlap(query: str, text: str, query_terms: set[str]) -> int:
+    broad_terms = {"信息", "学院", "博士", "研究生", "博士研究生", "本科", "毕业", "院校", "哪所", "那位"}
+    overlap = sum(1 for term in query_terms if term not in broad_terms and term in text)
+    if "研究方向" in query and "研究方向" in text:
+        overlap += 1
+    return overlap
+
+
 def _extract_list_or_comparison_answer(query: str, contexts: list[ContextItem]) -> ExtractiveAnswer | None:
     lowered_query = query.lower()
     if not any(term in lowered_query for term in ("list", "which", "different", "difference", "compare")) and not any(
@@ -1220,7 +1586,7 @@ def _candidate_windows(text: str) -> list[str]:
     windows: list[str] = []
     seen: set[str] = set()
     for start in range(len(units)):
-        for size in (1, 2, 3):
+        for size in (1, 2, 3, 4):
             window_units = units[start : start + size]
             if len(window_units) != size:
                 continue

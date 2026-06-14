@@ -373,8 +373,13 @@ def _answer_source_metrics(
     for name, value in retrieved_metrics.items():
         if name.startswith("source_hit@"):
             metrics[f"retrieved_expected_{name}"] = value
-    retrieved_hit = retrieved_metrics.get("source_hit@5") == 1.0
+    retrieved_recall_at_5 = retrieved_metrics.get("source_recall@5", 0.0)
+    metrics["retrieved_expected_source_recall@5"] = retrieved_recall_at_5
+    metrics["all_retrieved_expected_sources_hit@5"] = (
+        1.0 if any(expected_urls) and retrieved_recall_at_5 == 1.0 else 0.0
+    )
+    all_retrieved_hit = metrics["all_retrieved_expected_sources_hit@5"] == 1.0
     cited_hit = metrics.get("cited_expected_source_hit@5") == 1.0
-    synthesis_missed = retrieved_hit and (answer_status == "insufficient_evidence" or not cited_hit)
+    synthesis_missed = all_retrieved_hit and (answer_status == "insufficient_evidence" or not cited_hit)
     metrics["answer_synthesis_miss"] = 1.0 if synthesis_missed else 0.0
     return metrics

@@ -108,6 +108,15 @@ def _loose_cited_source_judge(
         return JudgeResult(status="incorrect", is_correct=0, reason="loose atom judge has no atoms")
 
     matched = [atom for atom in atoms if _compact_contains(answer, atom)]
+    missing_quantity_atoms = [
+        atom for atom in atoms if _quantity_keys(atom) and not _is_year_only_quantity_atom(atom) and atom not in matched
+    ]
+    if missing_quantity_atoms:
+        return JudgeResult(
+            status="incorrect",
+            is_correct=0,
+            reason=f"loose atom judge missing required quantity atoms: {len(missing_quantity_atoms)}",
+        )
     required = _minimum_loose_matches(len(atoms))
     if len(matched) >= required:
         return JudgeResult(
@@ -150,12 +159,14 @@ def _compact_contains(answer: str, candidate: str) -> bool:
 
 def _date_keys(text: str) -> set[str]:
     keys: set[str] = set()
-    for year, month, day in re.findall(r"\b(\d{4})(\d{2})(\d{2})\b", text):
+    for year, month, day in re.findall(r"(?<!\d)(\d{4})(\d{2})(\d{2})(?!\d)", text):
         _add_date_key(keys, int(month), int(day), int(year))
-    for month, day in re.findall(r"\b(\d{2})(\d{2})\b", text):
+    for month, day in re.findall(r"(?<!\d)(\d{2})(\d{2})(?!\d)", text):
         _add_date_key(keys, int(month), int(day))
-    for year, month, day in re.findall(r"\b(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})\b", text):
+    for year, month, day in re.findall(r"(?<!\d)(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})(?!\d)", text):
         _add_date_key(keys, int(month), int(day), int(year))
+    for year, month in re.findall(r"(?<!\d)(\d{4})[-/.](\d{1,2})(?![-/.\d])", text):
+        _add_month_key(keys, int(month), int(year))
     for year, month, day in re.findall(r"(\d{4})年(\d{1,2})月(\d{1,2})日", text):
         _add_date_key(keys, int(month), int(day), int(year))
     for year, month, start_day, end_day in re.findall(r"(\d{4})年(\d{1,2})月(\d{1,2})日?[至到-](\d{1,2})日", text):
@@ -178,6 +189,11 @@ def _quantity_keys(text: str) -> set[str]:
         normalized,
     ):
         keys.add(f"{_quantity_number_key(number)}{unit}")
+    for unit, number in re.findall(
+        rf"(?:总|课程|选修|必修|合计|专业|实践|课程实践)?\s*({unit_pattern})\s*(?:为|是|:|：)?\s*(\d+(?:\.\d+)?)",
+        normalized,
+    ):
+        keys.add(f"{_quantity_number_key(number)}{unit}")
     return keys
 
 
@@ -185,16 +201,28 @@ def _quantity_number_key(number: str) -> str:
     return number[:-2] if number.endswith(".0") else number
 
 
+def _is_year_only_quantity_atom(text: str) -> bool:
+    quantity_keys = _quantity_keys(text)
+    return bool(quantity_keys) and all(re.fullmatch(r"\d{4}年", key) for key in quantity_keys)
+
+
 def _add_date_key(keys: set[str], month: int, day: int, year: int | None = None) -> None:
     if not (1 <= month <= 12 and 1 <= day <= 31):
         return
     if year is not None:
+        _add_month_key(keys, month, year)
         keys.add(f"{year:04d}{month:02d}{day:02d}")
     keys.add(f"{month:02d}{day:02d}")
 
 
+def _add_month_key(keys: set[str], month: int, year: int) -> None:
+    if 1 <= month <= 12:
+        keys.add(f"{year:04d}{month:02d}")
+
+
 def _compact_text(text: str) -> str:
     compact = re.sub(r"[\W_]+", "", text.lower(), flags=re.UNICODE)
+    compact = compact.replace("委员会的委员会主任", "委员会主任")
     for label in (
         "office",
         "sist",
@@ -209,6 +237,10 @@ def _compact_text(text: str) -> str:
         "工作邮箱",
         "邮箱",
         "电话",
+        "教授",
+        "担任",
+        "由",
+        "是",
         "在",
     ):
         compact = compact.replace(label, "")

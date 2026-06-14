@@ -43,7 +43,7 @@ def test_source_metrics_are_rank_aware_and_url_prefix_based() -> None:
 
     assert normalize_url("http://EXAMPLE.edu/source/") == "https://example.edu/source"
     assert source_matches("https://example.edu/source/detail", "https://example.edu/source")
-    assert source_matches("https://example.edu/source/detail", "https://example.edu/")
+    assert not source_matches("https://example.edu/source/detail", "https://example.edu/")
     assert metrics["source_hit@1"] == 0.0
     assert metrics["source_hit@5"] == 1.0
     assert metrics["source_recall@5"] == 1.0
@@ -463,6 +463,22 @@ def test_judge_rejects_missing_required_numeric_fact_even_with_citation(tmp_path
     assert result.is_correct == 0
 
 
+def test_judge_rejects_wrong_required_numeric_fact_even_with_loose_match() -> None:
+    questions = {
+        question.id: question for question in load_questions(Path("data/test/question_final_structured_100.csv"))
+    }
+
+    result = judge_answer(
+        questions["q067"],
+        "学生毕业至少需要修满145总学分，其中CS专业课程板块必修学分为20，选修学分为145，合计学分为59。[1]",
+        cited_expected_source_hit=True,
+        has_citation=True,
+    )
+
+    assert result.status == "incorrect"
+    assert result.is_correct == 0
+
+
 def test_judge_accepts_targeted_evaluator_patch_questions() -> None:
     questions = {
         question.id: question for question in load_questions(Path("data/test/question_final_structured_100.csv"))
@@ -487,6 +503,58 @@ def test_judge_accepts_targeted_evaluator_patch_questions() -> None:
         result = judge_answer(questions[question_id], answer, has_citation=True)
         assert result.status == "correct", f"{question_id}: {result.reason}"
         assert result.is_correct == 1
+
+
+def test_judge_matches_q067_professional_course_credit_summary() -> None:
+    questions = {
+        question.id: question for question in load_questions(Path("data/test/question_final_structured_100.csv"))
+    }
+
+    result = judge_answer(
+        questions["q067"],
+        "学生毕业至少需要修满145总学分，其中CS专业课程板块必修学分为20，选修学分为39，合计学分为59。[1]",
+        cited_expected_source_hit=True,
+        has_citation=True,
+    )
+
+    assert result.status == "correct", result.reason
+    assert result.is_correct == 1
+
+
+def test_judge_matches_q052_committee_chair_summary() -> None:
+    questions = {
+        question.id: question for question in load_questions(Path("data/test/question_final_structured_100.csv"))
+    }
+
+    result = judge_answer(
+        questions["q052"],
+        "学术委员会主任由哈亚军担任，学位委员会主任由寇煦丰担任。[1]",
+        cited_expected_source_hit=True,
+        has_citation=True,
+    )
+
+    assert result.status == "correct", result.reason
+    assert result.is_correct == 1
+
+
+def test_judge_matches_q090_date_title_pairings_with_chinese_dates() -> None:
+    questions = {
+        question.id: question for question in load_questions(Path("data/test/question_final_structured_100.csv"))
+    }
+
+    result = judge_answer(
+        questions["q090"],
+        "2026年4月22日对应上海创芯学院&上海科技大学2026年电子信息工程博士招生简介；"
+        "2026年4月15日对应上海科技大学-北京通用人工智能研究院2026年联合培养博士生专项计划"
+        "（“通计划”）-第二轮报名；"
+        "2026年3月17日对应上海科技大学信息科学与技术学院2026年全日制工程类专业学位博士报名通知"
+        "（第二轮）。[1]",
+        cited_expected_source_hit=True,
+        has_citation=True,
+    )
+
+    assert result.status == "correct", result.reason
+    assert result.is_correct == 1
 
 
 def test_judge_rejects_q075_off_topic_answer_after_evaluator_patch() -> None:
