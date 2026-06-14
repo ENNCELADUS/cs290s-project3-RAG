@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH -J RAG-DENSE-QWEN35
+#SBATCH -J RAG-HYBRID-QWEN35
 #SBATCH -p critical
 #SBATCH -A hexm-critical
 #SBATCH -N 1
@@ -23,7 +23,7 @@ if [ -f "$HOME/.bashrc" ]; then
 fi
 
 if [ ! -d ".venv" ]; then
-  echo "Missing .venv. Run 'uv sync --locked --dev' before running dense Qwen3.5 generation evaluation."
+  echo "Missing .venv. Run 'uv sync --locked --dev' before running hybrid Qwen3.5 generation evaluation."
   exit 1
 fi
 
@@ -32,7 +32,7 @@ export PYTORCH_CUDA_ALLOC_CONF="${PYTORCH_CUDA_ALLOC_CONF:-expandable_segments:T
 export HF_HOME="${HF_HOME:-$HOME/.cache/huggingface}"
 export TRANSFORMERS_CACHE="${TRANSFORMERS_CACHE:-$HF_HOME/hub}"
 
-RUN_ID="${RUN_ID:-generation_dense_qwen35_$(date -u +%Y%m%dT%H%M%SZ)}"
+RUN_ID="${RUN_ID:-generation_hybrid_qwen35_$(date -u +%Y%m%dT%H%M%SZ)}"
 OUTPUT_DIR="${OUTPUT_DIR:-data/eval/${RUN_ID}}"
 QUESTIONS_PATH="${QUESTIONS_PATH:-data/test/question_final_structured_100.csv}"
 
@@ -69,7 +69,7 @@ done
 
 ARGS=(
   --runner answer
-  --modes dense
+  --modes hybrid
   --questions "$QUESTIONS_PATH"
   --output-dir "$OUTPUT_DIR"
   --timestamp "$RUN_ID"
@@ -106,7 +106,7 @@ if [ "${REQUIRE_FINAL_LABELS:-0}" = "1" ]; then
   ARGS+=(--require-final-labels)
 fi
 
-echo "Running dense Qwen3.5 generation evaluation"
+echo "Running hybrid Qwen3.5 generation evaluation"
 echo "repo: $REPO_ROOT"
 echo "run_id: $RUN_ID"
 echo "output_dir: $OUTPUT_DIR"
