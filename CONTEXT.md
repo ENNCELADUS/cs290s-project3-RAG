@@ -41,18 +41,39 @@ A retrieval metric that is true when at least one top-5 retrieved URL matches a 
 URL prefix.
 _Avoid_: accuracy, correctness
 
+**Cited Expected Source Hit**:
+An answer-generation diagnostic that is true when a generated answer cites an official source matching the question's
+expected source URL.
+_Avoid_: retrieval hit, answer correctness
+
 **Packed Context**:
 A final retrieved chunk prepared for generation or UI display with source metadata and trace linkage.
 _Avoid_: answer, system response
+
+**Answer Context Selection**:
+An answer-layer reordering of retrieved top-5 packed contexts before generation, source-derived fallback, and repair.
+It uses only runtime query/context metadata and preserves original retrieval source numbers for citations.
+_Avoid_: retrieval reranking, metric canonicalization, answer-key matching
 
 **Generated Answer**:
 A model-produced answer grounded in retrieved official-source contexts, with citations that map back to structured
 sources. This is the answer type eligible for Phase 5 `sys_resp_before_opt` and `sys_resp_after_opt` fields.
 _Avoid_: packed context, retrieved snippet
 
+**Source-Derived Generated Answer**:
+A deterministic generated-answer fallback synthesized only from the user query, packed contexts, and source metadata
+when the local model draft is rejected. It must be concise, cite retrieved source numbers, and pass the same citation
+and leakage validation as model text.
+_Avoid_: answer key extraction, uncited snippet copy
+
 **Evidence-Insufficient Answer**:
-A generated-answer status used when the system cannot cite enough official-source evidence to answer safely.
-_Avoid_: failed retrieval, wrong answer
+A generated-answer abstention used when the system cannot cite enough official-source evidence to answer safely.
+_Avoid_: failed retrieval, wrong answer, manual review
+
+**Answer Synthesis Miss**:
+An answer-generation diagnostic where **Expected Source Hit@5** is true for retrieved sources, but the final generated
+answer either abstains as **Evidence-Insufficient** or fails **Cited Expected Source Hit**.
+_Avoid_: retrieval miss, source_hit@5
 
 ## Relationships
 
@@ -62,8 +83,16 @@ _Avoid_: failed retrieval, wrong answer
 - **Diagnostic Baseline** can help interpret results but does not define assignment Excel columns.
 - **Retrieval Pilot** checks retrieved sources and **Packed Context** quality before generated answers exist.
 - **Expected Source Hit@5** measures retrieval evidence quality, not answer correctness.
+- **Cited Expected Source Hit** measures answer citation grounding, not answer correctness.
+- **Answer Context Selection** may change which retrieved context is shown first to the generator, but it does not change
+  the retrieved top-5 set or renumber source citations.
 - **Generated Answer** is produced from **Packed Context** values and can fill the final assignment response columns.
-- **Evidence-Insufficient Answer** is a valid generated-answer outcome when the retrieved evidence is not usable.
+- **Source-Derived Generated Answer** is allowed only after a rejected local-model draft and before repair or abstention;
+  it is still a **Generated Answer** because it is synthesized and cited, not a raw packed context.
+- **Evidence-Insufficient Answer** is a valid generated-answer outcome when the retrieved evidence is not usable, but it
+  still maps to `is_correct=0` for final assignment labels.
+- **Answer Synthesis Miss** separates retrieval success from generation failure when expected official sources were
+  retrieved but the final answer did not cite them.
 - Dense retrieval built on enriched index text is a diagnostic ceiling, not the official **Before Optimization** baseline,
   because enriched index text is one of the implemented optimization changes.
 
@@ -74,8 +103,8 @@ _Avoid_: failed retrieval, wrong answer
 > fill `sys_resp_after_opt` only after the generator exists."
 >
 > **Dev:** "The model returned text but no `[1]` citation. Can I keep it?"
-> **Domain expert:** "No. Treat it as an **Evidence-Insufficient Answer** because the generated answer is not grounded
-> in a cited official source."
+> **Domain expert:** "Not directly. First try citation repair against the **Packed Context** values; if it cannot
+> produce a cited **Generated Answer**, treat it as an **Evidence-Insufficient Answer**."
 
 ## Flagged Ambiguities
 
@@ -84,6 +113,10 @@ _Avoid_: failed retrieval, wrong answer
 - "Fix" can mean evaluation cleanup or retrieval optimization. Resolved: **Evaluation Canonicalization** is shared metric
   hygiene, while enriched index text, weighted hybrid RRF, and strict source diversity are retrieval optimizations.
 - "Hit" can mean source retrieval or answer correctness. Resolved: **Expected Source Hit@5** is source-level retrieval
-  evidence, while final answer correctness belongs to the Phase 5 Excel evaluation.
+  evidence, **Cited Expected Source Hit** is answer citation grounding, and final answer correctness belongs to the
+  Phase 5 Excel evaluation.
 - "Answer" can mean a generated response or a retrieved snippet. Resolved: use **Generated Answer** for model output and
   **Packed Context** for retrieved evidence.
+- "source_hit@5" can be ambiguous in answer reports. Resolved: use **Expected Source Hit@5** or
+  `retrieved_expected_source_hit@5` for retrieved sources, and **Cited Expected Source Hit** or
+  `cited_expected_source_hit@5` for final answer citations.

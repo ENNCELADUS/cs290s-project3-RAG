@@ -228,12 +228,380 @@ def test_evaluate_answer_metrics_use_cited_sources_only(tmp_path: Path, monkeypa
 
     summary = json.loads((output_dir / "summary_20260611T040000Z.json").read_text(encoding="utf-8"))
     assert summary["modes"]["dense"]["source_hit@5"] == 0.0
+    assert summary["modes"]["dense"]["cited_expected_source_hit@5"] == 0.0
     run_records = [
         json.loads(line)
         for line in (output_dir / "run_20260611T040000Z.jsonl").read_text(encoding="utf-8").splitlines()
     ]
     assert run_records[0]["cited_source_urls"] == ["https://example.edu/noise"]
     assert run_records[0]["retrieved_source_urls"] == ["https://example.edu/noise", "https://example.edu/source"]
+    workbook = load_workbook(output_dir / "results_before_after_20260611T040000Z.xlsx")
+    diagnostic_headers = [cell.value for cell in next(workbook["diagnostics"].iter_rows(min_row=1, max_row=1))]
+    assert "cited_expected_source_hit@5" in diagnostic_headers
+
+
+def test_evaluate_answer_reports_evidence_insufficient_separately(tmp_path: Path, monkeypatch) -> None:
+    questions_path = tmp_path / "questions.csv"
+    _write_questions(questions_path)
+    output_dir = tmp_path / "eval"
+
+    class FakeRetriever:
+        @classmethod
+        def from_paths(cls, **kwargs: object) -> FakeRetriever:
+            return cls()
+
+    class FakeAnswerer:
+        def __init__(self, retriever: object, **kwargs: object) -> None:
+            pass
+
+        def answer(self, query: str, *, mode: str, top_k: int) -> _AnswerResult:
+            return _AnswerResult(
+                status="insufficient_evidence",
+                answer="Evidence is insufficient: the retrieved official sources do not contain enough information.",
+                sources=[_Source(1, "https://example.edu/source", "Expected")],
+                retrieval={"mode": mode, "hits": []},
+            )
+
+    monkeypatch.setattr("evaluate.runner.Retriever", FakeRetriever)
+    monkeypatch.setattr("evaluate.runner.RagAnswerer", FakeAnswerer)
+
+    assert (
+        evaluate_main(
+            [
+                "--questions",
+                str(questions_path),
+                "--output-dir",
+                str(output_dir),
+                "--runner",
+                "answer",
+                "--model-path",
+                str(tmp_path),
+                "--timestamp",
+                "20260611T050000Z",
+            ]
+        )
+        == 0
+    )
+
+    summary = json.loads((output_dir / "summary_20260611T050000Z.json").read_text(encoding="utf-8"))
+    assert summary["modes"]["dense"]["evidence_insufficient"] == 1
+    assert summary["modes"]["dense"]["incorrect"] == 0
+    assert summary["modes"]["dense"]["manual_review"] == 0
+
+    workbook = load_workbook(output_dir / "results_before_after_20260611T050000Z.xlsx")
+    submission_rows = list(workbook["submission"].iter_rows(values_only=True))
+    assert submission_rows[1][4] == 0
+    assert submission_rows[1][5] == 0
+    diagnostics_rows = list(workbook["diagnostics"].iter_rows(values_only=True))
+    judge_status_index = diagnostics_rows[0].index("judge_status")
+    assert diagnostics_rows[1][judge_status_index] == "evidence_insufficient"
+    assert workbook["review_queue"].max_row == 1
+
+
+def test_evaluate_answer_flags_answer_synthesis_miss_when_retrieval_found_expected_source(
+    tmp_path: Path, monkeypatch
+) -> None:
+    questions_path = tmp_path / "questions.csv"
+    _write_questions(questions_path)
+    output_dir = tmp_path / "eval"
+
+    class FakeRetriever:
+        @classmethod
+        def from_paths(cls, **kwargs: object) -> FakeRetriever:
+            return cls()
+
+    class FakeAnswerer:
+        def __init__(self, retriever: object, **kwargs: object) -> None:
+            pass
+
+        def answer(self, query: str, *, mode: str, top_k: int) -> _AnswerResult:
+            return _AnswerResult(
+                status="insufficient_evidence",
+                answer="Evidence is insufficient: the retrieved official sources do not contain enough information.",
+                sources=[_Source(1, "https://example.edu/source", "Expected")],
+                retrieval={"mode": mode, "hits": []},
+                generation_path="insufficient",
+                generation_rejection_reason="model_reported_insufficient_evidence",
+            )
+
+    monkeypatch.setattr("evaluate.runner.Retriever", FakeRetriever)
+    monkeypatch.setattr("evaluate.runner.RagAnswerer", FakeAnswerer)
+
+    assert (
+        evaluate_main(
+            [
+                "--questions",
+                str(questions_path),
+                "--output-dir",
+                str(output_dir),
+                "--runner",
+                "answer",
+                "--model-path",
+                str(tmp_path),
+                "--timestamp",
+                "20260611T051000Z",
+            ]
+        )
+        == 0
+    )
+
+    summary = json.loads((output_dir / "summary_20260611T051000Z.json").read_text(encoding="utf-8"))
+    assert summary["modes"]["dense"]["retrieved_expected_source_hit@5"] == 1.0
+    assert summary["modes"]["dense"]["cited_expected_source_hit@5"] == 0.0
+    assert summary["modes"]["dense"]["answer_synthesis_miss"] == 1.0
+    run_records = [
+        json.loads(line)
+        for line in (output_dir / "run_20260611T051000Z.jsonl").read_text(encoding="utf-8").splitlines()
+    ]
+    assert run_records[0]["generation_path"] == "insufficient"
+    assert run_records[0]["generation_rejection_reason"] == "model_reported_insufficient_evidence"
+    assert run_records[0]["metrics"]["retrieved_expected_source_hit@5"] == 1.0
+    assert run_records[0]["metrics"]["answer_synthesis_miss"] == 1.0
+    workbook = load_workbook(output_dir / "results_before_after_20260611T051000Z.xlsx")
+    diagnostic_headers = [cell.value for cell in next(workbook["diagnostics"].iter_rows(min_row=1, max_row=1))]
+    assert "generation_path" in diagnostic_headers
+    assert "retrieved_expected_source_hit@5" in diagnostic_headers
+    assert "answer_synthesis_miss" in diagnostic_headers
+
+
+def test_evaluate_answer_loose_judge_autogrades_cited_expected_answers(tmp_path: Path, monkeypatch) -> None:
+    questions_path = tmp_path / "questions.csv"
+    rows = [
+        {
+            "id": "q1",
+            "category": "Factual",
+            "language": "en",
+            "query": "Where is the office and email?",
+            "gt_answer": "office 3-530, wanghy@example.edu",
+            "primary_source_url": "https://example.edu/source",
+            "acceptable_source_urls": json.dumps(["https://example.edu/source"]),
+            "evidence_snippet": "office 3-530 email wanghy@example.edu",
+            "required_facts": json.dumps(["office 3-530", "wanghy@example.edu"]),
+            "acceptable_answers": json.dumps(["office 3-530 and email is wanghy@example.edu"]),
+            "forbidden_facts": json.dumps([]),
+            "grading_notes": "test row",
+            "judge_type": "required_facts_with_manual_review",
+            "complexity": "Low",
+            "sys_resp_before_opt": "",
+            "sys_resp_after_opt": "",
+            "is_correct_before_opt": "",
+            "is_correct_after_opt": "",
+            "cited_expected_source_hit_before_opt": "",
+            "cited_expected_source_hit_after_opt": "",
+        }
+    ]
+    with questions_path.open("w", encoding="utf-8", newline="") as handle:
+        writer = csv.DictWriter(handle, fieldnames=list(rows[0]))
+        writer.writeheader()
+        writer.writerows(rows)
+    output_dir = tmp_path / "eval"
+
+    class FakeRetriever:
+        @classmethod
+        def from_paths(cls, **kwargs: object) -> FakeRetriever:
+            return cls()
+
+    class FakeAnswerer:
+        def __init__(self, retriever: object, **kwargs: object) -> None:
+            pass
+
+        def answer(self, query: str, *, mode: str, top_k: int) -> _AnswerResult:
+            return _AnswerResult(
+                status="answered",
+                answer="office: office 3-530; email: wanghy@example.edu [1].",
+                sources=[_Source(1, "https://example.edu/source", "Expected")],
+                retrieval={"mode": mode, "hits": []},
+                generation_path="extractive_fallback",
+            )
+
+    monkeypatch.setattr("evaluate.runner.Retriever", FakeRetriever)
+    monkeypatch.setattr("evaluate.runner.RagAnswerer", FakeAnswerer)
+
+    assert (
+        evaluate_main(
+            [
+                "--questions",
+                str(questions_path),
+                "--output-dir",
+                str(output_dir),
+                "--runner",
+                "answer",
+                "--model-path",
+                str(tmp_path),
+                "--timestamp",
+                "20260611T052000Z",
+            ]
+        )
+        == 0
+    )
+
+    run_records = [
+        json.loads(line)
+        for line in (output_dir / "run_20260611T052000Z.jsonl").read_text(encoding="utf-8").splitlines()
+    ]
+    assert run_records[0]["metrics"]["cited_expected_source_hit@5"] == 1.0
+    assert run_records[0]["judge"]["status"] == "correct"
+    assert run_records[0]["judge"]["is_correct"] == 1
+
+
+def test_evaluate_answer_exports_answer_context_order_diagnostics(tmp_path: Path, monkeypatch) -> None:
+    questions_path = tmp_path / "questions.csv"
+    _write_questions(questions_path)
+    output_dir = tmp_path / "eval"
+
+    class FakeRetriever:
+        @classmethod
+        def from_paths(cls, **kwargs: object) -> FakeRetriever:
+            return cls()
+
+    class FakeAnswerer:
+        def __init__(self, retriever: object, **kwargs: object) -> None:
+            pass
+
+        def answer(self, query: str, *, mode: str, top_k: int) -> _AnswerResult:
+            return _AnswerResult(
+                status="answered",
+                answer="At the expected source. [3]",
+                sources=[
+                    _Source(1, "https://example.edu/noise", "Noise"),
+                    _Source(3, "https://example.edu/source", "Expected"),
+                ],
+                retrieval={"mode": mode, "hits": []},
+                answer_context_order=[
+                    {
+                        "source_id": 3,
+                        "score": 9.5,
+                        "reasons": ["query_year_match:2025", "credit_or_course_context"],
+                    },
+                    {"source_id": 1, "score": -2.0, "reasons": ["old_year_penalty:2022<2025"]},
+                ],
+            )
+
+    monkeypatch.setattr("evaluate.runner.Retriever", FakeRetriever)
+    monkeypatch.setattr("evaluate.runner.RagAnswerer", FakeAnswerer)
+
+    assert (
+        evaluate_main(
+            [
+                "--questions",
+                str(questions_path),
+                "--output-dir",
+                str(output_dir),
+                "--runner",
+                "answer",
+                "--model-path",
+                str(tmp_path),
+                "--timestamp",
+                "20260611T052000Z",
+            ]
+        )
+        == 0
+    )
+
+    run_records = [
+        json.loads(line)
+        for line in (output_dir / "run_20260611T052000Z.jsonl").read_text(encoding="utf-8").splitlines()
+    ]
+    assert run_records[0]["answer_context_order"][0]["source_id"] == 3
+    assert run_records[0]["metrics"]["retrieved_expected_source_hit@5"] == 1.0
+    assert run_records[0]["metrics"]["cited_expected_source_hit@5"] == 1.0
+    assert run_records[0]["metrics"]["answer_synthesis_miss"] == 0.0
+
+    workbook = load_workbook(output_dir / "results_before_after_20260611T052000Z.xlsx")
+    diagnostics_rows = list(workbook["diagnostics"].iter_rows(values_only=True))
+    order_index = diagnostics_rows[0].index("answer_context_order")
+    assert json.loads(diagnostics_rows[1][order_index])[0]["source_id"] == 3
+
+
+def test_evaluate_answer_passes_hybrid_knobs_to_generation_retrieval_only(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    questions_path = tmp_path / "questions.csv"
+    _write_questions(questions_path)
+    calls: list[dict[str, object]] = []
+
+    class FakeRetriever:
+        @classmethod
+        def from_paths(cls, **kwargs: object) -> FakeRetriever:
+            return cls()
+
+        def retrieve(self, query: str, *, mode: str, top_k: int, **kwargs: object) -> list[object]:
+            calls.append({"mode": mode, "top_k": top_k, **kwargs})
+            return []
+
+        def contexts_for_hits(self, hits: list[object]) -> list[object]:
+            return []
+
+    monkeypatch.setattr("evaluate.runner.Retriever", FakeRetriever)
+
+    assert (
+        evaluate_main(
+            [
+                "--questions",
+                str(questions_path),
+                "--output-dir",
+                str(tmp_path / "eval"),
+                "--runner",
+                "answer",
+                "--modes",
+                "dense",
+                "hybrid",
+                "--model-path",
+                str(tmp_path),
+                "--device",
+                "cpu",
+                "--top-k",
+                "5",
+                "--sparse-top-k",
+                "50",
+                "--dense-top-k",
+                "60",
+                "--fused-top-k",
+                "25",
+                "--rerank-top-k",
+                "20",
+                "--rerank-preserve-top-k",
+                "2",
+                "--rrf-k",
+                "70",
+                "--sparse-weight",
+                "0.8",
+                "--dense-weight",
+                "1.7",
+                "--url-cap",
+                "2",
+                "--reranker-model",
+                "/models/local-reranker",
+                "--reranker-device",
+                "cpu",
+                "--expanded-query",
+                "synthetic expansion",
+                "--timestamp",
+                "20260611T110000Z",
+            ]
+        )
+        == 0
+    )
+
+    assert calls == [
+        {"mode": "dense", "top_k": 5},
+        {
+            "mode": "hybrid",
+            "top_k": 5,
+            "sparse_top_k": 50,
+            "dense_top_k": 60,
+            "fused_top_k": 25,
+            "rerank_top_k": 20,
+            "rerank_preserve_top_k": 2,
+            "rrf_k": 70,
+            "sparse_weight": 0.8,
+            "dense_weight": 1.7,
+            "url_cap": 2,
+            "reranker_model": "/models/local-reranker",
+            "reranker_device": "cpu",
+            "expanded_queries": ("synthetic expansion",),
+        },
+    ]
 
 
 def test_evaluate_retrieve_can_save_diagnostic_hits_beyond_final_top_k(tmp_path: Path, monkeypatch) -> None:
@@ -620,11 +988,26 @@ class _Source:
 
 
 class _AnswerResult:
-    def __init__(self, *, status: str, answer: str, sources: list[_Source], retrieval: dict[str, object]) -> None:
+    def __init__(
+        self,
+        *,
+        status: str,
+        answer: str,
+        sources: list[_Source],
+        retrieval: dict[str, object],
+        generation_path: str | None = None,
+        generation_rejection_reason: str | None = None,
+        fallback_source_rank: int | None = None,
+        answer_context_order: list[dict[str, object]] | None = None,
+    ) -> None:
         self.status = status
         self.answer = answer
         self.sources = sources
         self.retrieval = retrieval
+        self.generation_path = generation_path
+        self.generation_rejection_reason = generation_rejection_reason
+        self.fallback_source_rank = fallback_source_rank
+        self.answer_context_order = answer_context_order or []
 
 
 def _write_questions(path: Path) -> None:

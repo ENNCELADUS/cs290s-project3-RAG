@@ -34,6 +34,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--dense-weight", type=float, default=None)
     parser.add_argument("--url-cap", type=int, default=None)
     parser.add_argument("--model-path", type=Path, default=None)
+    parser.add_argument("--answer-reranker-model", type=Path, default=None)
+    parser.add_argument("--answer-reranker-device", default="cpu")
     parser.add_argument("--reranker-model", type=Path, default=None)
     parser.add_argument("--reranker-device", default=None)
     parser.add_argument("--expanded-query", action="append", default=None)
@@ -83,6 +85,8 @@ def main(argv: list[str] | None = None) -> int:
         dense_weight=args.dense_weight,
         url_cap=args.url_cap,
         model_path=args.model_path,
+        answer_reranker_model=args.answer_reranker_model,
+        answer_reranker_device=args.answer_reranker_device,
         reranker_model=args.reranker_model,
         reranker_device=args.reranker_device,
         expanded_queries=tuple(args.expanded_query or ()),

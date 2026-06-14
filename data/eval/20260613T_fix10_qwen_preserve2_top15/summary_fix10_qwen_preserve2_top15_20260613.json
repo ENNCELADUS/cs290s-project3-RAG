@@ -1,0 +1,24 @@
+{
+  "modes": {
+    "hybrid": {
+      "avg_latency_s": 8.798788,
+      "correct": 0,
+      "errors": 0,
+      "incorrect": 0,
+      "manual_review": 100,
+      "mrr@1": 0.57,
+      "mrr@5": 0.649167,
+      "ndcg@1": 0.57,
+      "ndcg@5": 0.638561,
+      "ok": 100,
+      "precision@1": 0.57,
+      "precision@5": 0.166,
+      "records": 100,
+      "source_hit@1": 0.57,
+      "source_hit@5": 0.76,
+      "source_recall@1": 0.525,
+      "source_recall@5": 0.74
+    }
+  },
+  "total_records": 100
+}

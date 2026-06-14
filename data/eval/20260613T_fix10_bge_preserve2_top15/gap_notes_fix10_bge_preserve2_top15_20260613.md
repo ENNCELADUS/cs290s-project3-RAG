@@ -1,0 +1,102 @@
+# Evaluation Gap Notes
+
+- `q001` `hybrid`: retrieval-only run
+- `q002` `hybrid`: retrieval-only run
+- `q003` `hybrid`: expected official source not found in top 5
+- `q004` `hybrid`: retrieval-only run
+- `q005` `hybrid`: retrieval-only run
+- `q006` `hybrid`: expected official source not found in top 5
+- `q007` `hybrid`: retrieval-only run
+- `q008` `hybrid`: retrieval-only run
+- `q009` `hybrid`: retrieval-only run
+- `q010` `hybrid`: retrieval-only run
+- `q011` `hybrid`: expected official source not found in top 5
+- `q012` `hybrid`: retrieval-only run
+- `q013` `hybrid`: expected official source not found in top 5
+- `q014` `hybrid`: retrieval-only run
+- `q015` `hybrid`: retrieval-only run
+- `q016` `hybrid`: retrieval-only run
+- `q017` `hybrid`: retrieval-only run
+- `q018` `hybrid`: expected official source not found in top 5
+- `q019` `hybrid`: retrieval-only run
+- `q020` `hybrid`: retrieval-only run
+- `q021` `hybrid`: expected official source not found in top 5
+- `q022` `hybrid`: expected official source not found in top 5
+- `q023` `hybrid`: expected official source not found in top 5
+- `q024` `hybrid`: expected official source not found in top 5
+- `q025` `hybrid`: retrieval-only run
+- `q026` `hybrid`: retrieval-only run
+- `q027` `hybrid`: retrieval-only run
+- `q028` `hybrid`: retrieval-only run
+- `q029` `hybrid`: retrieval-only run
+- `q030` `hybrid`: retrieval-only run
+- `q031` `hybrid`: expected official source not found in top 5
+- `q032` `hybrid`: retrieval-only run
+- `q033` `hybrid`: retrieval-only run
+- `q034` `hybrid`: retrieval-only run
+- `q035` `hybrid`: retrieval-only run
+- `q036` `hybrid`: retrieval-only run
+- `q037` `hybrid`: retrieval-only run
+- `q038` `hybrid`: retrieval-only run
+- `q039` `hybrid`: expected official source not found in top 5
+- `q040` `hybrid`: retrieval-only run
+- `q041` `hybrid`: expected official source not found in top 5
+- `q042` `hybrid`: retrieval-only run
+- `q043` `hybrid`: retrieval-only run
+- `q044` `hybrid`: retrieval-only run
+- `q045` `hybrid`: expected official source not found in top 5
+- `q046` `hybrid`: expected official source not found in top 5
+- `q047` `hybrid`: retrieval-only run
+- `q048` `hybrid`: retrieval-only run
+- `q049` `hybrid`: retrieval-only run
+- `q050` `hybrid`: expected official source not found in top 5
+- `q051` `hybrid`: retrieval-only run
+- `q052` `hybrid`: retrieval-only run
+- `q053` `hybrid`: retrieval-only run
+- `q054` `hybrid`: retrieval-only run
+- `q055` `hybrid`: retrieval-only run
+- `q056` `hybrid`: retrieval-only run
+- `q057` `hybrid`: retrieval-only run
+- `q058` `hybrid`: retrieval-only run
+- `q059` `hybrid`: retrieval-only run
+- `q060` `hybrid`: retrieval-only run
+- `q061` `hybrid`: retrieval-only run
+- `q062` `hybrid`: retrieval-only run
+- `q063` `hybrid`: retrieval-only run
+- `q064` `hybrid`: retrieval-only run
+- `q065` `hybrid`: retrieval-only run
+- `q066` `hybrid`: retrieval-only run
+- `q067` `hybrid`: expected official source not found in top 5
+- `q068` `hybrid`: retrieval-only run
+- `q069` `hybrid`: expected official source not found in top 5
+- `q070` `hybrid`: expected official source not found in top 5
+- `q071` `hybrid`: retrieval-only run
+- `q072` `hybrid`: retrieval-only run
+- `q073` `hybrid`: retrieval-only run
+- `q074` `hybrid`: retrieval-only run
+- `q075` `hybrid`: retrieval-only run
+- `q076` `hybrid`: retrieval-only run
+- `q077` `hybrid`: expected official source not found in top 5
+- `q078` `hybrid`: expected official source not found in top 5
+- `q079` `hybrid`: retrieval-only run
+- `q080` `hybrid`: retrieval-only run
+- `q081` `hybrid`: retrieval-only run
+- `q082` `hybrid`: retrieval-only run
+- `q083` `hybrid`: retrieval-only run
+- `q084` `hybrid`: retrieval-only run
+- `q085` `hybrid`: retrieval-only run
+- `q086` `hybrid`: retrieval-only run
+- `q087` `hybrid`: retrieval-only run
+- `q088` `hybrid`: retrieval-only run
+- `q089` `hybrid`: retrieval-only run
+- `q090` `hybrid`: retrieval-only run
+- `q091` `hybrid`: retrieval-only run
+- `q092` `hybrid`: retrieval-only run
+- `q093` `hybrid`: retrieval-only run
+- `q094` `hybrid`: retrieval-only run
+- `q095` `hybrid`: retrieval-only run
+- `q096` `hybrid`: retrieval-only run
+- `q097` `hybrid`: retrieval-only run
+- `q098` `hybrid`: retrieval-only run
+- `q099` `hybrid`: retrieval-only run
+- `q100` `hybrid`: retrieval-only run

@@ -1,0 +1,24 @@
+{
+  "modes": {
+    "dense": {
+      "avg_latency_s": 2.652866,
+      "correct": 0,
+      "errors": 0,
+      "incorrect": 0,
+      "manual_review": 100,
+      "mrr@1": 0.52,
+      "mrr@5": 0.594833,
+      "ndcg@1": 0.52,
+      "ndcg@5": 0.614946,
+      "ok": 100,
+      "precision@1": 0.52,
+      "precision@5": 0.172,
+      "records": 100,
+      "source_hit@1": 0.52,
+      "source_hit@5": 0.74,
+      "source_recall@1": 0.478333,
+      "source_recall@5": 0.723333
+    }
+  },
+  "total_records": 100
+}
