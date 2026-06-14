@@ -50,6 +50,8 @@ class EvaluationConfig:
     dense_weight: float | None = None
     url_cap: int | None = None
     model_path: Path | None = None
+    answer_reranker_model: Path | None = None
+    answer_reranker_device: str = "cpu"
     reranker_model: Path | None = None
     reranker_device: str | None = None
     expanded_queries: tuple[str, ...] = ()
@@ -72,7 +74,12 @@ def run_evaluation(questions: list[QuestionSpec], config: EvaluationConfig) -> l
     )
     answerer = None
     if config.runner in {"answer", "both"}:
-        answer_kwargs: dict[str, Any] = {"model_path": config.model_path, "device": config.device}
+        answer_kwargs: dict[str, Any] = {
+            "model_path": config.model_path,
+            "device": config.device,
+            "answer_reranker_model": config.answer_reranker_model,
+            "answer_reranker_device": config.answer_reranker_device,
+        }
         if config.max_new_tokens is not None:
             answer_kwargs["max_new_tokens"] = config.max_new_tokens
         answerer = RagAnswerer(retriever, **answer_kwargs)
@@ -203,6 +210,7 @@ def _run_answer(
             "generation_path": getattr(answer_result, "generation_path", None),
             "generation_rejection_reason": getattr(answer_result, "generation_rejection_reason", None),
             "fallback_source_rank": getattr(answer_result, "fallback_source_rank", None),
+            "answer_context_order": getattr(answer_result, "answer_context_order", []),
             "latency_s": round(time.perf_counter() - started, 6),
         }
     except Exception as error:

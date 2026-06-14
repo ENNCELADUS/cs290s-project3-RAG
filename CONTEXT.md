@@ -50,6 +50,11 @@ _Avoid_: retrieval hit, answer correctness
 A final retrieved chunk prepared for generation or UI display with source metadata and trace linkage.
 _Avoid_: answer, system response
 
+**Answer Context Selection**:
+An answer-layer reordering of retrieved top-5 packed contexts before generation, source-derived fallback, and repair.
+It uses only runtime query/context metadata and preserves original retrieval source numbers for citations.
+_Avoid_: retrieval reranking, metric canonicalization, answer-key matching
+
 **Generated Answer**:
 A model-produced answer grounded in retrieved official-source contexts, with citations that map back to structured
 sources. This is the answer type eligible for Phase 5 `sys_resp_before_opt` and `sys_resp_after_opt` fields.
@@ -79,6 +84,8 @@ _Avoid_: retrieval miss, source_hit@5
 - **Retrieval Pilot** checks retrieved sources and **Packed Context** quality before generated answers exist.
 - **Expected Source Hit@5** measures retrieval evidence quality, not answer correctness.
 - **Cited Expected Source Hit** measures answer citation grounding, not answer correctness.
+- **Answer Context Selection** may change which retrieved context is shown first to the generator, but it does not change
+  the retrieved top-5 set or renumber source citations.
 - **Generated Answer** is produced from **Packed Context** values and can fill the final assignment response columns.
 - **Source-Derived Generated Answer** is allowed only after a rejected local-model draft and before repair or abstention;
   it is still a **Generated Answer** because it is synthesized and cited, not a raw packed context.

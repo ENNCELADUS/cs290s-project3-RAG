@@ -364,6 +364,75 @@ def test_evaluate_answer_flags_answer_synthesis_miss_when_retrieval_found_expect
     assert "answer_synthesis_miss" in diagnostic_headers
 
 
+def test_evaluate_answer_exports_answer_context_order_diagnostics(tmp_path: Path, monkeypatch) -> None:
+    questions_path = tmp_path / "questions.csv"
+    _write_questions(questions_path)
+    output_dir = tmp_path / "eval"
+
+    class FakeRetriever:
+        @classmethod
+        def from_paths(cls, **kwargs: object) -> FakeRetriever:
+            return cls()
+
+    class FakeAnswerer:
+        def __init__(self, retriever: object, **kwargs: object) -> None:
+            pass
+
+        def answer(self, query: str, *, mode: str, top_k: int) -> _AnswerResult:
+            return _AnswerResult(
+                status="answered",
+                answer="At the expected source. [3]",
+                sources=[
+                    _Source(1, "https://example.edu/noise", "Noise"),
+                    _Source(3, "https://example.edu/source", "Expected"),
+                ],
+                retrieval={"mode": mode, "hits": []},
+                answer_context_order=[
+                    {
+                        "source_id": 3,
+                        "score": 9.5,
+                        "reasons": ["query_year_match:2025", "credit_or_course_context"],
+                    },
+                    {"source_id": 1, "score": -2.0, "reasons": ["old_year_penalty:2022<2025"]},
+                ],
+            )
+
+    monkeypatch.setattr("evaluate.runner.Retriever", FakeRetriever)
+    monkeypatch.setattr("evaluate.runner.RagAnswerer", FakeAnswerer)
+
+    assert (
+        evaluate_main(
+            [
+                "--questions",
+                str(questions_path),
+                "--output-dir",
+                str(output_dir),
+                "--runner",
+                "answer",
+                "--model-path",
+                str(tmp_path),
+                "--timestamp",
+                "20260611T052000Z",
+            ]
+        )
+        == 0
+    )
+
+    run_records = [
+        json.loads(line)
+        for line in (output_dir / "run_20260611T052000Z.jsonl").read_text(encoding="utf-8").splitlines()
+    ]
+    assert run_records[0]["answer_context_order"][0]["source_id"] == 3
+    assert run_records[0]["metrics"]["retrieved_expected_source_hit@5"] == 1.0
+    assert run_records[0]["metrics"]["cited_expected_source_hit@5"] == 1.0
+    assert run_records[0]["metrics"]["answer_synthesis_miss"] == 0.0
+
+    workbook = load_workbook(output_dir / "results_before_after_20260611T052000Z.xlsx")
+    diagnostics_rows = list(workbook["diagnostics"].iter_rows(values_only=True))
+    order_index = diagnostics_rows[0].index("answer_context_order")
+    assert json.loads(diagnostics_rows[1][order_index])[0]["source_id"] == 3
+
+
 def test_evaluate_answer_passes_hybrid_knobs_to_generation_retrieval_only(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -849,6 +918,7 @@ class _AnswerResult:
         generation_path: str | None = None,
         generation_rejection_reason: str | None = None,
         fallback_source_rank: int | None = None,
+        answer_context_order: list[dict[str, object]] | None = None,
     ) -> None:
         self.status = status
         self.answer = answer
@@ -857,6 +927,7 @@ class _AnswerResult:
         self.generation_path = generation_path
         self.generation_rejection_reason = generation_rejection_reason
         self.fallback_source_rank = fallback_source_rank
+        self.answer_context_order = answer_context_order or []
 
 
 def _write_questions(path: Path) -> None:

@@ -13,7 +13,7 @@ from rag.generate import main as answer_main
 from rag.index import DEFAULT_MODEL, build_indexes
 from rag.ingest import build_database
 from rag.io import atomic_json_dump, write_jsonl
-from rag.retrieve import Retriever
+from rag.retrieve import ContextItem, Retriever
 
 
 class FakeTensor:
@@ -83,6 +83,17 @@ class EmptyRetriever:
 
     def contexts_for_hits(self, hits: list[object]) -> list[object]:
         return []
+
+
+class StaticContextRetriever:
+    def __init__(self, contexts: list[ContextItem]) -> None:
+        self.contexts = contexts
+
+    def retrieve(self, query: str, *, mode: str, top_k: int) -> list[object]:
+        return list(range(min(top_k, len(self.contexts))))
+
+    def contexts_for_hits(self, hits: list[object]) -> list[ContextItem]:
+        return self.contexts[: len(hits)]
 
 
 def test_hybrid_answer_generation_returns_numbered_citations(
@@ -432,6 +443,97 @@ def test_model_refusal_falls_back_to_explicit_robotics_faculty_evidence(
     assert result.answer == "Prof. Schwertfeger works on robotics [1]."
 
 
+def test_answer_context_selection_uses_2025_page_for_source_derived_fallback(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    contexts = [
+        _context(
+            rank=1,
+            title="2022级计算机科学与技术本科培养方案",
+            url="https://example.edu/cs/2022-degree",
+            text="2022级计算机科学与技术本科培养方案要求学生修满120学分。",
+        ),
+        _context(
+            rank=2,
+            title="学院新闻",
+            url="https://example.edu/news",
+            text="信息学院举行学生交流活动。",
+        ),
+        _context(
+            rank=3,
+            title="2025级计算机科学与技术本科培养方案",
+            url="https://example.edu/cs/2025-degree",
+            text="2025级计算机科学与技术本科培养方案要求学生修满140学分。",
+        ),
+    ]
+    model_path = tmp_path / "qwen-local"
+    model_path.mkdir()
+    _patch_generation(monkeypatch, "证据不足：当前检索到的官方来源不足以回答这个问题。")
+    answerer = RagAnswerer(StaticContextRetriever(contexts), model_path=model_path, device="cpu")  # type: ignore[arg-type]
+
+    result = answerer.answer("2025级计算机科学与技术本科培养方案需要修满多少学分？", mode="dense", top_k=3)
+
+    assert result.status == "answered"
+    assert result.generation_path == "extractive_fallback"
+    assert result.fallback_source_rank == 3
+    assert "140学分" in result.answer
+    assert result.answer.endswith("[3].")
+    assert [source.source_id for source in result.sources] == [1, 2, 3]
+    assert result.answer_context_order[0]["source_id"] == 3
+
+
+def test_initial_generation_prompt_uses_answer_context_order_with_original_source_ids(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    contexts = [
+        _context(
+            rank=1,
+            title="2022级计算机科学与技术本科培养方案",
+            url="https://example.edu/cs/2022-degree",
+            text="2022级计算机科学与技术本科培养方案要求学生修满120学分。",
+        ),
+        _context(
+            rank=3,
+            title="2025级计算机科学与技术本科培养方案",
+            url="https://example.edu/cs/2025-degree",
+            text="2025级计算机科学与技术本科培养方案要求学生修满140学分。",
+        ),
+    ]
+    model_path = tmp_path / "qwen-local"
+    model_path.mkdir()
+    tokenizer = FakeChatTokenizer("2025级培养方案要求修满140学分 [3].")
+
+    def fake_load_model(self: RagAnswerer) -> tuple[FakeChatTokenizer, FakeModel]:
+        return tokenizer, FakeModel()
+
+    monkeypatch.setattr(RagAnswerer, "_load_model", fake_load_model)
+    answerer = RagAnswerer(StaticContextRetriever(contexts), model_path=model_path, device="cpu")  # type: ignore[arg-type]
+
+    result = answerer.answer("2025级计算机科学与技术本科培养方案需要修满多少学分？", mode="dense", top_k=2)
+
+    assert result.status == "answered"
+    assert tokenizer.chat_template_kwargs is not None
+    user_message = tokenizer.chat_template_kwargs["messages"][1]["content"]  # type: ignore[index]
+    assert user_message.index("[3] 2025级") < user_message.index("[1] 2022级")
+    assert "[2]" not in user_message
+
+
+def test_missing_answer_reranker_model_path_reports_local_path_error(
+    tmp_path: Path, fake_hybrid_sentence_transformer_module
+) -> None:
+    paths = _build_generation_artifacts(tmp_path)
+    model_path = tmp_path / "qwen-local"
+    model_path.mkdir()
+
+    with pytest.raises(FileNotFoundError, match="Answer reranker model path"):
+        RagAnswerer(
+            _retriever_from_paths(paths),
+            model_path=model_path,
+            device="cpu",
+            answer_reranker_model=tmp_path / "missing-answer-reranker",
+        )
+
+
 def test_answer_cli_json_outputs_structured_result(
     tmp_path: Path,
     fake_hybrid_sentence_transformer_module,
@@ -605,3 +707,18 @@ def _build_generation_artifacts(
         "chunk_index": chunk_index_path,
         "report": report_path,
     }
+
+
+def _context(*, rank: int, title: str, url: str, text: str) -> ContextItem:
+    return ContextItem(
+        rank=rank,
+        chunk_id=rank,
+        document_id=rank,
+        title=title,
+        url=url,
+        category=None,
+        language="zh",
+        snippet=text,
+        text=text,
+        trace_ref=f"test:{rank}",
+    )

@@ -4,7 +4,7 @@ import argparse
 import json
 import re
 import time
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any, Literal
 
@@ -41,6 +41,8 @@ class AnswerConfig:
     max_new_tokens: int
     temperature: float
     top_k: int
+    answer_reranker_model: str | None = None
+    answer_reranker_device: str = "cpu"
 
 
 @dataclass(frozen=True)
@@ -63,6 +65,7 @@ class RagAnswerResult:
     generation_path: GenerationPath
     generation_rejection_reason: str | None = None
     fallback_source_rank: int | None = None
+    answer_context_order: list[dict[str, Any]] = field(default_factory=list)
 
 
 @dataclass(frozen=True)
@@ -80,14 +83,21 @@ class RagAnswerer:
         device: Device = "auto",
         max_new_tokens: int = DEFAULT_MAX_NEW_TOKENS,
         temperature: float = DEFAULT_TEMPERATURE,
+        answer_reranker_model: Path | None = None,
+        answer_reranker_device: str = "cpu",
     ) -> None:
         if not model_path.exists():
             raise FileNotFoundError(f"Local generator model path does not exist: {model_path}")
+        if answer_reranker_model is not None and not answer_reranker_model.exists():
+            raise FileNotFoundError(f"Answer reranker model path does not exist: {answer_reranker_model}")
         self.retriever = retriever
         self.model_path = model_path
         self.device = _resolve_device(device)
         self.max_new_tokens = max_new_tokens
         self.temperature = temperature
+        self.answer_reranker_model = answer_reranker_model
+        self.answer_reranker_device = answer_reranker_device
+        self._answer_reranker: Any | None = None
         self._tokenizer: Any | None = None
         self._model: Any | None = None
 
@@ -111,13 +121,18 @@ class RagAnswerer:
 
         contexts = _contexts_from_retrieval(self.retriever, retrieval_result)
         sources = _sources_from_contexts(contexts)
+        answer_context_order = self._answer_context_order(query, contexts)
+        ordered_contexts = _ordered_contexts(contexts, answer_context_order)
         retrieval_payload = _retrieval_payload(retrieval_result, contexts)
+        retrieval_payload["answer_context_order"] = answer_context_order
         config = AnswerConfig(
             model_path=str(self.model_path),
             device=self.device,
             max_new_tokens=self.max_new_tokens,
             temperature=self.temperature,
             top_k=top_k,
+            answer_reranker_model=str(self.answer_reranker_model) if self.answer_reranker_model is not None else None,
+            answer_reranker_device=self.answer_reranker_device,
         )
         if not contexts or not sources:
             return _insufficient_result(
@@ -127,16 +142,17 @@ class RagAnswerer:
                 retrieval=retrieval_payload,
                 timing=AnswerTiming(retrieval_s=retrieval_s, generation_s=0.0, total_s=time.perf_counter() - started),
                 config=config,
+                answer_context_order=answer_context_order,
             )
 
-        messages = build_messages(query, contexts)
+        messages = build_messages(query, ordered_contexts)
         generation_started = time.perf_counter()
         generated = self._generate_text(messages)
         generation_s = time.perf_counter() - generation_started
         valid_source_ids = {source.source_id for source in sources}
         rejection_reason = _answer_rejection_reason(generated, valid_source_ids)
         if rejection_reason is not None:
-            extracted = _extract_answer_from_contexts(query, contexts)
+            extracted = _extract_answer_from_contexts(query, ordered_contexts)
             if extracted is not None and _is_acceptable_answer(extracted.answer, valid_source_ids):
                 return RagAnswerResult(
                     query=query,
@@ -154,8 +170,9 @@ class RagAnswerer:
                     generation_path="extractive_fallback",
                     generation_rejection_reason=rejection_reason,
                     fallback_source_rank=extracted.source_rank,
+                    answer_context_order=answer_context_order,
                 )
-            repair_text = self._generate_text(build_repair_messages(query, contexts, generated))
+            repair_text = self._generate_text(build_repair_messages(query, ordered_contexts, generated))
             generation_s = time.perf_counter() - generation_started
             repaired = _parse_repair_answer(
                 repair_text,
@@ -177,6 +194,7 @@ class RagAnswerer:
                     config=config,
                     generation_path="repair",
                     generation_rejection_reason=rejection_reason,
+                    answer_context_order=answer_context_order,
                 )
             return _insufficient_result(
                 query,
@@ -190,6 +208,7 @@ class RagAnswerer:
                 ),
                 config=config,
                 generation_rejection_reason=rejection_reason,
+                answer_context_order=answer_context_order,
             )
         return RagAnswerResult(
             query=query,
@@ -205,6 +224,7 @@ class RagAnswerer:
             ),
             config=config,
             generation_path="initial",
+            answer_context_order=answer_context_order,
         )
 
     def _generate_text(self, messages: list[dict[str, str]]) -> str:
@@ -241,6 +261,36 @@ class RagAnswerer:
         self._tokenizer = tokenizer
         self._model = model
         return tokenizer, model
+
+    def _answer_context_order(self, query: str, contexts: list[ContextItem]) -> list[dict[str, Any]]:
+        order: list[dict[str, Any]] = []
+        reranker_scores = self._answer_reranker_scores(query, contexts)
+        for context, reranker_score in zip(contexts, reranker_scores, strict=True):
+            score, reasons = _metadata_answer_context_score(query, context)
+            if reranker_score is not None:
+                score += reranker_score
+                reasons.append(f"answer_reranker_score:{reranker_score:.3f}")
+            order.append(
+                {
+                    "source_id": context.rank,
+                    "chunk_id": context.chunk_id,
+                    "url": context.url,
+                    "title": context.title,
+                    "score": round(score, 6),
+                    "reasons": reasons,
+                }
+            )
+        return sorted(order, key=lambda item: (-float(item["score"]), int(item["source_id"])))
+
+    def _answer_reranker_scores(self, query: str, contexts: list[ContextItem]) -> list[float | None]:
+        if self.answer_reranker_model is None or not contexts:
+            return [None for _ in contexts]
+        from sentence_transformers import CrossEncoder
+
+        if self._answer_reranker is None:
+            self._answer_reranker = CrossEncoder(str(self.answer_reranker_model), device=self.answer_reranker_device)
+        pairs = [(query, _context_score_text(context)) for context in contexts]
+        return [float(score) for score in self._answer_reranker.predict(pairs)]
 
 
 def build_prompt(query: str, contexts: list[ContextItem]) -> str:
@@ -307,13 +357,13 @@ def build_repair_messages(query: str, contexts: list[ContextItem], draft: str) -
 
 def _context_blocks(contexts: list[ContextItem]) -> list[str]:
     blocks = []
-    for index, context in enumerate(contexts, start=1):
+    for context in contexts:
         title = context.title or "(untitled)"
         url = context.url or "(no url)"
         blocks.append(
             "\n".join(
                 [
-                    f"[{index}] {title}",
+                    f"[{context.rank}] {title}",
                     f"URL: {url}",
                     f"chunk_id: {context.chunk_id}",
                     f"trace_ref: {context.trace_ref}",
@@ -361,12 +411,12 @@ def _contexts_from_retrieval(
 
 def _sources_from_contexts(contexts: list[ContextItem]) -> list[AnswerSource]:
     sources: list[AnswerSource] = []
-    for index, context in enumerate(contexts, start=1):
+    for context in contexts:
         if context.url is None:
             continue
         sources.append(
             AnswerSource(
-                source_id=index,
+                source_id=context.rank,
                 title=context.title,
                 url=context.url,
                 chunk_id=context.chunk_id,
@@ -388,9 +438,127 @@ def _retrieval_payload(retrieval_result: object, contexts: list[ContextItem]) ->
         }
     return {
         "mode": "dense",
-        "hits": [asdict(hit) for hit in retrieval_result],  # type: ignore[union-attr]
+        "hits": [_dataclass_or_value(hit) for hit in retrieval_result],  # type: ignore[union-attr]
         "contexts": [asdict(context) for context in contexts],
     }
+
+
+def _dataclass_or_value(value: object) -> object:
+    try:
+        return asdict(value)
+    except TypeError:
+        return value
+
+
+def _ordered_contexts(contexts: list[ContextItem], answer_context_order: list[dict[str, Any]]) -> list[ContextItem]:
+    by_source_id = {context.rank: context for context in contexts}
+    ordered = [
+        by_source_id[int(item["source_id"])]
+        for item in answer_context_order
+        if int(item["source_id"]) in by_source_id
+    ]
+    if len(ordered) == len(contexts):
+        return ordered
+    selected_ids = {context.rank for context in ordered}
+    return [*ordered, *[context for context in contexts if context.rank not in selected_ids]]
+
+
+def _metadata_answer_context_score(query: str, context: ContextItem) -> tuple[float, list[str]]:
+    haystack = _context_score_text(context)
+    normalized = haystack.lower()
+    score = 0.0
+    reasons: list[str] = []
+
+    query_years = _years(query)
+    context_years = _years(haystack)
+    for year in sorted(query_years & context_years):
+        score += 8.0
+        reasons.append(f"query_year_match:{year}")
+    if query_years and context_years and _looks_like_degree_page(haystack):
+        target_year = max(query_years)
+        old_years = sorted(year for year in context_years if year < target_year)
+        if old_years and target_year not in context_years:
+            score -= 8.0
+            reasons.append(f"old_year_penalty:{old_years[-1]}<{target_year}")
+
+    anchor_count = sum(1 for term in _anchor_terms(query) if term in normalized)
+    if anchor_count:
+        score += min(anchor_count, 8) * 0.4
+        reasons.append(f"anchor_overlap:{anchor_count}")
+
+    program_matches = _matched_terms(
+        query,
+        haystack,
+        ("cs", "computer science", "ee", "electrical", "electronic", "计算机", "电子", "电气", "信息"),
+    )
+    if program_matches:
+        score += len(program_matches) * 1.5
+        reasons.append(f"program_terms:{','.join(program_matches)}")
+
+    course_matches = _matched_terms(
+        query,
+        haystack,
+        ("培养方案", "学分", "课程", "program", "degree", "credit", "credits", "course", "curriculum"),
+    )
+    if course_matches:
+        score += len(course_matches) * 1.5
+        reasons.append(f"course_terms:{','.join(course_matches)}")
+
+    if _query_wants_contact(query) and _has_contact_evidence(haystack):
+        score += 3.0
+        reasons.append("faculty_or_contact_evidence")
+    if _query_wants_degree_page(query) and _looks_like_degree_page(haystack):
+        score += 3.0
+        reasons.append("page_type:degree_or_program")
+    if not reasons:
+        reasons.append("retrieval_rank_tiebreak")
+    return score, reasons
+
+
+def _context_score_text(context: ContextItem) -> str:
+    return "\n".join(str(part or "") for part in (context.title, context.url, context.snippet, context.text))
+
+
+def _years(text: str) -> set[int]:
+    return {int(year) for year in re.findall(r"(?<!\d)(20\d{2})(?!\d)", text)}
+
+
+def _matched_terms(query: str, context_text: str, terms: tuple[str, ...]) -> list[str]:
+    query_lower = query.lower()
+    context_lower = context_text.lower()
+    return [term for term in terms if term.lower() in query_lower and term.lower() in context_lower]
+
+
+def _query_wants_contact(query: str) -> bool:
+    lowered = query.lower()
+    return any(term in lowered for term in ("office", "email", "contact", "faculty", "professor")) or any(
+        term in query for term in ("办公室", "邮箱", "教师", "教授", "老师", "联系方式")
+    )
+
+
+def _has_contact_evidence(text: str) -> bool:
+    lowered = text.lower()
+    return (
+        re.search(r"[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}", text) is not None
+        or "办公室" in text
+        or "邮箱" in text
+        or "professor" in lowered
+        or re.search(r"\b(?:Room|Rm\.?)\s+[A-Za-z0-9]", text, flags=re.IGNORECASE) is not None
+    )
+
+
+def _query_wants_degree_page(query: str) -> bool:
+    lowered = query.lower()
+    return any(term in lowered for term in ("program", "degree", "credit", "credits", "curriculum")) or any(
+        term in query for term in ("培养方案", "学分", "课程", "专业")
+    )
+
+
+def _looks_like_degree_page(text: str) -> bool:
+    lowered = text.lower()
+    return any(term in lowered for term in ("program", "degree", "credit", "credits", "curriculum")) or any(
+        term in text for term in ("培养方案", "学分", "课程", "专业")
+    )
 
 
 def _is_acceptable_answer(text: str, valid_source_ids: set[int]) -> bool:
@@ -454,7 +622,7 @@ def _extract_answer_from_contexts(query: str, contexts: list[ContextItem]) -> Ex
     for course_name in _course_terms_from_query(query):
         course_pattern = re.escape(course_name).replace(r"\ ", r"\s+")
         teacher_pattern = re.compile(rf"{course_pattern}\s*【\s*(?P<teacher>[^】]{{1,80}}?)\s*】", re.IGNORECASE)
-        for index, context in enumerate(contexts, start=1):
+        for context in contexts:
             if context.url is None:
                 continue
             normalized_text = re.sub(r"\s+", " ", context.text)
@@ -465,8 +633,8 @@ def _extract_answer_from_contexts(query: str, contexts: list[ContextItem]) -> Ex
             if not teacher:
                 continue
             if _is_chinese(query):
-                return ExtractiveAnswer(f"{course_name}的任课老师是{teacher}。 [{index}]", index)
-            return ExtractiveAnswer(f"{course_name} was taught by {teacher} [{index}].", index)
+                return ExtractiveAnswer(f"{course_name}的任课老师是{teacher}。 [{context.rank}]", context.rank)
+            return ExtractiveAnswer(f"{course_name} was taught by {teacher} [{context.rank}].", context.rank)
     list_answer = _extract_list_or_comparison_answer(query, contexts)
     if list_answer is not None:
         return list_answer
@@ -491,7 +659,7 @@ def _extract_office_email_answer(query: str, contexts: list[ContextItem]) -> Ext
     if "office" not in lowered_query and "办公室" not in query and "email" not in lowered_query and "邮箱" not in query:
         return None
     query_terms = _anchor_terms(query)
-    for index, context in enumerate(contexts, start=1):
+    for context in contexts:
         if context.url is None:
             continue
         normalized_text = re.sub(r"\s+", " ", context.text).strip()
@@ -512,7 +680,7 @@ def _extract_office_email_answer(query: str, contexts: list[ContextItem]) -> Ext
             facts.append(f"office: {room}")
         if email is not None:
             facts.append(f"email: {email}")
-        return ExtractiveAnswer(f"{'; '.join(facts)} [{index}].", index)
+        return ExtractiveAnswer(f"{'; '.join(facts)} [{context.rank}].", context.rank)
     return None
 
 
@@ -548,13 +716,13 @@ def _extract_date_time_location_answer(query: str, contexts: list[ContextItem]) 
 def _extract_robotics_faculty_answer(query: str, contexts: list[ContextItem]) -> ExtractiveAnswer | None:
     if "robotics" not in query.lower():
         return None
-    for index, context in enumerate(contexts, start=1):
+    for context in contexts:
         if context.url is None:
             continue
         normalized_text = re.sub(r"\s+", " ", f"{context.title or ''} {context.text}")
         if "robotics" not in normalized_text.lower() or "schwertfeger" not in normalized_text.lower():
             continue
-        return ExtractiveAnswer(f"Prof. Schwertfeger works on robotics [{index}].", index)
+        return ExtractiveAnswer(f"Prof. Schwertfeger works on robotics [{context.rank}].", context.rank)
     return None
 
 
@@ -574,7 +742,7 @@ def _extract_compact_evidence(
     evidence_pattern: re.Pattern[str] | None,
 ) -> ExtractiveAnswer | None:
     query_terms = _anchor_terms(query)
-    for index, context in enumerate(contexts, start=1):
+    for context in contexts:
         if context.url is None:
             continue
         for sentence in _candidate_sentences(context.text):
@@ -584,7 +752,7 @@ def _extract_compact_evidence(
                 continue
             compact = _compact_sentence(sentence)
             if compact:
-                return ExtractiveAnswer(f"{compact} [{index}].", index)
+                return ExtractiveAnswer(f"{compact} [{context.rank}].", context.rank)
     return None
 
 
@@ -698,6 +866,7 @@ def _insufficient_result(
     timing: AnswerTiming,
     config: AnswerConfig,
     generation_rejection_reason: str | None = None,
+    answer_context_order: list[dict[str, Any]] | None = None,
 ) -> RagAnswerResult:
     return RagAnswerResult(
         query=query,
@@ -710,6 +879,7 @@ def _insufficient_result(
         config=config,
         generation_path="insufficient",
         generation_rejection_reason=generation_rejection_reason,
+        answer_context_order=answer_context_order or [],
     )
 
 
@@ -754,6 +924,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--device", choices=["auto", "cpu", "cuda"], default="auto")
     parser.add_argument("--max-new-tokens", type=int, default=DEFAULT_MAX_NEW_TOKENS)
     parser.add_argument("--temperature", type=float, default=DEFAULT_TEMPERATURE)
+    parser.add_argument("--answer-reranker-model", type=Path, default=None)
+    parser.add_argument("--answer-reranker-device", default="cpu")
     parser.add_argument("--db", type=Path, default=DEFAULT_DB)
     parser.add_argument("--bm25", type=Path, default=DEFAULT_BM25)
     parser.add_argument("--faiss", type=Path, default=DEFAULT_FAISS)
@@ -777,6 +949,8 @@ def main(argv: list[str] | None = None) -> int:
         device=args.device,
         max_new_tokens=args.max_new_tokens,
         temperature=args.temperature,
+        answer_reranker_model=args.answer_reranker_model,
+        answer_reranker_device=args.answer_reranker_device,
     )
     result = answerer.answer(args.query, mode=args.mode, top_k=args.top_k)
     if args.json:
