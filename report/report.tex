@@ -36,7 +36,7 @@
 \maketitle
 
 \begin{abstract}
-We build a retrieval-augmented generation (RAG) system for answering questions about ShanghaiTech University and the School of Information Science and Technology (SIST). The system is designed around three constraints: all evidence must come from official sources, all retrieval and generation models must run locally or on self-hosted infrastructure, and evaluation must separate source-evidence quality from final answer correctness. Our implementation collects and cleans 7{,}190 official documents into 28{,}481 retrieval chunks, indexes them with SQLite, BM25, and FAISS, and serves cited answers through a Gradio interface backed by a local Qwen-family generator. The current report focuses on the completed retrieval evaluation. On a structured 100-question benchmark, the accepted optimized hybrid retriever improves expected source hit@5 from 0.74 to 0.89 over the dense-only before-optimization condition, with higher MRR@5, nDCG@5, and precision@5. Final generated-answer accuracy results will be inserted after the answer-generation evaluation and manual review pass are complete.
+We build a retrieval-augmented generation (RAG) system for answering questions about ShanghaiTech University and the School of Information Science and Technology (SIST). The system is designed around three constraints: all evidence must come from official sources, all retrieval and generation models must run locally or on self-hosted infrastructure, and evaluation must separate source-evidence quality from final answer correctness. Our implementation collects and cleans 7{,}190 official documents into 28{,}481 retrieval chunks, indexes them with SQLite, BM25, and FAISS, and serves cited answers through a Gradio interface backed by a local Qwen-family generator. On a structured 100-question benchmark, the accepted optimized hybrid retriever improves expected source hit@5 from 0.74 to 0.89 over the dense-only before-optimization condition, with higher MRR@5, nDCG@5, and precision@5. For the dense-retrieval generation baseline, a local Qwen3.5 answer run reaches 54/100 automatic accuracy and 57/100 after manual correction of three evaluator false negatives. The optimized generation result remains a placeholder until the matching post-optimization answer run is complete.
 \end{abstract}
 
 \section{Introduction}
@@ -45,15 +45,16 @@ RAG systems are a natural fit for university question answering because many ans
 
 Our system follows a conservative design. Data collection is restricted to official ShanghaiTech and SIST domains. Retrieval artifacts are reproducible from cleaned JSONL records and SQLite metadata. Dense embedding, sparse retrieval, reranking, query expansion, and answer generation use local models or self-hosted runtime paths; no commercial LLM API or hosted inference endpoint is required by the submitted system.
 
-This report makes four contributions:
+This report makes five contributions:
 \begin{enumerate}
 \item An audited official-source corpus and preprocessing pipeline covering HTML, PDF, Office files, OCR fallback, structured extraction, and append-only crawl records.
 \item A complete local RAG pipeline with BM25, FAISS dense retrieval using \texttt{BAAI/bge-m3}, optimized hybrid retrieval, local Qwen answer generation, citation validation, and evidence-insufficient fallback.
 \item A reviewer-facing Gradio interface that exposes question input, retrieval mode, top-$k$, retrieval-only inspection, answers, and source contexts.
 \item A 100-question retrieval evaluation showing that the optimized hybrid retriever improves expected source evidence quality over the dense-only before-optimization condition.
+\item A dense-retrieval Qwen3.5 generation baseline with answer artifacts, manual review of incorrect outputs, and case studies separating retrieval misses, citation misses, and answer-synthesis failures.
 \end{enumerate}
 
-The main quantitative claims in this version are retrieval claims. Expected source hit@5, source recall@5, MRR@5, nDCG@5, and precision@5 measure whether the retriever surfaces official evidence, not whether the local generator produced a correct final answer. The final answer-correctness table is intentionally left as a placeholder until generation outputs and manual review labels are available.
+The main optimized-system quantitative claims in this version are retrieval claims. Expected source hit@5, source recall@5, MRR@5, nDCG@5, and precision@5 measure whether the retriever surfaces official evidence, while generated-answer accuracy measures whether the local generator uses that evidence correctly. The dense generation baseline is now reported from real answer artifacts; the after-optimization generation row is intentionally left as a placeholder until the corresponding hybrid answer run and manual review labels are available.
 
 \section{Data Collection and Knowledge Base}
 
@@ -153,13 +154,19 @@ Figure~\ref{fig:architecture} summarizes the implemented system. The same runtim
 The sparse retriever uses BM25 over tokenized chunks. Tokenization combines ASCII token matching with \texttt{jieba} for Chinese text. The dense retriever embeds chunks and queries with \texttt{BAAI/bge-m3}, stores normalized vectors in FAISS, and retrieves by inner product. The hybrid retriever runs sparse and dense candidate searches, merges ranked lists with reciprocal rank fusion (RRF), optionally applies a local CrossEncoder reranker, de-duplicates final sources, and packs the top contexts with title, URL, language, category, snippet, rank, and trace metadata.
 
 \paragraph{Generation components.}
-The answer path is exposed by \texttt{rag-answer} and the Python \texttt{RagAnswerer}. It supports the official report modes \texttt{dense} and \texttt{hybrid}. The generator requires an explicit local \texttt{--model-path}; model IDs in documentation are acquisition hints, not runtime download defaults. The prompt asks the local Qwen-family model to answer in the user's language, use only the provided official-source contexts, cite factual claims with numbered citations, and report insufficient evidence when the contexts do not support an answer. The runtime rejects uncited outputs, citations to missing source IDs, prompt leakage, and missing source URLs by returning an evidence-insufficient answer.
+The answer path is exposed by \texttt{rag-answer} and the Python \texttt{RagAnswerer}. It supports the official report modes \texttt{dense} and \texttt{hybrid}. The generator requires an explicit local \texttt{--model-path}; model IDs in documentation are acquisition hints, not runtime download defaults. The dense generation baseline in this report was run with a self-hosted Qwen3.5-9B snapshot, \texttt{top\_k=5}, \texttt{max\_new\_tokens=1024}, \texttt{temperature=0.0}, CUDA generation, and the same \texttt{BAAI/bge-m3} dense index used by the retrieval baseline. The prompt asks the model to answer in the user's language, use only the provided official-source contexts, preserve label-value bindings, cite factual claims with numbered citations, answer all requested fields when present, and report insufficient evidence when the contexts do not support an answer.
+
+\paragraph{Answer validation and recovery.}
+Generation is not accepted solely because the model produced fluent text. The runtime rejects uncited outputs, citations to missing source IDs, prompt leakage, weak citation support, and missing required contact/profile/credit facts. If the first answer is rejected, the system runs one local repair pass over the same numbered contexts and asks for a strict JSON object with either a cited answer or an explicit insufficient-evidence status. If repair fails, deterministic source-derived fallback covers compact facts such as office/email, address/postcode, course/teacher, dates, credit values, and short list answers. If all three paths fail, the result is recorded as \texttt{insufficient\_evidence}.
 
 \paragraph{Interface.}
 The Gradio app is implemented as a usable QA interface rather than a landing page. It includes a question box, an ask button, retrieval-mode radio buttons for \texttt{hybrid}, \texttt{dense}, and \texttt{bm25}, a top-$k$ slider, a retrieval-only toggle, a markdown answer panel, source tables, status messages, and sample questions. When no local generator path is configured, the app remains useful as a retrieval-inspection demo.
 
 \paragraph{Evaluation.}
 The evaluation runner \texttt{rag-evaluate} consumes \texttt{data/test/question\_final\_structured\_100.csv}. The set contains 100 Chinese questions across factual, time-sensitive, comparative, conditional, and multi-hop categories. Each question stores ground-truth answer text, expected official source URLs, evidence snippets, grading notes, and a judge type. Retrieval runs emit JSONL records, summary JSON, review queues, gap notes, and an Excel workbook. Retrieval-only runs intentionally mark answer correctness for manual review because no generated answer is judged.
+
+\paragraph{Generation baseline protocol.}
+The dense generation baseline is \texttt{data/eval/generation\_dense\_qwen35\_20260615T052701Z}. It runs \texttt{rag-evaluate --runner answer --modes dense} over the same 100-question file and exports JSONL answer records, summary metrics, gap notes, a review queue, an assignment-style Excel workbook, and manual review notes for automatically incorrect answers. The run contains 45 factual, 20 time-sensitive, 13 comparative, 12 multi-hop, and 10 conditional questions. There were no runtime errors, so all reported failures are model, retrieval, citation, or evidence-selection failures rather than crashed examples.
 
 \begin{table}[H]
 \centering
@@ -175,6 +182,7 @@ Sparse retrieval & BM25 + \texttt{jieba} & Exact names, course codes, and Chines
 Dense retrieval & FAISS + \texttt{BAAI/bge-m3} & Multilingual semantic retrieval \\
 Hybrid retrieval & RRF, de-duplication, reranking & Optimized evidence selection \\
 Generator & Local Qwen-family model & Cited answer generation from packed contexts \\
+Answer validator & Citation checks, repair prompt, extractive fallback & Reject unsupported answers and recover compact facts \\
 UI & Gradio & Interactive answer and source inspection \\
 Evaluation & \texttt{rag-evaluate} & 100-question metrics and Excel outputs \\
 \bottomrule
@@ -272,12 +280,12 @@ Hybrid-only hit & 8 & q029, q031, q037, q039, q046, q066, q072, q099 \\
 
 The remaining failures are not dominated by missing corpus files. For checked disputed questions, expected URLs are often present in the enriched chunk index. The harder cases involve ranking, Chinese/English sibling pages, list pages versus detail pages, faculty profile variants, and course-table or faculty-course join questions that require stronger structured signals than chunk similarity alone.
 
-\subsection{Representative Cases}
+\subsection{Representative Retrieval Cases}
 
 \begin{table}[H]
 \centering
 \small
-\caption{Representative retrieval-side case studies. Generated-answer text will be inserted after the final answer evaluation run.}
+\caption{Representative retrieval-side case studies from the retrieval evaluation. Generation-specific cases are reported separately in Table~\ref{tab:generation-cases}.}
 \label{tab:cases}
 \begin{tabular}{lp{0.28\linewidth}p{0.40\linewidth}}
 \toprule
@@ -292,28 +300,52 @@ q022 & Both miss & The current retrieval signals remain insufficient; this is a 
 \end{tabular}
 \end{table}
 
-\subsection{Generated-Answer Placeholders}
+\subsection{Dense Generation Baseline}
 
 \begin{table}[H]
 \centering
 \small
-\caption{Final generated-answer results to fill after answer-mode evaluation and manual review.}
-\label{tab:generation-placeholder}
-\begin{tabular}{lll}
+\caption{Dense-retrieval Qwen3.5 generation baseline. The after-optimization generation row is intentionally left pending.}
+\label{tab:generation-baseline}
+\begin{tabular}{lrr}
 \toprule
-Item & Before optimization & After optimization \\
+Metric & Dense generation baseline & Optimized generation \\
 \midrule
-Answer accuracy & TODO & TODO \\
-Average answer latency & TODO & TODO \\
-Answered / insufficient evidence counts & TODO & TODO \\
-Representative successful answers & TODO & TODO \\
-Representative failed answers & TODO & TODO \\
-Final Excel/manual-review status & TODO & TODO \\
+Automatic correct answers & 54/100 & TODO \\
+Manual-adjusted correct answers & 57/100 & TODO \\
+Answered-only manual accuracy & 57/82 = 69.5\% & TODO \\
+Evidence-insufficient answers & 18/100 & TODO \\
+Remaining wrong or incomplete answers & 25/100 & TODO \\
+Retrieved expected source hit@5 & 0.74 & TODO \\
+Cited expected source hit@5 & 0.67 & TODO \\
+Answer-synthesis miss rate & 0.05 & TODO \\
+Average latency & 16.095 s & TODO \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-The planned answer evaluation will run the same 100-question CSV in answer mode for the \texttt{dense} and \texttt{hybrid} conditions, export the assignment-required columns, and apply manual review where the configured judge type requires it. Until that pass is complete, this report treats retrieval metrics and answer correctness as separate quantities.
+The dense generation baseline shows that dense retrieval plus a stronger local generator is useful but not sufficient. The run produced 82 answered outputs and 18 evidence-insufficient outputs with no runtime errors. Automatic judging marked 54 answers correct, 28 incorrect, and 18 evidence insufficient. Manual review of the 28 automatically incorrect answers recovered only three clear evaluator false negatives, so the fair baseline score is 57/100 overall rather than a large hidden win masked by the judge. The dominant problem is answer synthesis: 15 of the 28 automatically incorrect answers both retrieved and cited an expected official source, but still omitted required facts or returned an incomplete answer.
+
+\begin{table}[H]
+\centering
+\scriptsize
+\setlength{\tabcolsep}{3.5pt}
+\caption{Representative dense-generation case studies from real answer artifacts.}
+\label{tab:generation-cases}
+\begin{tabular}{lp{0.23\linewidth}p{0.20\linewidth}p{0.35\linewidth}}
+\toprule
+Case & Query target & Artifact outcome & Analysis \\
+\midrule
+q006 & Tu Kewei NLP awards & Correct; retrieved and cited expected source & Dense retrieval finds the faculty/news evidence, and Qwen3.5 extracts the three award facts: ACL 2023 outstanding paper and SemEval 2022/2023 best system paper awards. \\
+q055 & Li Quan office, email, and research areas & Correct; retrieved and cited expected source & The system handles a multi-field faculty-profile question when all requested fields are present in one compact profile context. \\
+q004 & 2025 EE total graduation credits and elective credits & Incorrect despite retrieved/cited expected source & The model cites the correct curriculum pages but says the numeric facts are unavailable, missing 145 total credits and 9 elective credits. This is a table-evidence extraction failure. \\
+q065 & PSIT lab directions, quota, email, and PI & Incorrect despite retrieved/cited expected source & The final fallback returns only the contact email and misses research directions, 2--3 annual quota, and Professor Ye Chaofeng. This is a multi-field completeness failure. \\
+q069 & 2025 CS two-choice course-group rule & Incorrect; expected source not retrieved or cited & Dense retrieval routes the answer to stale 2020 CS and older EE plans, producing 31 elective credits instead of the 2025 rule that overflow credits count toward the 34-credit discipline elective bucket. \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+These cases motivate the generation-side optimization that is still left as a placeholder in Table~\ref{tab:generation-baseline}. The failure artifacts point to table-aware evidence expansion for curriculum pages, multi-field slot planning and validation, stricter year/program routing for degree-plan PDFs, and citation-coverage repair when an expected source is retrieved but not cited. This report does not claim those answer-side optimizations as completed; it records them as the next generation experiment to run against the same 100-question protocol.
 
 \section{Discussion and Conclusion}
 
@@ -322,12 +354,12 @@ The retrieval study shows that a careful local RAG stack can make large gains wi
 The largest methodological point is that source-evidence metrics must not be confused with answer correctness. A retrieved source can be relevant while the generator still omits a required fact, cites poorly, or returns an evidence-insufficient response. Conversely, a generated answer can look plausible while failing to cite the expected official source. The system therefore keeps retrieval logs, cited sources, answer text, automatic judge status, review queues, and Excel export fields separate.
 
 \paragraph{Limitations.}
-First, the current quantitative section is retrieval-only; final generated-answer accuracy remains to be inserted. Second, time-sensitive questions are judged against the corpus snapshot and source dates, so stale official pages can affect both retrieval and answer quality. Third, Fix 8 improves evidence quality but increases latency because expanded queries rerun dense retrieval. Fourth, remaining failures include sibling-page and qrels-narrowness issues, so some misses may reflect evaluation alias policy rather than a complete lack of usable evidence.
+First, only the dense generation baseline has been manually reviewed; the optimized hybrid generation row remains to be inserted after the matching answer run. Second, time-sensitive questions are judged against the corpus snapshot and source dates, so stale official pages can affect both retrieval and answer quality. Third, Fix 8 improves evidence quality but increases latency because expanded queries rerun dense retrieval. Fourth, dense generation failures show that even cited official sources are not enough when table rows, multi-field slots, or year/program constraints are not preserved through answer synthesis.
 
 \paragraph{Future work.}
-The immediate next step is to run answer-mode evaluation over the same 100-question set and add manually reviewed before/after correctness labels. Retrieval-side improvements should focus on caching the dense encoder for expanded queries, limiting expansion retrieval to sparse candidates when latency matters, adding contextual chunk enrichment v2 with breadcrumbs and entity aliases, and auditing Chinese/English sibling pages plus answer-bearing faculty/list variants separately from true retrieval changes.
+The immediate next step is to run the optimized hybrid answer-mode evaluation over the same 100-question set and add manually reviewed after-optimization correctness labels. Answer-side optimization should focus on table-aware evidence expansion for degree plans, multi-field completeness validation, year/program-specific source routing, and citation-coverage repair. Retrieval-side improvements should focus on caching the dense encoder for expanded queries, limiting expansion retrieval to sparse candidates when latency matters, adding contextual chunk enrichment v2 with breadcrumbs and entity aliases, and auditing Chinese/English sibling pages plus answer-bearing faculty/list variants separately from true retrieval changes.
 
-In conclusion, the implemented system satisfies the core project requirements for an official-source, local-model RAG pipeline with an interactive UI and reproducible evaluation artifacts. The current evidence supports a strong retrieval-optimization result; final generated-answer claims will be added only after the answer evaluation produces reviewed correctness labels.
+In conclusion, the implemented system satisfies the core project requirements for an official-source, local-model RAG pipeline with an interactive UI and reproducible evaluation artifacts. The current evidence supports a strong retrieval-optimization result and a documented dense generation baseline. Final after-optimization generated-answer claims will be added only after the hybrid answer evaluation produces reviewed correctness labels.
 
 \begin{thebibliography}{9}
 
