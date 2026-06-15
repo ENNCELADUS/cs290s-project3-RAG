@@ -1,0 +1,51 @@
+# Evaluation Gap Notes
+
+- `q001` `hybrid`: expected official source not found in top 5
+- `q002` `hybrid`: retrieved expected source but answer synthesis missed citation or abstained
+- `q004` `hybrid`: loose atom judge missing required quantity atoms: 2
+- `q005` `hybrid`: loose atom judge matched 2/3 atoms
+- `q007` `hybrid`: expected official source not found in top 5
+- `q009` `hybrid`: loose atom judge missing required quantity atoms: 2
+- `q010` `hybrid`: loose atom judge matched 1/5 atoms
+- `q011` `hybrid`: evidence insufficient answer
+- `q012` `hybrid`: evidence insufficient answer
+- `q013` `hybrid`: evidence insufficient answer
+- `q015` `hybrid`: loose atom judge missing required quantity atoms: 1
+- `q016` `hybrid`: loose atom judge matched 3/10 atoms
+- `q017` `hybrid`: retrieved expected source but answer synthesis missed citation or abstained
+- `q018` `hybrid`: loose atom judge matched 1/11 atoms
+- `q020` `hybrid`: expected official source not found in top 5
+- `q021` `hybrid`: evidence insufficient answer
+- `q022` `hybrid`: evidence insufficient answer
+- `q023` `hybrid`: expected official source not found in top 5
+- `q024` `hybrid`: expected official source not found in top 5
+- `q027` `hybrid`: expected official source not found in top 5
+- `q028` `hybrid`: expected official source not found in top 5
+- `q030` `hybrid`: loose atom judge matched 1/2 atoms
+- `q031` `hybrid`: expected official source not found in top 5
+- `q032` `hybrid`: loose atom judge matched 1/5 atoms
+- `q033` `hybrid`: evidence insufficient answer
+- `q037` `hybrid`: evidence insufficient answer
+- `q039` `hybrid`: expected official source not found in top 5
+- `q040` `hybrid`: evidence insufficient answer
+- `q041` `hybrid`: expected official source not found in top 5
+- `q043` `hybrid`: expected official source not found in top 5
+- `q044` `hybrid`: loose atom judge matched 3/7 atoms
+- `q045` `hybrid`: expected official source not found in top 5
+- `q046` `hybrid`: loose atom judge matched 2/7 atoms
+- `q047` `hybrid`: retrieved expected source but answer synthesis missed citation or abstained
+- `q048` `hybrid`: retrieved expected source but answer synthesis missed citation or abstained
+- `q051` `hybrid`: loose atom judge matched 0/1 atoms
+- `q052` `hybrid`: retrieved expected source but answer synthesis missed citation or abstained
+- `q053` `hybrid`: loose atom judge matched 0/2 atoms
+- `q065` `hybrid`: loose atom judge matched 1/10 atoms
+- `q067` `hybrid`: expected official source not found in top 5
+- `q068` `hybrid`: CUDA out of memory. Tried to allocate 420.00 MiB. GPU 0 has a total capacity of 23.64 GiB of which 399.56 MiB is free. Including non-PyTorch memory, this process has 23.24 GiB memory in use. Of the allocated memory 22.80 GiB is allocated by PyTorch, and 118.73 MiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True to avoid fragmentation.  See documentation for Memory Management  (https://pytorch.org/docs/stable/notes/cuda.html#environment-variables)
+- `q070` `hybrid`: expected official source not found in top 5
+- `q072` `hybrid`: retrieved expected source but answer synthesis missed citation or abstained
+- `q076` `hybrid`: loose atom judge missing required quantity atoms: 6
+- `q077` `hybrid`: evidence insufficient answer
+- `q078` `hybrid`: loose atom judge missing required quantity atoms: 1
+- `q082` `hybrid`: retrieved expected source but answer synthesis missed citation or abstained
+- `q085` `hybrid`: loose atom judge matched 9/14 atoms
+- `q088` `hybrid`: loose atom judge missing required quantity atoms: 1
