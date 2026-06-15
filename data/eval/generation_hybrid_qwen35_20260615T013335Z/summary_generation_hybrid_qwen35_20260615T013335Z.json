@@ -1,0 +1,32 @@
+{
+  "modes": {
+    "hybrid": {
+      "all_retrieved_expected_sources_hit@5": 0.69,
+      "answer_synthesis_miss": 0.06,
+      "avg_latency_s": 19.376873,
+      "cited_expected_source_hit@1": 0.64,
+      "cited_expected_source_hit@5": 0.69,
+      "correct": 49,
+      "errors": 0,
+      "evidence_insufficient": 6,
+      "incorrect": 45,
+      "manual_review": 0,
+      "mrr@1": 0.64,
+      "mrr@5": 0.660333,
+      "ndcg@1": 0.64,
+      "ndcg@5": 0.604006,
+      "ok": 100,
+      "precision@1": 0.64,
+      "precision@5": 0.168,
+      "records": 100,
+      "retrieved_expected_source_hit@1": 0.61,
+      "retrieved_expected_source_hit@5": 0.75,
+      "retrieved_expected_source_recall@5": 0.721667,
+      "source_hit@1": 0.64,
+      "source_hit@5": 0.69,
+      "source_recall@1": 0.571667,
+      "source_recall@5": 0.656667
+    }
+  },
+  "total_records": 100
+}

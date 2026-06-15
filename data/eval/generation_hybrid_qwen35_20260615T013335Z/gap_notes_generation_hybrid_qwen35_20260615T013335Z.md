@@ -1,0 +1,56 @@
+# Evaluation Gap Notes
+
+- `q001` `hybrid`: expected official source not found in top 5
+- `q004` `hybrid`: loose atom judge missing required quantity atoms: 2
+- `q005` `hybrid`: loose atom judge matched 2/3 atoms
+- `q007` `hybrid`: evidence insufficient answer
+- `q009` `hybrid`: loose atom judge matched 3/4 atoms
+- `q010` `hybrid`: expected official source not found in top 5
+- `q011` `hybrid`: evidence insufficient answer
+- `q012` `hybrid`: loose atom judge matched 3/5 atoms
+- `q013` `hybrid`: expected official source not found in top 5
+- `q014` `hybrid`: loose atom judge matched 1/8 atoms
+- `q015` `hybrid`: loose atom judge missing required quantity atoms: 1
+- `q016` `hybrid`: expected official source not found in top 5
+- `q017` `hybrid`: loose atom judge matched 5/10 atoms
+- `q018` `hybrid`: loose atom judge matched 4/11 atoms
+- `q020` `hybrid`: evidence insufficient answer
+- `q021` `hybrid`: expected official source not found in top 5
+- `q022` `hybrid`: expected official source not found in top 5
+- `q023` `hybrid`: expected official source not found in top 5
+- `q024` `hybrid`: expected official source not found in top 5
+- `q026` `hybrid`: loose atom judge matched 0/3 atoms
+- `q027` `hybrid`: loose atom judge missing required quantity atoms: 1
+- `q028` `hybrid`: retrieved expected source but answer synthesis missed citation or abstained
+- `q030` `hybrid`: loose atom judge matched 1/2 atoms
+- `q031` `hybrid`: expected official source not found in top 5
+- `q032` `hybrid`: expected official source not found in top 5
+- `q033` `hybrid`: evidence insufficient answer
+- `q034` `hybrid`: retrieved expected source but answer synthesis missed citation or abstained
+- `q035` `hybrid`: loose atom judge matched 1/5 atoms
+- `q036` `hybrid`: expected official source not found in top 5
+- `q037` `hybrid`: expected official source not found in top 5
+- `q039` `hybrid`: expected official source not found in top 5
+- `q040` `hybrid`: expected official source not found in top 5
+- `q041` `hybrid`: expected official source not found in top 5
+- `q043` `hybrid`: expected official source not found in top 5
+- `q045` `hybrid`: retrieved expected source but answer synthesis missed citation or abstained
+- `q046` `hybrid`: loose atom judge matched 3/7 atoms
+- `q048` `hybrid`: loose atom judge matched 2/6 atoms
+- `q051` `hybrid`: retrieved expected source but answer synthesis missed citation or abstained
+- `q052` `hybrid`: loose atom judge matched 2/5 atoms
+- `q053` `hybrid`: loose atom judge matched 1/2 atoms
+- `q067` `hybrid`: loose atom judge missing required quantity atoms: 4
+- `q068` `hybrid`: loose atom judge missing required quantity atoms: 4
+- `q069` `hybrid`: expected official source not found in top 5
+- `q070` `hybrid`: expected official source not found in top 5
+- `q072` `hybrid`: expected official source not found in top 5
+- `q073` `hybrid`: loose atom judge missing required quantity atoms: 3
+- `q074` `hybrid`: loose atom judge missing required quantity atoms: 2
+- `q077` `hybrid`: expected official source not found in top 5
+- `q078` `hybrid`: expected official source not found in top 5
+- `q081` `hybrid`: loose atom judge matched 7/11 atoms
+- `q088` `hybrid`: loose atom judge matched 3/6 atoms
+- `q094` `hybrid`: loose atom judge matched 4/18 atoms
+- `q095` `hybrid`: retrieved expected source but answer synthesis missed citation or abstained
+- `q097` `hybrid`: retrieved expected source but answer synthesis missed citation or abstained
