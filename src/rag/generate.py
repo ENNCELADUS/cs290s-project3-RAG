@@ -265,13 +265,17 @@ class RagAnswerer:
         from transformers import AutoModelForCausalLM, AutoTokenizer
 
         tokenizer = AutoTokenizer.from_pretrained(str(self.model_path), local_files_only=True, trust_remote_code=True)
+        torch_dtype = _generation_torch_dtype(self.device)
         model = AutoModelForCausalLM.from_pretrained(
             str(self.model_path),
             local_files_only=True,
             trust_remote_code=True,
-            torch_dtype="auto",
+            dtype=torch_dtype,
         )
-        model.to(self.device)
+        if torch_dtype == "auto":
+            model.to(self.device)
+        else:
+            model.to(device=self.device, dtype=torch_dtype)
         model.eval()
         self._tokenizer = tokenizer
         self._model = model
@@ -1864,6 +1868,17 @@ def _resolve_device(device: Device) -> str:
             raise RuntimeError("CUDA was requested for generation, but torch.cuda.is_available() is false")
         return "cuda"
     return "cuda" if torch.cuda.is_available() else "cpu"
+
+
+def _generation_torch_dtype(device: str) -> Any:
+    if device != "cuda":
+        return "auto"
+    import torch
+
+    major, _minor = torch.cuda.get_device_capability()
+    if major < 8:
+        return torch.float16
+    return "auto"
 
 
 def _move_inputs(inputs: Any, device: str) -> Any:
