@@ -7,6 +7,7 @@
 \usepackage{hyperref}
 \usepackage{url}
 \usepackage{booktabs}
+\usepackage{longtable}
 \usepackage{amsfonts}
 \usepackage{amsmath}
 \usepackage{graphicx}
@@ -15,6 +16,7 @@
 \usepackage[font=small,labelfont=bf]{caption}
 \usepackage{microtype}
 \usepackage{xcolor}
+\usepackage{CJKutf8}
 \usepackage{tikz}
 \usetikzlibrary{positioning, arrows.meta, shapes.geometric, fit, backgrounds}
 
@@ -32,23 +34,24 @@
 }
 
 \begin{document}
+\begin{CJK*}{UTF8}{gbsn}
 
 \maketitle
 
 \begin{abstract}
-We build a retrieval-augmented generation (RAG) system for answering questions about ShanghaiTech University and the School of Information Science and Technology (SIST). The system is designed around three constraints: all evidence must come from official sources, all retrieval and generation models must run locally or on self-hosted infrastructure, and evaluation must separate source-evidence quality from final answer correctness. Our implementation collects and cleans 7{,}190 official documents into 28{,}481 retrieval chunks, indexes them with SQLite, BM25, and FAISS, and serves cited answers through a Gradio interface backed by a local Qwen-family generator. On a structured 100-question benchmark, the accepted optimized hybrid retriever improves expected source hit@5 from 0.74 to 0.89 over the dense-only before-optimization condition, with higher MRR@5, nDCG@5, and precision@5. For the dense-retrieval generation baseline, a local Qwen3.5 answer run reaches 54/100 automatic accuracy and 57/100 after manual correction of three evaluator false negatives. The optimized generation result remains a placeholder until the matching post-optimization answer run is complete.
+We build a retrieval-augmented generation (RAG) system for answering questions about ShanghaiTech University and the School of Information Science and Technology (SIST). The system is designed around three constraints: all evidence must come from official sources, all retrieval and generation models must run locally or on self-hosted infrastructure, and evaluation must separate source-evidence quality from final answer correctness. Our implementation merges the provided local SIST materials with additional official-source crawl runs into a unified knowledge base containing 8{,}119 documents and 35{,}315 retrieval chunks, indexed with relational metadata, sparse retrieval, and dense vector search. On a structured 100-question benchmark, the accepted optimized hybrid retriever improves expected source hit@5 from 0.74 to 0.89 over the dense-only before-optimization condition, with higher MRR@5, nDCG@5, and precision@5. For the dense-retrieval generation baseline, a local Qwen3.5 answer run reaches 54/100 automatic accuracy and 57/100 after manual correction of three evaluator false negatives. The optimized generation result remains a placeholder until the matching post-optimization answer run is complete.
 \end{abstract}
 
 \section{Introduction}
 
 RAG systems are a natural fit for university question answering because many answers depend on authoritative but frequently changing web sources: faculty profiles, course tables, admission notices, program requirements, and event announcements. The goal of this project is to build a local, official-source RAG system that answers ShanghaiTech/SIST questions with inspectable citations rather than relying on a hosted model's parametric memory.
 
-Our system follows a conservative design. Data collection is restricted to official ShanghaiTech and SIST domains. Retrieval artifacts are reproducible from cleaned JSONL records and SQLite metadata. Dense embedding, sparse retrieval, reranking, query expansion, and answer generation use local models or self-hosted runtime paths; no commercial LLM API or hosted inference endpoint is required by the submitted system.
+Our system follows a conservative design. Data collection is restricted to official ShanghaiTech and SIST domains. Retrieval artifacts are reproducible from cleaned records and relational metadata. Dense embedding, sparse retrieval, reranking, query expansion, and answer generation use local models or self-hosted runtime paths; no commercial LLM API or hosted inference endpoint is required by the submitted system.
 
 This report makes five contributions:
 \begin{enumerate}
 \item An audited official-source corpus and preprocessing pipeline covering HTML, PDF, Office files, OCR fallback, structured extraction, and append-only crawl records.
-\item A complete local RAG pipeline with BM25, FAISS dense retrieval using \texttt{BAAI/bge-m3}, optimized hybrid retrieval, local Qwen answer generation, citation validation, and evidence-insufficient fallback.
+\item A complete local RAG pipeline with BM25, BGE-M3 dense retrieval, optimized hybrid retrieval, local Qwen answer generation, citation validation, and evidence-insufficient fallback.
 \item A reviewer-facing Gradio interface that exposes question input, retrieval mode, top-$k$, retrieval-only inspection, answers, and source contexts.
 \item A 100-question retrieval evaluation showing that the optimized hybrid retriever improves expected source evidence quality over the dense-only before-optimization condition.
 \item A dense-retrieval Qwen3.5 generation baseline with answer artifacts, manual review of incorrect outputs, and case studies separating retrieval misses, citation misses, and answer-synthesis failures.
@@ -56,71 +59,77 @@ This report makes five contributions:
 
 The main optimized-system quantitative claims in this version are retrieval claims. Expected source hit@5, source recall@5, MRR@5, nDCG@5, and precision@5 measure whether the retriever surfaces official evidence, while generated-answer accuracy measures whether the local generator uses that evidence correctly. The dense generation baseline is now reported from real answer artifacts; the after-optimization generation row is intentionally left as a placeholder until the corresponding hybrid answer run and manual review labels are available.
 
-\section{Data Collection and Knowledge Base}
+\section{Data Collection and Preprocessing}
 
-\paragraph{Official-source scope.}
-The corpus is built from official ShanghaiTech and SIST sources, including the SIST main site, SIST faculty pages, research center subdomains, ShanghaiTech university pages, admissions, graduate admissions, open information, library services, job pages, and academic office pages. Collection runs are append-only: raw crawl outputs remain under \texttt{data/collection\_runs/}, and accepted outputs are merged into a separate clean dataset under \texttt{data/merged/}. This avoids silently overwriting evidence and keeps stale or low-quality pages auditable.
+\paragraph{Data sources.}
+The knowledge base combines the provided local SIST dataset with additional official-source collection runs. The provided data contributes raw files, extracted text, and an initial structured SQLite knowledge base; the crawler then adds official ShanghaiTech and SIST pages beyond that seed set. The additional sources include the SIST main site, SIST faculty pages, SIST research-center subdomains, and university-level official subdomains for academic affairs, open information, admissions, graduate admissions, library services, jobs, and related school pages. We do not ingest non-official web sources, because the system is intended to answer with auditable institutional evidence rather than broad web knowledge.
 
-\paragraph{Parsing and cleaning.}
-The crawler extracts HTML text with structured metadata, parses PDFs with text extraction first, uses OCR only as a fallback for low-text PDFs, and treats unsupported binaries as source artifacts rather than retrieval documents. Office files are extracted when local parsers support the format. Chinese and English versions are preserved as distinct documents when both are available. Each document records URL, canonical URL, title, host, category, language, content type, parser, OCR usage, raw path, text path, and content hash.
+\paragraph{Append-only collection.}
+The collection layer is append-only so that every accepted page can be audited back to its crawl run. The collector reads official seed lists, respects robots rules by default, supports host allowlists, expands paginated site lists, and skips pages already present in earlier accepted runs. Each run records the raw source, extracted text, normalized records, source manifests, and quality summaries. This structure lets us reparse or replace low-quality parser output without silently overwriting the historical crawl evidence.
+
+\paragraph{Preprocessing.}
+Preprocessing converts heterogeneous official files into normalized retrieval records while preserving source metadata. HTML pages are parsed with script, style, navigation, header, footer, and SVG content ignored; discovered links are canonicalized for later crawl expansion. PDFs are first parsed with layout-preserving text extraction, and OCR is used only for low-text PDFs when Chinese OCR support is available. Office files are parsed with local document, spreadsheet, and presentation extractors when possible, while unsupported binaries remain source artifacts but are filtered from indexing. Extracted text is normalized and chunked into up to 1{,}200-character chunks with 120-character overlap. The pipeline also extracts structured candidates for courses, faculty members, program requirements, and events, using evidence strings and source-document identifiers rather than detached facts.
+
+Table~\ref{tab:corpus} summarizes the final knowledge-base scale used by both retrieval and generation experiments.
 
 \begin{table}[H]
 \centering
 \small
-\caption{Final clean merged knowledge-base statistics for downstream indexing.}
+\caption{Final unified knowledge-base structure used by retrieval and generation.}
 \label{tab:corpus}
 \begin{tabular}{lr}
 \toprule
 Artifact & Rows \\
 \midrule
-Documents & 7{,}190 \\
-Retrieval chunks & 28{,}481 \\
-Course records & 707 \\
-Faculty records & 503 \\
-Program requirement records & 1{,}777 \\
-Event records & 5{,}199 \\
+Documents & 8{,}119 \\
+Retrieval chunks & 35{,}315 \\
+Course records & 852 \\
+Faculty records & 579 \\
+Program requirement records & 3{,}576 \\
+Event records & 7{,}009 \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-The final clean merged dataset is \texttt{data/merged/all-collection-runs-clean-2026-05-27}. JSONL files preserve inspectable records for documents, chunks, courses, faculty members, program requirements, and events. The indexing stage converts these files into a SQLite database for metadata lookup and generated BM25, FAISS, chunk mapping, and build-report artifacts under \texttt{data/rag/}.
+\paragraph{Final knowledge-base structure.}
+The final runtime knowledge base is a relational corpus with linked document, chunk, course, faculty, program-requirement, and event records. It is built from the clean merged record layer and therefore combines the original local materials with accepted crawl outputs. The same build produces sparse and dense retrieval indexes, a chunk-to-source mapping, and a compact build report for reproducibility. The largest document categories are news, school information, research, admissions, events, programs, faculty, and courses; the dominant official sources are the SIST main site, ShanghaiTech open-information pages, SIST faculty pages, and the academic-affairs site.
 
 \section{System Architecture}
 
-Figure~\ref{fig:architecture} summarizes the implemented system. The same runtime supports retrieval-only inspection, full cited answer generation, Gradio demo use, and structured evaluation.
+Figure~\ref{fig:architecture} summarizes the implemented RAG pipeline from source collection to cited answer. Offline, official-source documents are parsed, chunked, merged into a relational knowledge base, and indexed with sparse and dense retrieval structures. Online, the user question enters either the interactive interface or the batch evaluator, runs through the selected retrieval strategy, is packed into numbered contexts, and is passed to a local Qwen generator. The answer is then checked for citation support, returned with source metadata, and logged for evaluation.
 
 \begin{figure}[H]
 \centering
 \resizebox{\linewidth}{!}{%
 \begin{tikzpicture}[
   >={Stealth[length=5pt]},
-  every node/.style={font=\small, align=center, minimum height=0.85cm, minimum width=1.8cm},
-  box/.style={draw, rounded corners=2pt, fill=#1, text width=1.9cm},
+  every node/.style={font=\small, align=center, minimum height=1.0cm, minimum width=1.95cm},
+  box/.style={draw, rounded corners=2pt, fill=#1, text width=2.05cm},
   box/.default={blue!4},
-  stadium/.style={draw, rounded corners=8pt, fill=#1, text width=1.8cm},
+  stadium/.style={draw, rounded corners=8pt, fill=#1, text width=1.95cm},
   stadium/.default={orange!8},
-  dbox/.style={draw, double, rounded corners=2pt, fill=gray!4, text width=1.8cm},
+  dbox/.style={draw, double, rounded corners=2pt, fill=gray!4, text width=1.95cm},
 ]
 % Column 1: Data Sources
-\node[box=blue!8] (src) {Data Sources\\\scriptsize\textit{HTML, PDF, OCR}};
+\node[box=blue!8] (src) {Data Sources\\\scriptsize\textit{HTML, PDF, Office, OCR}};
 
 % Column 2: Knowledge Base
-\node[box, right=1.3cm of src] (kb) {Knowledge Base\\\scriptsize\textit{chunks + metadata}};
+\node[box, right=1.2cm of src] (kb) {Knowledge Base\\\scriptsize\textit{SQLite, chunks, metadata}};
 
-% Column 3: Indexes (stacked) + User Query
-\node[box=blue!8, right=1.5cm of kb, yshift=1.4cm] (bm25) {BM25 Sparse};
-\node[box=blue!8, right=1.5cm of kb, yshift=0.0cm] (faiss) {FAISS Dense\\\scriptsize\textit{bge-m3}};
-\node[stadium=orange!10, right=1.5cm of kb, yshift=-1.4cm] (query) {User Query};
+% Column 3: Indexes
+\node[box=blue!8, right=1.35cm of kb, yshift=1.25cm] (bm25) {BM25 Sparse\\\scriptsize\textit{rank\_bm25 + Jieba}};
+\node[box=blue!8, right=1.35cm of kb, yshift=-0.05cm] (faiss) {FAISS Dense\\\scriptsize\textit{BGE-M3, 1024d}};
 
 % Column 4: Hybrid Retrieval
-\node[box=cyan!6, right=1.5cm of faiss] (ret) {Hybrid Retrieval\\\scriptsize\textit{RRF + rerank + QE}};
+\node[box=cyan!6, right=1.35cm of faiss] (ret) {Hybrid Retrieval\\\scriptsize\textit{RRF + BGE rerank + QE}};
+\node[stadium=orange!10, below=0.9cm of ret] (query) {User Query\\\scriptsize\textit{interactive / eval}};
 
 % Column 5: Generator
-\node[box=violet!6, right=1.5cm of ret] (gen) {Qwen Generator\\\scriptsize\textit{citation-constrained}};
+\node[box=violet!6, right=1.35cm of ret] (gen) {Qwen Generator\\\scriptsize\textit{Transformers + Qwen3.5}};
 
 % Column 6: Outputs (stacked)
-\node[stadium=white, draw, right=1.5cm of gen, yshift=0.8cm] (out) {Cited Answer};
-\node[dbox, right=1.5cm of gen, yshift=-0.8cm] (eval) {Evaluation\\\scriptsize\textit{metrics + logs}};
+\node[stadium=white, draw, right=1.35cm of gen, yshift=0.8cm] (out) {Cited Answer\\\scriptsize\textit{validated citations}};
+\node[dbox, right=1.35cm of gen, yshift=-0.8cm] (eval) {Evaluation\\\scriptsize\textit{100-Q metrics + logs}};
 
 % Edges
 \draw[->] (src) -- (kb);
@@ -136,11 +145,13 @@ Figure~\ref{fig:architecture} summarizes the implemented system. The same runtim
 % Background groupings
 \begin{scope}[on background layer]
   \node[draw=gray!40, dashed, rounded corners=4pt, fill=gray!3,
-        fit=(src)(kb)(bm25)(faiss), inner sep=10pt,
-        label={[font=\scriptsize\itshape, anchor=south east]south east:Offline Indexing}] {};
+        fit=(src)(kb)(bm25)(faiss), inner xsep=10pt, inner ysep=16pt] (offlinebox) {};
   \node[draw=gray!40, dashed, rounded corners=4pt, fill=blue!2,
-        fit=(query)(ret)(gen)(out)(eval), inner sep=10pt,
-        label={[font=\scriptsize\itshape, anchor=south east]south east:Online Inference}] {};
+        fit=(query)(ret)(gen)(out)(eval), inner xsep=10pt, inner ysep=16pt] (onlinebox) {};
+  \node[font=\scriptsize\itshape, anchor=north west] at ([xshift=3pt,yshift=-3pt]offlinebox.north west)
+        {Offline Corpus + Indexing};
+  \node[font=\scriptsize\itshape, anchor=south east] at ([xshift=-3pt,yshift=3pt]onlinebox.south east)
+        {Online Inference};
 \end{scope}
 \end{tikzpicture}%
 }%
@@ -148,72 +159,102 @@ Figure~\ref{fig:architecture} summarizes the implemented system. The same runtim
 \label{fig:architecture}
 \end{figure}
 
+\paragraph{Query-to-answer flow.}
+At inference time, the user submits a question through the interactive interface or the batch evaluator. In dense mode, the system embeds the question with BGE-M3 and searches the dense vector index. In optimized hybrid mode, it retrieves sparse and dense candidates, optionally includes conservative expanded queries, fuses rankings with reciprocal rank fusion, applies bounded local reranking, and de-duplicates repeated source variants before selecting the final top contexts.
+
+\paragraph{Context and answer flow.}
+The selected contexts are converted into numbered source blocks containing the source title, address, trace reference, and text. The local Qwen generator receives only these blocks plus the user question; the prompt requires same-language answering, numbered citations, exact label-value preservation, and insufficient-evidence refusal when the sources do not support the answer. After generation, citation validation, repair prompting, and deterministic fallback decide whether to return a cited answer or an evidence-insufficient response. The interface displays the answer and source table, while evaluation runs write per-question traces, aggregate metrics, manual-review queues, and spreadsheet exports.
+
 \section{Implementation Details}
 
-\paragraph{Retrieval components.}
-The sparse retriever uses BM25 over tokenized chunks. Tokenization combines ASCII token matching with \texttt{jieba} for Chinese text. The dense retriever embeds chunks and queries with \texttt{BAAI/bge-m3}, stores normalized vectors in FAISS, and retrieves by inner product. The hybrid retriever runs sparse and dense candidate searches, merges ranked lists with reciprocal rank fusion (RRF), optionally applies a local CrossEncoder reranker, de-duplicates final sources, and packs the top contexts with title, URL, language, category, snippet, rank, and trace metadata.
+\subsection{Retrieval Components}
 
-\paragraph{Generation components.}
-The answer path is exposed by \texttt{rag-answer} and the Python \texttt{RagAnswerer}. It supports the official report modes \texttt{dense} and \texttt{hybrid}. The generator requires an explicit local \texttt{--model-path}; model IDs in documentation are acquisition hints, not runtime download defaults. The dense generation baseline in this report was run with a self-hosted Qwen3.5-9B snapshot, \texttt{top\_k=5}, \texttt{max\_new\_tokens=1024}, \texttt{temperature=0.0}, CUDA generation, and the same \texttt{BAAI/bge-m3} dense index used by the retrieval baseline. The prompt asks the model to answer in the user's language, use only the provided official-source contexts, preserve label-value bindings, cite factual claims with numbered citations, answer all requested fields when present, and report insufficient evidence when the contexts do not support an answer.
+\paragraph{Index representation.}
+The retrieval stack has two complementary indexes over the same official-source chunks. The sparse index uses BM25 with a tokenizer that combines ASCII/code-like tokens with Jieba Chinese segmentation, which makes exact identifiers such as course codes, room numbers, faculty names, and Chinese administrative terms directly searchable. The dense index uses BGE-M3 through SentenceTransformers. During indexing, each chunk is represented by an enriched retrieval field containing the page title, category, source address tokens, and chunk text; the vectors are normalized 1024-dimensional embeddings and are stored in a FAISS inner-product index. This enriched field is used only for matching. The answer context shown to the generator remains the original extracted official-source text, which avoids exposing synthetic metadata as answer evidence.
 
-\paragraph{Answer validation and recovery.}
-Generation is not accepted solely because the model produced fluent text. The runtime rejects uncited outputs, citations to missing source IDs, prompt leakage, weak citation support, and missing required contact/profile/credit facts. If the first answer is rejected, the system runs one local repair pass over the same numbered contexts and asks for a strict JSON object with either a cited answer or an explicit insufficient-evidence status. If repair fails, deterministic source-derived fallback covers compact facts such as office/email, address/postcode, course/teacher, dates, credit values, and short list answers. If all three paths fail, the result is recorded as \texttt{insufficient\_evidence}.
+\paragraph{Dense and sparse query handling.}
+For the before-optimization dense baseline, the runtime embeds the raw user question with the same BGE-M3 encoder and retrieves the five nearest chunks from FAISS. For the sparse channel, the query is tokenized with the same mixed English/Chinese tokenizer used at index time, and the BM25 candidate list is restricted to chunks that contain at least one query token. This simple filtering matters in a mixed corpus: it prevents high-scoring but query-disconnected BM25 artifacts from entering the hybrid candidate pool while preserving exact-match evidence for names, course identifiers, and page-specific phrases.
 
-\paragraph{Interface.}
-The Gradio app is implemented as a usable QA interface rather than a landing page. It includes a question box, an ask button, retrieval-mode radio buttons for \texttt{hybrid}, \texttt{dense}, and \texttt{bm25}, a top-$k$ slider, a retrieval-only toggle, a markdown answer panel, source tables, status messages, and sample questions. When no local generator path is configured, the app remains useful as a retrieval-inspection demo.
+\paragraph{Hybrid retrieval strategy.}
+The optimized retriever runs sparse and dense search in parallel, then fuses their ranked lists with reciprocal rank fusion. In the report-facing optimized condition, both channels retrieve a deeper candidate pool before fusion; the dense list receives 1.5$\times$ the sparse weight because dense retrieval was empirically stronger after index enrichment. The fused list is then diversified by normalized source address, document identity, SIST article identifier, and text hash, with at most one final context from the same source family. This de-duplication is important for generation because a top-five context window filled with near-duplicate chunks leaves no room for the second or third source needed by multi-field questions.
 
-\paragraph{Evaluation.}
-The evaluation runner \texttt{rag-evaluate} consumes \texttt{data/test/question\_final\_structured\_100.csv}. The set contains 100 Chinese questions across factual, time-sensitive, comparative, conditional, and multi-hop categories. Each question stores ground-truth answer text, expected official source URLs, evidence snippets, grading notes, and a judge type. Retrieval runs emit JSONL records, summary JSON, review queues, gap notes, and an Excel workbook. Retrieval-only runs intentionally mark answer correctness for manual review because no generated answer is judged.
+\paragraph{Reranking and query expansion.}
+The final hybrid configuration applies a bounded local cross-encoder reranker rather than reranking the entire candidate list. It preserves the strongest fused candidates, reranks only the next small suffix with a local BGE reranker on GPU, and then selects the final five contexts. Conservative query expansion is applied only on the retrieval side: a local Qwen3-0.6B rewrite supplies one additional query per benchmark question, but the expanded text is filtered to stay close to the original question and is never inserted into the answer prompt or cited. This design keeps the benefit of lexical reformulation while avoiding the observed HyDE-style failure mode where generated pseudo-evidence introduced unsupported offices, emails, or institution names.
 
-\paragraph{Generation baseline protocol.}
-The dense generation baseline is \texttt{data/eval/generation\_dense\_qwen35\_20260615T052701Z}. It runs \texttt{rag-evaluate --runner answer --modes dense} over the same 100-question file and exports JSONL answer records, summary metrics, gap notes, a review queue, an assignment-style Excel workbook, and manual review notes for automatically incorrect answers. The run contains 45 factual, 20 time-sensitive, 13 comparative, 12 multi-hop, and 10 conditional questions. There were no runtime errors, so all reported failures are model, retrieval, citation, or evidence-selection failures rather than crashed examples.
+\subsection{Generation Components}
 
-\begin{table}[H]
-\centering
+\paragraph{Local answer model.}
+The generation path uses the same retriever interface for both dense and hybrid answer modes, then passes the selected evidence to a self-hosted Qwen-family causal language model loaded with Transformers. The dense generation baseline reported in this paper uses a local Qwen3.5-9B checkpoint, GPU inference, a five-context retrieval window, deterministic decoding, and a 1{,}024-token maximum answer budget. The model identifier is therefore a reproducibility descriptor, not a hosted API dependency; all answer runs use local files and offline execution.
+
+\paragraph{Answer context selection.}
+Before prompting the generator, the answerer reorders and trims retrieved contexts for answer synthesis. Contexts receive lightweight metadata scores from year overlap, exact date overlap, anchor-term overlap, program/course terms, contact evidence, and degree-plan cues; an optional local answer-side reranker can add cross-encoder scores. For long chunks, the system selects query-relevant local evidence windows and nearby sibling chunks from the same document or source. It also appends structured bindings for table-like evidence so that rows such as credit totals, offices, emails, and formula components remain attached to their labels. The citation numbers remain the original retrieval ranks even when the answer context order changes, so citations still map directly to the displayed source table.
+
+\paragraph{Prompt template.}
+The answer prompt is the following two-message chat template, with the question and numbered source blocks filled at runtime:
+\begin{quote}
 \small
-\caption{Main system components.}
-\label{tab:components}
-\begin{tabular}{lp{0.34\linewidth}p{0.38\linewidth}}
-\toprule
-Layer & Implementation & Role \\
-\midrule
-Corpus store & JSONL + SQLite & Auditable records and source metadata lookup \\
-Sparse retrieval & BM25 + \texttt{jieba} & Exact names, course codes, and Chinese term matching \\
-Dense retrieval & FAISS + \texttt{BAAI/bge-m3} & Multilingual semantic retrieval \\
-Hybrid retrieval & RRF, de-duplication, reranking & Optimized evidence selection \\
-Generator & Local Qwen-family model & Cited answer generation from packed contexts \\
-Answer validator & Citation checks, repair prompt, extractive fallback & Reject unsupported answers and recover compact facts \\
-UI & Gradio & Interactive answer and source inspection \\
-Evaluation & \texttt{rag-evaluate} & 100-question metrics and Excel outputs \\
-\bottomrule
-\end{tabular}
-\end{table}
+\textbf{System message.}\\
+You are a local RAG answer generator for official ShanghaiTech/SIST sources.\\
+Answer in the same language as the user question.\\
+Use only the provided sources. Do not use outside knowledge.\\
+Preserve label-value bindings exactly; do not copy totals into adjacent rows or fields.\\
+For formulas, preserve the source year's components and weights exactly.\\
+Every factual paragraph must include at least one numbered citation like [1].\\
+If the question asks for multiple fields or items, answer every requested field found in sources.\\
+If the sources do not contain enough evidence, say that the evidence is insufficient.\\
+Write only the final answer. Do not copy source metadata or prompt text.
+
+\medskip
+\noindent\textbf{User message.}\\
+Question: \emph{\{user question\}}\\
+Sources:\\
+\emph{\{for each selected source\}}\\
+{[}\emph{rank}{]} \emph{\{source title\}}\\
+URL: \emph{\{source address\}}\\
+chunk\_id: \emph{\{chunk identifier\}}\\
+trace\_ref: \emph{\{retrieval trace reference\}}\\
+TEXT:\\
+\emph{\{official-source context text\}}
+\end{quote}
+For Qwen models that support chat templates, the runtime wraps these two messages with the tokenizer's chat template and disables thinking; otherwise it falls back to the same fields followed by an explicit ``Answer:'' marker.
+
+\paragraph{Validation and recovery.}
+The system treats fluent text as a draft rather than an automatically accepted answer. A generated answer is rejected if it leaks prompt fields, lacks valid citations, cites a non-retrieved source number, declares insufficient evidence without substantive facts, drops required contact/profile/credit fields, breaks label-value bindings, or reports unsupported formula values. After a rejection, one local repair pass sees the same numbered contexts and the rejected draft, and must return either a strict cited answer or an explicit insufficient-evidence status. If repair fails, deterministic source-derived recovery handles compact facts such as office/email pairs, addresses and postcodes, course teachers, dates, credit values, admissions fields, and short list answers. Only outputs that pass the same citation and leakage checks are returned as answered; otherwise the final status is evidence insufficient.
+
+\subsection{Interface and Evaluation Runtime}
+
+\paragraph{Interactive interface.}
+The Gradio app exposes the same runtime path used by evaluation. It includes question input, retrieval-mode selection, a top-$k$ control, retrieval-only inspection, an answer panel, status messages, and source tables. If no local generator checkpoint is configured, the interface still runs as a retrieval-inspection tool, which is useful for auditing evidence quality independently from generation quality.
+
+\paragraph{Batch evaluation.}
+The evaluator consumes the structured 100-question benchmark and can run retrieval-only, answer-only, or paired retrieval-and-answer experiments. Each question records its category, language, expected answer, acceptable official sources, evidence snippets, grading notes, and judge type. Retrieval records store observed source addresses, top titles, packed contexts, fusion/reranking traces, and source metrics. Answer records additionally store the generated text, cited sources, answer status, generation path, rejection reason, fallback source rank when applicable, latency, and manual-review exports. The dense generation baseline is simply the dense-mode answer run under this shared protocol; the optimized generation row remains pending until the corresponding reviewed hybrid answer run is complete.
 
 \section{Retrieval Optimization}
 \label{sec:retrieval-optimization}
 
-The central optimization study compares a dense-only FAISS retriever against a sequence of controlled hybrid-retrieval fixes. The before-optimization baseline embeds the user query with \texttt{BAAI/bge-m3}, searches a FAISS index, and returns the top five chunks by dense similarity. It does not use BM25, rank fusion, source de-duplication, enriched index text, reranking, or query expansion. This baseline is strong for semantic matching, but it misses exact course codes, faculty names, URL/path cues, and multi-source questions where several near-duplicate chunks can consume the final context window.
+The central optimization study compares a dense-only FAISS retriever against a sequence of controlled hybrid-retrieval improvements. The before-optimization baseline embeds the user query with BGE-M3, searches a dense vector index, and returns the top five chunks by semantic similarity. It does not use sparse matching, rank fusion, source de-duplication, enriched index text, reranking, or query expansion. This baseline is strong for semantic matching, but it misses exact course codes, faculty names, source-address cues, and multi-source questions where several near-duplicate chunks can consume the final context window.
 
-We use the 100-question structured set, the same corpus snapshot, and \texttt{top\_k=5} throughout. Fix 1 is not counted as a retrieval optimization: it canonicalizes URL and qrels aliases for both conditions so that metrics reflect retrieval behavior rather than harmless source-URL variants. The report-facing baseline is therefore Fix 1 \texttt{dense}, rescored under the same canonicalization policy as the final system.
+We use the 100-question structured set, the same corpus snapshot, and a five-context retrieval budget throughout. URL and expected-source aliases are canonicalized for both conditions so that metrics reflect retrieval behavior rather than harmless source-address variants. The report-facing dense baseline is therefore rescored under the same canonicalization policy as the final hybrid system.
+
+Table~\ref{tab:retrieval-fix-path} reports the controlled retrieval ablation path under this shared protocol.
 
 \begin{table}[H]
 \centering
 \scriptsize
 \setlength{\tabcolsep}{3.5pt}
-\caption{Controlled retrieval development path. Rows show the main successful changes after the canonicalized dense baseline. Metrics are retrieval-only evidence metrics.}
+\caption{Controlled retrieval ablation path. Rows show the main successful changes after the canonicalized dense baseline. Metrics are retrieval-only evidence metrics.}
 \label{tab:retrieval-fix-path}
 \begin{tabular}{lp{0.32\linewidth}rrrr}
 \toprule
 Condition & Main change relative to prior accepted condition & Hit@1 & Hit@5 & MRR@5 & Latency (s) \\
 \midrule
-Baseline: Fix 1 dense & Dense-only FAISS over \texttt{BAAI/bge-m3}; no hybrid fusion or reranking & 0.52 & 0.74 & 0.594833 & 2.035649 \\
-Fix 1 hybrid control & Add BM25+dense candidates with RRF under shared URL canonicalization & 0.56 & 0.71 & 0.623167 & 2.882323 \\
-Fix 2 hybrid & Enrich index text with title, category, URL, path tokens, and chunk text & 0.64 & 0.80 & 0.705833 & 2.948884 \\
-Fix 3 hybrid & Weight dense channel in RRF with sparse weight 1.0 and dense weight 1.5 & 0.64 & 0.82 & 0.710833 & 2.989514 \\
-Fix 4 hybrid & Enforce strict final source diversity to avoid repeated source variants & 0.66 & 0.85 & 0.735333 & 2.969989 \\
-Fix 6 hybrid & Selectively rerank top-20 candidates while preserving fused top 2 & 0.65 & 0.88 & 0.748333 & 33.603731 \\
-Fix 7 hybrid & Move the same selective reranker to CUDA; ranking unchanged & 0.65 & 0.88 & 0.748333 & 5.141354 \\
-Fix 8 hybrid & Add conservative local Qwen query expansion before hybrid fusion & 0.67 & 0.89 & 0.757833 & 8.389798 \\
+Dense baseline & Dense-only FAISS retrieval with BGE-M3; no hybrid fusion or reranking & 0.52 & 0.74 & 0.594833 & 2.035649 \\
+Hybrid fusion & Add BM25 and dense candidates with RRF under shared source canonicalization & 0.56 & 0.71 & 0.623167 & 2.882323 \\
+Enriched indexing & Enrich index text with title, category, source address, path tokens, and chunk text & 0.64 & 0.80 & 0.705833 & 2.948884 \\
+Weighted fusion & Give the dense rank list 1.5$\times$ the weight of the sparse rank list in RRF & 0.64 & 0.82 & 0.710833 & 2.989514 \\
+Source diversity & Enforce strict final source diversity to avoid repeated source variants & 0.66 & 0.85 & 0.735333 & 2.969989 \\
+Selective reranking (GPU) & Move the same selective reranker to GPU inference; ranking unchanged & 0.65 & 0.88 & 0.748333 & 5.141354 \\
+Conservative query expansion & Add local Qwen query expansion before hybrid fusion & 0.67 & 0.89 & 0.757833 & 8.389798 \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -221,20 +262,20 @@ Fix 8 hybrid & Add conservative local Qwen query expansion before hybrid fusion 
 \paragraph{From dense baseline to hybrid retrieval.}
 The first optimization axis is adding a sparse channel. Dense retrieval captures semantic similarity, but the evaluation set contains many questions whose evidence depends on exact identifiers: course codes, faculty names, office rooms, admission program names, and URL-specific announcements. Hybrid retrieval adds BM25 candidates and fuses sparse and dense rankings with RRF. The first hybrid control already improves top-rank quality over dense under canonicalized evaluation, raising hit@1 from 0.52 to 0.56 and MRR@5 from 0.594833 to 0.623167. Its hit@5 is lower than dense at this stage, which shows that hybrid fusion alone is not sufficient; the later fixes are needed to recover broad top-five coverage.
 
-\paragraph{Fix 2: enriched index text.}
+\paragraph{Enriched index text.}
 The largest single retrieval gain comes from changing the indexed representation rather than the displayed evidence. BM25 tokenization and dense embeddings are built from an enriched text field containing the title, category, canonical URL, URL slug/path tokens, and raw chunk text. Display snippets and packed contexts still use the original official-source text. This helps questions whose answer-bearing page can be identified by page title, category, or URL path even when the body chunk is short or table-like. Hybrid hit@5 rises from 0.71 to 0.80, and MRR@5 rises from 0.623167 to 0.705833.
 
-\paragraph{Fix 3: weighted RRF.}
-After enrichment, dense retrieval remains more reliable than sparse retrieval for many semantic questions. Fix 3 keeps the same candidate pools and index text, but changes hybrid RRF to use \texttt{sparse\_weight=1.0} and \texttt{dense\_weight=1.5}. This is a small but clean ranking adjustment: hybrid hit@5 improves from 0.80 to 0.82, MRR@5 improves from 0.705833 to 0.710833, and dense retrieval is unchanged because this fix only affects hybrid fusion.
+\paragraph{Weighted rank fusion.}
+After enrichment, dense retrieval remains more reliable than sparse retrieval for many semantic questions. The weighted-fusion variant keeps the same candidate pools and index text, but gives the dense rank list 1.5$\times$ the weight of the sparse rank list in RRF. This is a small but clean ranking adjustment: hybrid hit@5 improves from 0.80 to 0.82, MRR@5 improves from 0.705833 to 0.710833, and dense retrieval is unchanged because this change only affects hybrid fusion.
 
-\paragraph{Fix 4: strict source diversity.}
-Several failures came from repeated source variants occupying multiple top-five slots. Fix 4 caps final output to one item per normalized URL, document ID, and SIST article-ID family. This increases hybrid hit@5 from 0.82/0.83 after rescoring to 0.85 and recovers cases such as q039 and q066 by replacing repeated variants with additional distinct sources. The tradeoff is that nDCG@5 and precision@5 can drop slightly when repeated relevant chunks are replaced by diverse but non-relevant sources. This is still desirable for RAG context packing because a generator benefits from seeing distinct evidence sources.
+\paragraph{Strict source diversity.}
+Several failures came from repeated source variants occupying multiple top-five slots. The source-diversity stage caps final output to one item per normalized source, document, and article family. This increases hybrid hit@5 to 0.85 by replacing repeated variants with additional distinct sources. The tradeoff is that nDCG@5 and precision@5 can drop slightly when repeated relevant chunks are replaced by diverse but non-relevant sources. This is still desirable for RAG context packing because a generator benefits from seeing distinct evidence sources.
 
-\paragraph{Fixes 6 and 7: selective local reranking.}
-A full top-50 CrossEncoder reranker was tested but rejected as the default path: it raised hit@5 only to 0.86 while sharply hurting hit@1, MRR@5, nDCG@5, and CPU latency. Fix 6 therefore adds selective reranking: preserve the fused top two candidates and rerank only a bounded top-20 suffix with a local \texttt{BAAI/bge-reranker-v2-m3} CrossEncoder. This keeps most first-rank quality while improving coverage: hit@5 rises from 0.85 to 0.88, source recall@5 rises to 0.853333, MRR@5 rises to 0.748333, and nDCG@5 rises to 0.738153. Fix 7 is then a runtime optimization: the same reranker runs on CUDA, preserving the exact ranking while reducing latency from 33.603731 seconds to 5.141354 seconds per query.
+\paragraph{Selective local reranking.}
+A full top-50 cross-encoder reranker was tested but rejected as the default path: it raised hit@5 only to 0.86 while sharply hurting hit@1, MRR@5, nDCG@5, and CPU latency. The accepted reranking stage therefore preserves the fused top two candidates and reranks only a bounded top-20 suffix with a local BGE reranker. This keeps most first-rank quality while improving coverage: hit@5 rises from 0.85 to 0.88, source recall@5 rises to 0.853333, MRR@5 rises to 0.748333, and nDCG@5 rises to 0.738153. GPU inference is then used as a runtime optimization, preserving the exact ranking while reducing latency from 33.603731 seconds to 5.141354 seconds per query.
 
-\paragraph{Fix 8: conservative query expansion.}
-The final accepted retrieval-ranking change adds one local Qwen3-0.6B rewrite per question. The rewrite is used only as an additional retrieval query; it is not inserted into the answer context and cannot be cited. A direct HyDE-style smoke test hallucinated unsupported offices, emails, and institution names, so the accepted version is deliberately conservative: generated terms are filtered back to the original question vocabulary. This improves hybrid hit@1 from 0.65 to 0.67, hit@5 from 0.88 to 0.89, MRR@5 from 0.748333 to 0.757833, and nDCG@5 from 0.738153 to 0.753315. The cost is latency: Fix 8 averages 8.389798 seconds per query because the expanded query triggers an additional dense candidate pass.
+\paragraph{Conservative query expansion.}
+The final accepted retrieval-ranking change adds one local Qwen3-0.6B rewrite per question. The rewrite is used only as an additional retrieval query; it is not inserted into the answer context and cannot be cited. A direct HyDE-style smoke test hallucinated unsupported offices, emails, and institution names, so the accepted version is deliberately conservative: generated terms are filtered back to the original question vocabulary. This improves hybrid hit@1 from 0.65 to 0.67, hit@5 from 0.88 to 0.89, MRR@5 from 0.748333 to 0.757833, and nDCG@5 from 0.738153 to 0.753315. The cost is latency: the final hybrid system averages 8.389798 seconds per query because the expanded query triggers an additional dense candidate pass.
 
 \begin{table}[H]
 \centering
@@ -246,8 +287,8 @@ The final accepted retrieval-ranking change adds one local Qwen3-0.6B rewrite pe
 \toprule
 Condition & Hit@1 & Hit@5 & Recall@5 & MRR@5 & nDCG@5 & Precision@5 \\
 \midrule
-Before: Fix 1 dense, rescored & 0.52 & 0.74 & 0.723333 & 0.594833 & 0.614946 & 0.172 \\
-After: Fix 8 hybrid expansion & \textbf{0.67} & \textbf{0.89} & \textbf{0.858333} & \textbf{0.757833} & \textbf{0.753315} & \textbf{0.196} \\
+Before: dense baseline, rescored & 0.52 & 0.74 & 0.723333 & 0.594833 & 0.614946 & 0.172 \\
+After: optimized hybrid retriever & \textbf{0.67} & \textbf{0.89} & \textbf{0.858333} & \textbf{0.757833} & \textbf{0.753315} & \textbf{0.196} \\
 Delta & +0.15 & +0.15 & +0.135000 & +0.163000 & +0.138369 & +0.024 \\
 \bottomrule
 \end{tabular}
@@ -261,46 +302,30 @@ Overall, the optimized retriever improves every report-facing retrieval metric o
 
 Table~\ref{tab:retrieval-main} is the primary quantitative result. The optimized hybrid retriever is stronger than the dense-only before-optimization condition on top-rank quality, top-five coverage, recall, MRR, nDCG, and precision. The result supports a retrieval claim: the system is substantially better at surfacing official evidence after optimization.
 
+Table~\ref{tab:failure-taxonomy} further breaks down which questions are helped or harmed by the optimized hybrid retriever relative to the dense baseline.
+
 \begin{table}[H]
 \centering
 \small
-\caption{Top-five expected-source overlap after Fix 8.}
+\caption{Top-five expected-source overlap after the optimized hybrid retriever.}
 \label{tab:failure-taxonomy}
-\begin{tabular}{lrl}
+\begin{tabular}{lrp{0.58\linewidth}}
 \toprule
-Result type & Count & Question IDs \\
+Result type & Count & Interpretation \\
 \midrule
-Both hit & 81 & Not listed individually \\
-Both miss & 7 & q006, q022, q023, q024, q032, q033, q041 \\
-Dense-only hit & 4 & q003, q013, q018, q050 \\
-Hybrid-only hit & 8 & q029, q031, q037, q039, q046, q066, q072, q099 \\
+Both hit & 81 & Both retrieval conditions surface at least one expected official source. \\
+Both miss & 7 & The current corpus or ranking signals are insufficient for the expected source. \\
+Dense-only hit & 4 & Hybrid ranking or diversification displaces a useful dense result. \\
+Hybrid-only hit & 8 & Optimization adds expected evidence that dense retrieval misses. \\
 \bottomrule
 \end{tabular}
 \end{table}
 
 The remaining failures are not dominated by missing corpus files. For checked disputed questions, expected URLs are often present in the enriched chunk index. The harder cases involve ranking, Chinese/English sibling pages, list pages versus detail pages, faculty profile variants, and course-table or faculty-course join questions that require stronger structured signals than chunk similarity alone.
 
-\subsection{Representative Retrieval Cases}
-
-\begin{table}[H]
-\centering
-\small
-\caption{Representative retrieval-side case studies from the retrieval evaluation. Generation-specific cases are reported separately in Table~\ref{tab:generation-cases}.}
-\label{tab:cases}
-\begin{tabular}{lp{0.28\linewidth}p{0.40\linewidth}}
-\toprule
-Case & Retrieval outcome & Current interpretation \\
-\midrule
-q031 & Hybrid-only hit & Selective reranking recovered an expected source that previously ranked below the final top five. \\
-q039 & Hybrid-only hit & Strict source diversity helped prevent repeated source variants from consuming context slots. \\
-q046 & Hybrid-only hit & Conservative query expansion moved the question from both-miss to hybrid-only hit. \\
-q013 & Dense-only hit & Narrowing or reranking can still disturb useful dense evidence for course/faculty join questions. \\
-q022 & Both miss & The current retrieval signals remain insufficient; this is a candidate for structured retrieval or qrels audit. \\
-\bottomrule
-\end{tabular}
-\end{table}
-
 \subsection{Dense Generation Baseline}
+
+Table~\ref{tab:generation-baseline} reports the dense-retrieval generation baseline and keeps the optimized-generation column pending until the corresponding reviewed run is complete.
 
 \begin{table}[H]
 \centering
@@ -311,39 +336,106 @@ q022 & Both miss & The current retrieval signals remain insufficient; this is a 
 \toprule
 Metric & Dense generation baseline & Optimized generation \\
 \midrule
-Automatic correct answers & 54/100 & TODO \\
-Manual-adjusted correct answers & 57/100 & TODO \\
-Answered-only manual accuracy & 57/82 = 69.5\% & TODO \\
-Evidence-insufficient answers & 18/100 & TODO \\
-Remaining wrong or incomplete answers & 25/100 & TODO \\
-Retrieved expected source hit@5 & 0.74 & TODO \\
-Cited expected source hit@5 & 0.67 & TODO \\
-Answer-synthesis miss rate & 0.05 & TODO \\
-Average latency & 16.095 s & TODO \\
+Automatic correct answers & 54/100 & Pending \\
+Manual-adjusted correct answers & 57/100 & Pending \\
+Evidence-insufficient answers & 18/100 & Pending \\
+Remaining wrong or incomplete answers & 25/100 & Pending \\
+Retrieved expected source hit@5 & 0.74 & Pending \\
+Cited expected source hit@5 & 0.67 & Pending \\
+Answer-synthesis miss rate & 0.05 & Pending \\
+Average latency & 16.095 s & Pending \\
 \bottomrule
 \end{tabular}
 \end{table}
 
 The dense generation baseline shows that dense retrieval plus a stronger local generator is useful but not sufficient. The run produced 82 answered outputs and 18 evidence-insufficient outputs with no runtime errors. Automatic judging marked 54 answers correct, 28 incorrect, and 18 evidence insufficient. Manual review of the 28 automatically incorrect answers recovered only three clear evaluator false negatives, so the fair baseline score is 57/100 overall rather than a large hidden win masked by the judge. The dominant problem is answer synthesis: 15 of the 28 automatically incorrect answers both retrieved and cited an expected official source, but still omitted required facts or returned an incomplete answer.
 
-\begin{table}[H]
-\centering
+Table~\ref{tab:generation-cases} shows representative answer artifacts that separate successful synthesis from table extraction, multi-field completeness, and source-routing failures.
+
+\begingroup
 \scriptsize
-\setlength{\tabcolsep}{3.5pt}
-\caption{Representative dense-generation case studies from real answer artifacts.}
-\label{tab:generation-cases}
-\begin{tabular}{lp{0.23\linewidth}p{0.20\linewidth}p{0.35\linewidth}}
+\setlength{\LTpre}{4pt}
+\setlength{\LTpost}{4pt}
+\setlength{\tabcolsep}{3pt}
+\begin{longtable}{p{0.045\linewidth}p{0.27\linewidth}p{0.50\linewidth}p{0.09\linewidth}}
+\caption{Representative dense-generation case studies with verbatim questions and model answers from the answer artifacts.}
+\label{tab:generation-cases}\\
 \toprule
-Case & Query target & Artifact outcome & Analysis \\
+Case & Verbatim question & Verbatim model answer & Outcome / error type \\
 \midrule
-q006 & Tu Kewei NLP awards & Correct; retrieved and cited expected source & Dense retrieval finds the faculty/news evidence, and Qwen3.5 extracts the three award facts: ACL 2023 outstanding paper and SemEval 2022/2023 best system paper awards. \\
-q055 & Li Quan office, email, and research areas & Correct; retrieved and cited expected source & The system handles a multi-field faculty-profile question when all requested fields are present in one compact profile context. \\
-q004 & 2025 EE total graduation credits and elective credits & Incorrect despite retrieved/cited expected source & The model cites the correct curriculum pages but says the numeric facts are unavailable, missing 145 total credits and 9 elective credits. This is a table-evidence extraction failure. \\
-q065 & PSIT lab directions, quota, email, and PI & Incorrect despite retrieved/cited expected source & The final fallback returns only the contact email and misses research directions, 2--3 annual quota, and Professor Ye Chaofeng. This is a multi-field completeness failure. \\
-q069 & 2025 CS two-choice course-group rule & Incorrect; expected source not retrieved or cited & Dense retrieval routes the answer to stale 2020 CS and older EE plans, producing 31 elective credits instead of the 2025 rule that overflow credits count toward the 34-credit discipline elective bucket. \\
+\endfirsthead
+\toprule
+Case & Verbatim question & Verbatim model answer & Outcome / error type \\
+\midrule
+\endhead
 \bottomrule
-\end{tabular}
-\end{table}
+\endfoot
+A &
+屠可伟教授近年来在自然语言处理领域的国际顶级会议上获得过哪些重要奖项？ &
+根据提供的官方来源，屠可伟教授近年来在自然语言处理领域的国际顶级会议上获得的重要奖项包括：
+
+1. **ACL 2023 杰出论文奖** [2][3][4][5]。
+
+2. **SemEval 2022 最佳系统论文奖** [2][3][4][5]。
+
+3. **SemEval 2023 最佳系统论文奖** [2][3][4][5]。
+
+此外，他还获得了多个顶级会议的最佳论文提名 [2][3][4][5]。 &
+correct \\
+\midrule
+B &
+李权老师的办公室和工作邮箱是什么？他的研究方向包括哪些？ &
+根据提供的官方来源，李权老师的办公室、工作邮箱及研究方向如下：
+
+* **办公室**：信息学院 1A-404B [1]
+
+* **工作邮箱**：liquan@shanghaitech.edu.cn [1]
+
+* **研究方向**：
+
+1. 大数据可视化及可视分析
+
+2. 数据科学
+
+3. 可解释性人工智能
+
+4. 数据故事
+
+5. 人机交互
+
+6. 计算社会科学 [1] &
+correct \\
+\midrule
+C &
+根据2025级电子信息工程专业（EE专业）本科生培养方案，学生毕业至少需要修满多少学分？其中任选课占多少学分？ &
+根据提供的2025级电子信息工程专业（EE专业）培养方案来源，**无法回答**学生毕业至少需要修满多少总学分以及任选课占多少学分。
+
+提供的文本片段（来源 [1] 至 [5]）仅包含以下信息：
+
+1. **专业教育板块**分为专业必修、专业选修（至少三选二，多余记为本学科选修）等部分，但未列出各板块的具体学分数值 [1]。
+
+2. **任选课**的说明中提到“多修读学分会记在任选课”，但未规定任选课的最低学分要求或总学分 [1]。
+
+3. 文本中多次出现“（共计”、“专业必修课程板块（”、“专业选修课程板块（”等字样，但**具体的数字被截断或缺失**，无法提取出总学分和任选课学分的具体数值 [1]。
+
+因此，基于现有证据，无法确定2025级EE专业本科生的毕业总学分和任选课学分要求。 &
+table extraction failure \\
+\midrule
+D &
+精密传感与智能检测实验室的研究方向、招生名额、联系邮箱和课题组组长分别是什么？ &
+email: 申请请联系yechf@shanghaitech.edu.cn [1]. &
+multi-field incomplete \\
+\midrule
+E &
+2025级CS专业本科生在专业限选课程中，如果同时多修读了“电路基础加实验”和“信号与系统加实验”这组二选一课程，多出的学分会如何计入？同一规则还适用于哪一组二选一课程？ &
+根据提供的2020级计算机专业（CS）培养方案 [5]，在专业限选课程板块中，“电路基础加实验”（EE111+EE111L）和“信号与系统加实验”（EE150+EE150L）属于“至少二选一”的课程组。如果学生同时多修读了这两门课程，**多出的学分会记在本学科选修的31学分中**。
+
+同一规则同样适用于该板块中的另一组二选一课程：**“操作系统”（CS130）和“人工智能”（CS181）**。如果多选这两门课，多余学分也将记在本学科选修的31学分中 [5]。
+
+*注：2022级及2023级EE专业培养方案 [1][2][3] 中，对应课程组（电路基础、信号与系统）的规则为“至少三选二”，多余学分记在本学科选修的21学分中，但问题明确询问的是CS专业且涉及的具体课程组合（如“电路基础加实验”）主要出现在2020级CS方案中。* &
+wrong-year source routing \\
+\end{longtable}
+\endgroup
 
 These cases motivate the generation-side optimization that is still left as a placeholder in Table~\ref{tab:generation-baseline}. The failure artifacts point to table-aware evidence expansion for curriculum pages, multi-field slot planning and validation, stricter year/program routing for degree-plan PDFs, and citation-coverage repair when an expected source is retrieved but not cited. This report does not claim those answer-side optimizations as completed; it records them as the next generation experiment to run against the same 100-question protocol.
 
@@ -351,10 +443,10 @@ These cases motivate the generation-side optimization that is still left as a pl
 
 The retrieval study shows that a careful local RAG stack can make large gains without hosted APIs. The final after-optimization retriever combines exact sparse matching, dense semantic matching, rank fusion, source diversity, selective reranking, and conservative query expansion. Together these changes raise expected source hit@5 from 0.74 to 0.89 on the structured 100-question benchmark.
 
-The largest methodological point is that source-evidence metrics must not be confused with answer correctness. A retrieved source can be relevant while the generator still omits a required fact, cites poorly, or returns an evidence-insufficient response. Conversely, a generated answer can look plausible while failing to cite the expected official source. The system therefore keeps retrieval logs, cited sources, answer text, automatic judge status, review queues, and Excel export fields separate.
+The largest methodological point is that source-evidence metrics must not be confused with answer correctness. A retrieved source can be relevant while the generator still omits a required fact, cites poorly, or returns an evidence-insufficient response. Conversely, a generated answer can look plausible while failing to cite the expected official source. The system therefore keeps retrieved evidence, cited evidence, answer text, automatic judge status, manual-review queues, and assignment spreadsheet fields separate.
 
 \paragraph{Limitations.}
-First, only the dense generation baseline has been manually reviewed; the optimized hybrid generation row remains to be inserted after the matching answer run. Second, time-sensitive questions are judged against the corpus snapshot and source dates, so stale official pages can affect both retrieval and answer quality. Third, Fix 8 improves evidence quality but increases latency because expanded queries rerun dense retrieval. Fourth, dense generation failures show that even cited official sources are not enough when table rows, multi-field slots, or year/program constraints are not preserved through answer synthesis.
+First, only the dense generation baseline has been manually reviewed; the optimized hybrid generation row remains to be inserted after the matching answer run. Second, time-sensitive questions are judged against the corpus snapshot and source dates, so stale official pages can affect both retrieval and answer quality. Third, conservative query expansion improves evidence quality but increases latency because expanded queries rerun dense retrieval. Fourth, dense generation failures show that even cited official sources are not enough when table rows, multi-field slots, or year/program constraints are not preserved through answer synthesis.
 
 \paragraph{Future work.}
 The immediate next step is to run the optimized hybrid answer-mode evaluation over the same 100-question set and add manually reviewed after-optimization correctness labels. Answer-side optimization should focus on table-aware evidence expansion for degree plans, multi-field completeness validation, year/program-specific source routing, and citation-coverage repair. Retrieval-side improvements should focus on caching the dense encoder for expanded queries, limiting expansion retrieval to sparse candidates when latency matters, adding contextual chunk enrichment v2 with breadcrumbs and entity aliases, and auditing Chinese/English sibling pages plus answer-bearing faculty/list variants separately from true retrieval changes.
@@ -405,4 +497,5 @@ Gradio Team.
 
 \end{thebibliography}
 
+\end{CJK*}
 \end{document}
