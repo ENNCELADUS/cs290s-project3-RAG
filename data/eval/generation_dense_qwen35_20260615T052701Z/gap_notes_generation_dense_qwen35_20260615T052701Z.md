@@ -1,0 +1,50 @@
+# Evaluation Gap Notes
+
+- `q001` `dense`: expected official source not found in top 5
+- `q002` `dense`: retrieved expected source but answer synthesis missed citation or abstained
+- `q004` `dense`: loose atom judge missing required quantity atoms: 2
+- `q005` `dense`: loose atom judge matched 2/3 atoms
+- `q007` `dense`: evidence insufficient answer
+- `q009` `dense`: loose atom judge missing required quantity atoms: 2
+- `q010` `dense`: evidence insufficient answer
+- `q011` `dense`: expected official source not found in top 5
+- `q012` `dense`: evidence insufficient answer
+- `q013` `dense`: evidence insufficient answer
+- `q015` `dense`: loose atom judge missing required quantity atoms: 1
+- `q016` `dense`: evidence insufficient answer
+- `q017` `dense`: retrieved expected source but answer synthesis missed citation or abstained
+- `q018` `dense`: loose atom judge matched 5/11 atoms
+- `q020` `dense`: evidence insufficient answer
+- `q021` `dense`: evidence insufficient answer
+- `q022` `dense`: evidence insufficient answer
+- `q023` `dense`: expected official source not found in top 5
+- `q024` `dense`: evidence insufficient answer
+- `q027` `dense`: evidence insufficient answer
+- `q028` `dense`: loose atom judge matched 1/4 atoms
+- `q030` `dense`: loose atom judge matched 1/2 atoms
+- `q031` `dense`: expected official source not found in top 5
+- `q032` `dense`: expected official source not found in top 5
+- `q033` `dense`: expected official source not found in top 5
+- `q034` `dense`: loose atom judge matched 2/3 atoms
+- `q037` `dense`: expected official source not found in top 5
+- `q039` `dense`: expected official source not found in top 5
+- `q040` `dense`: evidence insufficient answer
+- `q041` `dense`: expected official source not found in top 5
+- `q043` `dense`: expected official source not found in top 5
+- `q044` `dense`: loose atom judge matched 3/7 atoms
+- `q045` `dense`: retrieved expected source but answer synthesis missed citation or abstained
+- `q046` `dense`: evidence insufficient answer
+- `q047` `dense`: loose atom judge missing required quantity atoms: 1
+- `q048` `dense`: retrieved expected source but answer synthesis missed citation or abstained
+- `q051` `dense`: loose atom judge matched 0/1 atoms
+- `q052` `dense`: retrieved expected source but answer synthesis missed citation or abstained
+- `q053` `dense`: loose atom judge matched 0/2 atoms
+- `q063` `dense`: expected official source not found in top 5
+- `q065` `dense`: loose atom judge matched 1/10 atoms
+- `q067` `dense`: loose atom judge missing required quantity atoms: 3
+- `q069` `dense`: expected official source not found in top 5
+- `q070` `dense`: expected official source not found in top 5
+- `q072` `dense`: evidence insufficient answer
+- `q077` `dense`: expected official source not found in top 5
+- `q078` `dense`: loose atom judge missing required quantity atoms: 1
+- `q090` `dense`: evidence insufficient answer
