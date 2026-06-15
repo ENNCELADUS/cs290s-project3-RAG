@@ -5,7 +5,7 @@
 #SBATCH -N 1
 #SBATCH -t 4-00:00:00
 #SBATCH --mem=128G
-#SBATCH --cpus-per-task=32
+#SBATCH --cpus-per-task=16
 #SBATCH --gres=gpu:NVIDIATITANRTX:1
 #SBATCH --exclude=ai_gpu31
 #SBATCH --output=data/eval/slurm_%j.out
