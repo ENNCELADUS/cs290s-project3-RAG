@@ -41,8 +41,15 @@ data/eval/**/job.out
 data/eval/**/job.pid
 !data/eval/retrieval_pilot_manifest_*.jsonl
 
+# Generated report/presentation exports
+/presentation.mov
+/report.pdf
+/results_before_after_generation.xlsx
+/report/slides/
+
 # Large files
 *.tar
+*.zip
 
 # Local models and databases
 models/
