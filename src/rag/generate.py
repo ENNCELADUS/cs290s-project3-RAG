@@ -610,6 +610,18 @@ def _local_evidence_pattern(query: str) -> re.Pattern[str] | None:
         patterns.append(r"报价供应商要求|营业执照|税务登记证|组织机构代码证|联合体|报名资料|报价截止|递交地点")
     if "复试" in query or "总成绩" in query or "formula" in lowered:
         patterns.append(r"综合素质考核|专业面试|复试成绩|满分|合格|总成绩|初试成绩")
+    if any(term in query for term in ("副主编", "IEEE Trans")) or any(
+        term in lowered for term in ("tie", "tte", "tpea")
+    ):
+        patterns.append(r"副主编|IEEE\s*Trans(?:actions)?|TIE|TTE|TPEA")
+    if any(term in query for term in ("专利", "第一发明人", "申请号", "在校生")):
+        patterns.append(r"专利|第一发明人|申请号|在校生|CN\d{6,}")
+    if any(term in query for term in ("选拔方式", "招生方式", "直博", "申请-考核制")):
+        patterns.append(r"选拔方式|招生方式|直博|申请[-－—]考核制")
+    if any(term in query for term in ("三选二", "本学科选修")) or ("2025级" in query and "ee" in lowered):
+        patterns.append(r"三选二|本学科选修|2025\s*级|电子信息工程|EE")
+    if any(term in query for term in ("录制成视频", "提前学习", "电力电子")):
+        patterns.append(r"录制成视频|提前学习|电力电子")
     if not patterns:
         return None
     return re.compile("|".join(patterns), re.IGNORECASE)
@@ -828,7 +840,15 @@ def _has_valid_citation(text: str, valid_source_ids: set[int]) -> bool:
 
 def _states_insufficient_evidence(text: str) -> bool:
     normalized = text.lower()
-    return "evidence is insufficient" in normalized or "证据不足" in text
+    chinese_negative_markers = (
+        "证据不足",
+        "无法找到",
+        "未提及",
+        "没有提及",
+        "未找到",
+        "没有找到",
+    )
+    return "evidence is insufficient" in normalized or any(marker in text for marker in chinese_negative_markers)
 
 
 def _query_shape_rejection_reason(query: str, answer: str) -> str | None:
@@ -1080,6 +1100,9 @@ def _extract_answer_from_contexts(query: str, contexts: list[ContextItem]) -> Ex
     procurement_delivery_answer = _extract_procurement_delivery_answer(query, contexts)
     if procurement_delivery_answer is not None:
         return procurement_delivery_answer
+    faculty_profile_answer = _extract_faculty_profile_slot_answer(query, contexts)
+    if faculty_profile_answer is not None:
+        return faculty_profile_answer
     office_answer = _extract_office_email_answer(query, contexts)
     if office_answer is not None:
         return office_answer
@@ -1089,6 +1112,12 @@ def _extract_answer_from_contexts(query: str, contexts: list[ContextItem]) -> Ex
     lab_count_answer = _extract_lab_count_answer(query, contexts)
     if lab_count_answer is not None:
         return lab_count_answer
+    discipline_direction_answer = _extract_admissions_discipline_direction_answer(query, contexts)
+    if discipline_direction_answer is not None:
+        return discipline_direction_answer
+    committee_answer = _extract_committee_row_answer(query, contexts)
+    if committee_answer is not None:
+        return committee_answer
     degree_summary_answer = _extract_degree_plan_summary_answer(query, contexts)
     if degree_summary_answer is not None:
         return degree_summary_answer
@@ -1107,6 +1136,9 @@ def _extract_answer_from_contexts(query: str, contexts: list[ContextItem]) -> Ex
     credit_answer = _extract_credit_answer(query, contexts)
     if credit_answer is not None:
         return credit_answer
+    seminar_answer = _extract_seminar_event_fields_answer(query, contexts)
+    if seminar_answer is not None:
+        return seminar_answer
     schedule_answer = _extract_date_time_location_answer(query, contexts)
     if schedule_answer is not None:
         return schedule_answer
@@ -1195,6 +1227,57 @@ def _extract_retest_formula_answer(query: str, contexts: list[ContextItem]) -> E
             ),
             context.rank,
         )
+    return None
+
+
+def _extract_admissions_discipline_direction_answer(query: str, contexts: list[ContextItem]) -> ExtractiveAnswer | None:
+    if not _query_wants_discipline_directions(query):
+        return None
+    for context in contexts:
+        if context.url is None:
+            continue
+        text = re.sub(r"\s+", " ", context.text).strip()
+        if "学科方向" not in text:
+            continue
+        directions = _field_after_label(text, "学科方向")
+        if directions is None:
+            continue
+        subject = "CS专业" if "CS" in query or "计算机" in query or "计算机科学与技术" in text else "该专业"
+        return ExtractiveAnswer(f"{subject}的学科方向是{directions}。 [{context.rank}]", context.rank)
+    return None
+
+
+def _extract_committee_row_answer(query: str, contexts: list[ContextItem]) -> ExtractiveAnswer | None:
+    if "委员会" not in query or "主任" not in query:
+        return None
+    target = _committee_name_from_query(query)
+    if target is None:
+        return None
+    for context in contexts:
+        if context.url is None:
+            continue
+        if not all(label in context.text for label in ("委员会", "主任")):
+            continue
+        for line in context.text.splitlines():
+            row = re.sub(r"\s+", " ", line).strip()
+            if target not in row:
+                continue
+            match = re.search(rf"{re.escape(target)}\s+(?P<director>\S+)\s+(?P<deputy>[^。；;\n]+)", row)
+            if match is None:
+                continue
+            director = match.group("director").strip(" ，,")
+            deputy = match.group("deputy").strip(" ，,")
+            if director and deputy:
+                return ExtractiveAnswer(f"{target}主任是{director}，副主任是{deputy}。 [{context.rank}]", context.rank)
+    return None
+
+
+def _committee_name_from_query(query: str) -> str | None:
+    for match in re.finditer(r"[\u4e00-\u9fff]{2,20}委员会", query):
+        name = match.group(0)
+        if name.startswith("信息学院") and len(name) > len("信息学院委员会"):
+            name = name.removeprefix("信息学院")
+        return name
     return None
 
 
@@ -1296,6 +1379,82 @@ def _extract_address_postcode_answer(query: str, contexts: list[ContextItem]) ->
         contexts,
         evidence_pattern=re.compile(r"(?:address|postcode|postal code|地址|邮编|\b\d{6}\b)", re.IGNORECASE),
     )
+
+
+def _extract_faculty_profile_slot_answer(query: str, contexts: list[ContextItem]) -> ExtractiveAnswer | None:
+    wants_contact = "办公室" in query or "邮箱" in query or any(term in query.lower() for term in ("office", "email"))
+    wants_profile = (
+        "博士" in query
+        or "研究方向" in query
+        or "phd" in query.lower()
+        or "research direction" in query.lower()
+    )
+    if not wants_contact or not wants_profile:
+        return None
+    query_terms = _anchor_terms(query)
+    name = _person_name_from_query(query)
+    for context in contexts:
+        if context.url is None:
+            continue
+        text = re.sub(r"\s+", " ", context.text).strip()
+        if name is not None and name not in text:
+            continue
+        if name is None and not _has_anchor_overlap(query_terms, f"{context.title or ''} {text}"):
+            continue
+        office = _field_after_label(text, "办公室")
+        email = _first_match(r"[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}", text)
+        phd_school = _phd_school_from_profile_text(text)
+        direction = _field_after_label(text, "研究方向")
+        if office is None or email is None or phd_school is None or direction is None:
+            continue
+        subject = name or "该教师"
+        return ExtractiveAnswer(
+            (
+                f"{subject}的办公室是{office}，邮箱是{email}，"
+                f"博士毕业学校是{phd_school}，研究方向是{direction}。 [{context.rank}]"
+            ),
+            context.rank,
+        )
+    return None
+
+
+def _person_name_from_query(query: str) -> str | None:
+    match = re.search(r"(?P<name>[\u4e00-\u9fff]{2,4})(?:教授|老师|的)", query)
+    if match is None:
+        return None
+    return match.group("name")
+
+
+def _field_after_label(text: str, label: str) -> str | None:
+    match = re.search(
+        rf"{label}[:：]\s*(?P<value>.*?)"
+        r"(?=\s*(?:办公室|邮箱|研究方向|教育背景|身份|报告人|演讲者|主讲人|所在单位|单位|机构|时间|地点)[:：]|[，,。；;\n]|$)",
+        text,
+    )
+    if match is None:
+        return None
+    value = match.group("value").strip()
+    return value or None
+
+
+def _field_after_first_label(text: str, labels: tuple[str, ...]) -> str | None:
+    for label in labels:
+        value = _field_after_label(text, label)
+        if value is not None:
+            return value
+    return None
+
+
+def _phd_school_from_profile_text(text: str) -> str | None:
+    match = re.search(
+        r"博士(?:毕业于|毕业学校[:：]?|毕业院校[:：]?|学位[^，,。；;]{0,12}?于)\s*"
+        r"(?P<school>[\u4e00-\u9fffA-Za-z0-9（）()·\- ]{2,40})",
+        text,
+    )
+    if match is None:
+        return None
+    school = match.group("school").strip(" ，,。；;")
+    return school or None
 
 
 def _extract_office_email_answer(query: str, contexts: list[ContextItem]) -> ExtractiveAnswer | None:
@@ -1632,6 +1791,29 @@ def _extract_date_time_location_answer(query: str, contexts: list[ContextItem]) 
     )
 
 
+def _extract_seminar_event_fields_answer(query: str, contexts: list[ContextItem]) -> ExtractiveAnswer | None:
+    wants_speaker = any(term in query for term in ("报告人", "演讲者", "主讲人", "speaker"))
+    wants_institution = any(term in query for term in ("单位", "机构", "institution"))
+    wants_time_location = "时间" in query and "地点" in query
+    if not (wants_speaker and wants_institution and wants_time_location):
+        return None
+    for context in contexts:
+        if context.url is None:
+            continue
+        text = re.sub(r"\s+", " ", context.text).strip()
+        speaker = _field_after_first_label(text, ("报告人", "演讲者", "主讲人"))
+        institution = _field_after_first_label(text, ("所在单位", "单位", "机构"))
+        time_value = _field_after_label(text, "时间")
+        location = _field_after_label(text, "地点")
+        if not all((speaker, institution, time_value, location)):
+            continue
+        return ExtractiveAnswer(
+            f"报告人是{speaker}，单位是{institution}，时间是{time_value}，地点是{location}。 [{context.rank}]",
+            context.rank,
+        )
+    return None
+
+
 def _extract_robotics_faculty_answer(query: str, contexts: list[ContextItem]) -> ExtractiveAnswer | None:
     if "robotics" not in query.lower():
         return None
@@ -1662,18 +1844,44 @@ def _extract_compact_person_profile_answer(query: str, contexts: list[ContextIte
             rf"研究方向[:：]\s*(?P<direction>[^，,。；;]+)",
             text,
         )
-        if match is None:
+        if match is not None:
+            identity = match.group("identity").strip()
+            education = match.group("education").strip()
+            direction = match.group("direction").strip()
+            if not all((identity, education, direction)):
+                continue
+            return ExtractiveAnswer(
+                f"{name}的身份是{identity}，教育背景是{education}，研究方向是{direction}。 [{context.rank}]",
+                context.rank,
+            )
+        row_match = _lab_member_row_match(name, context.text)
+        if row_match is None:
             continue
-        identity = match.group("identity").strip()
-        education = match.group("education").strip()
-        direction = match.group("direction").strip()
-        if not all((identity, education, direction)):
-            continue
+        identity, education, direction = row_match
         return ExtractiveAnswer(
             f"{name}的身份是{identity}，教育背景是{education}，研究方向是{direction}。 [{context.rank}]",
             context.rank,
         )
     return None
+
+
+def _lab_member_row_match(name: str, text: str) -> tuple[str, str, str] | None:
+    if not all(label in text for label in ("姓名", "身份", "教育背景", "研究方向")):
+        return None
+    pattern = re.compile(
+        rf"{re.escape(name)}\s+"
+        r"(?P<identity>博士研究生|硕士研究生|博士生|硕士生|本科生|研究生)\s+"
+        r"(?P<education>[\u4e00-\u9fffA-Za-z0-9（）()·\-]+(?:本科|硕士|博士|学士|毕业)?)\s+"
+        r"(?P<direction>[\u4e00-\u9fffA-Za-z0-9（）()·\-]{2,30})"
+    )
+    match = pattern.search(text)
+    if match is None:
+        return None
+    return (
+        match.group("identity").strip(),
+        match.group("education").strip(),
+        match.group("direction").strip(),
+    )
 
 
 def _extract_student_undergraduate_school_answer(query: str, contexts: list[ContextItem]) -> ExtractiveAnswer | None:

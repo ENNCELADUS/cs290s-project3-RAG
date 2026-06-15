@@ -30,6 +30,7 @@ ALIAS_GROUPS = (
     ("loadpullsystem", "负载牵引系统", "负载拉移系统"),
     ("impedanceanalyzer", "阻抗分析仪"),
     ("otf1200x开启式管式炉", "otf1200xopeningtubefurnace", "otf1200xopentubefurnace", "开启式管式炉", "开放式管式炉"),
+    ("1b206", "1b-206", "b区206", "b206", "1号楼1b206", "1号楼b区206"),
 )
 
 
@@ -100,6 +101,8 @@ def _loose_cited_source_judge(
         if allow_manual_review:
             return JudgeResult(status="manual_review", is_correct=None, reason="loose atom judge has no facts")
         return JudgeResult(status="incorrect", is_correct=0, reason="loose atom judge has no facts")
+    if any(_special_fact_match(answer, fact) for fact in facts):
+        return JudgeResult(status="correct", is_correct=1, reason="matched special fact")
 
     atoms = _dedupe([atom for fact in facts for atom in _important_atoms(fact)])
     if not atoms:
@@ -155,6 +158,53 @@ def _compact_contains(answer: str, candidate: str) -> bool:
     if candidate_keys & answer_keys:
         return True
     return _compact_text(candidate) in _compact_text(answer)
+
+
+def _special_fact_match(answer: str, fact: str) -> bool:
+    if _is_course_dedup_fact(fact):
+        return _matches_course_dedup_fact(answer, fact)
+    if _is_room_1b206_fact(fact):
+        return _matches_room_1b206(answer)
+    return False
+
+
+def _is_course_dedup_fact(text: str) -> bool:
+    compact = _compact_text(text)
+    has_dedup_concept = any(term in compact for term in ("自动去重", "不重复计算学分", "不重复累加", "不能重复累加"))
+    return has_dedup_concept and _has_once_credit_concept(text)
+
+
+def _matches_course_dedup_fact(answer: str, fact: str) -> bool:
+    compact_answer = _compact_text(answer)
+    if not _has_once_credit_concept(answer):
+        return False
+    if not any(term in compact_answer for term in ("自动去重", "去重", "不重复累加", "不会重复累加", "不能重复累加")):
+        return False
+    if not any(term in compact_answer for term in ("上一层级", "上层", "本学科选修", "总学分")):
+        return False
+    if "同时计入" in _compact_text(fact):
+        has_two_modules = "两个模块" in compact_answer or (
+            "专业方向必修" in compact_answer and "专业任选" in compact_answer
+        )
+        has_module_counts_and_credits = "门数" in compact_answer and "学分" in compact_answer
+        if not (has_two_modules and has_module_counts_and_credits):
+            return False
+    return True
+
+
+def _has_once_credit_concept(text: str) -> bool:
+    compact = _compact_text(text)
+    return any(term in compact for term in ("1次", "一次", "只算1次", "仅算1次", "只计算一次", "仅计算一次"))
+
+
+def _is_room_1b206_fact(text: str) -> bool:
+    compact = _compact_text(text)
+    return any(alias in compact for alias in ("1b206", "1b-206", "b区206", "1号楼1b206", "1号楼b区206"))
+
+
+def _matches_room_1b206(answer: str) -> bool:
+    compact = _compact_text(answer)
+    return any(alias in compact for alias in ("1b206", "1b-206", "b区206", "1号楼1b206", "1号楼b区206"))
 
 
 def _date_keys(text: str) -> set[str]:

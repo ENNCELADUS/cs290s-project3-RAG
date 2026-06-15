@@ -428,6 +428,37 @@ def test_model_refusal_falls_back_to_source_derived_chinese_office_email_answer(
     assert result.answer.endswith("[1].")
 
 
+def test_chinese_negative_answer_falls_back_to_source_derived_office_email_answer(
+    tmp_path: Path, fake_hybrid_sentence_transformer_module, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    paths = _build_generation_artifacts(
+        tmp_path,
+        dense_text=(
+            "王浩宇 副院长，正教授，博导。办公室： 信息学院3-530 "
+            "邮箱： wanghy@shanghaitech.edu.cn 研究方向：电力电子。"
+        ),
+    )
+    model_path = tmp_path / "qwen-local"
+    model_path.mkdir()
+    _patch_generation_sequence(
+        monkeypatch,
+        [
+            "根据提供的来源，无法找到王浩宇教授办公室的具体位置及其工作邮箱。",
+            '{"status": "insufficient_evidence", "answer": ""}',
+        ],
+    )
+    answerer = RagAnswerer(_retriever_from_paths(paths), model_path=model_path, device="cpu")
+
+    result = answerer.answer("王浩宇教授的办公室具体在哪里？他的工作邮箱是什么？", mode="hybrid", top_k=2)
+
+    assert result.status == "answered"
+    assert result.generation_path == "extractive_fallback"
+    assert result.generation_rejection_reason == "model_reported_insufficient_evidence"
+    assert "信息学院3-530" in result.answer
+    assert "wanghy@shanghaitech.edu.cn" in result.answer
+    assert result.answer.endswith("[1].")
+
+
 def test_source_derived_fallback_abstains_without_question_anchor_overlap(
     tmp_path: Path, fake_hybrid_sentence_transformer_module, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -562,6 +593,68 @@ def test_answer_context_selection_prefers_admissions_direction_anchor_over_curri
     assert [source.source_id for source in result.sources] == [1, 4]
     assert result.answer_context_order[0]["source_id"] == 4
     assert "task_anchor:学科方向" in result.answer_context_order[0]["reasons"]
+
+
+def test_source_derived_fallback_answers_admissions_discipline_direction_line(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    contexts = [
+        _context(
+            rank=4,
+            title="信息学院本科招生",
+            url="https://sist.shanghaitech.edu.cn/undergraduate/admissions/page.htm",
+            text="计算机科学与技术专业介绍。学科方向：人工智能、数据科学、计算机系统、信息安全、机器人、生物信息学。",
+        ),
+    ]
+    model_path = tmp_path / "qwen-local"
+    model_path.mkdir()
+    _patch_generation_sequence(
+        monkeypatch,
+        [
+            "证据不足：当前检索到的官方来源不足以回答这个问题。",
+            '{"status": "insufficient_evidence", "answer": ""}',
+        ],
+    )
+    answerer = RagAnswerer(StaticContextRetriever(contexts), model_path=model_path, device="cpu")  # type: ignore[arg-type]
+
+    result = answerer.answer("本科招生页面中，CS专业的学科方向是什么？", mode="dense", top_k=1)
+
+    assert result.status == "answered"
+    assert result.generation_path == "extractive_fallback"
+    assert result.fallback_source_rank == 4
+    assert result.answer == (
+        "CS专业的学科方向是人工智能、数据科学、计算机系统、信息安全、机器人、生物信息学。 [4]"
+    )
+
+
+def test_source_derived_fallback_answers_committee_table_row(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    contexts = [
+        _context(
+            rank=5,
+            title="信息学院委员会名单",
+            url="https://sist.shanghaitech.edu.cn/committee",
+            text="委员会 主任 副主任\n教学指导委员会 张明 李华、王强\n学术委员会 陈刚 赵敏",
+        ),
+    ]
+    model_path = tmp_path / "qwen-local"
+    model_path.mkdir()
+    _patch_generation_sequence(
+        monkeypatch,
+        [
+            "证据不足：当前检索到的官方来源不足以回答这个问题。",
+            '{"status": "insufficient_evidence", "answer": ""}',
+        ],
+    )
+    answerer = RagAnswerer(StaticContextRetriever(contexts), model_path=model_path, device="cpu")  # type: ignore[arg-type]
+
+    result = answerer.answer("信息学院教学指导委员会的主任和副主任分别是谁？", mode="dense", top_k=1)
+
+    assert result.status == "answered"
+    assert result.generation_path == "extractive_fallback"
+    assert result.fallback_source_rank == 5
+    assert result.answer == "教学指导委员会主任是张明，副主任是李华、王强。 [5]"
 
 
 def test_source_derived_fallback_includes_multiple_nearby_credit_facts(
@@ -1053,6 +1146,42 @@ def test_source_derived_fallback_prefers_report_detail_page_over_homepage_aggreg
     assert result.answer.endswith("[3].")
 
 
+def test_source_derived_fallback_answers_seminar_event_fields(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    contexts = [
+        _context(
+            rank=1,
+            title="智能感知与机器人学术报告",
+            url="https://sist.shanghaitech.edu.cn/2026/0424/seminar",
+            text=(
+                "智能感知与机器人学术报告。\n"
+                "报告人：陈明\n"
+                "单位：清华大学\n"
+                "时间：2026年4月24日10:00\n"
+                "地点：信息学院1A-200"
+            ),
+        ),
+    ]
+    model_path = tmp_path / "qwen-local"
+    model_path.mkdir()
+    _patch_generation_sequence(
+        monkeypatch,
+        [
+            "证据不足：当前检索到的官方来源不足以回答这个问题。",
+            '{"status": "insufficient_evidence", "answer": ""}',
+        ],
+    )
+    answerer = RagAnswerer(StaticContextRetriever(contexts), model_path=model_path, device="cpu")  # type: ignore[arg-type]
+
+    result = answerer.answer("该学术报告的报告人、所在单位、时间和地点是什么？", mode="dense", top_k=1)
+
+    assert result.status == "answered"
+    assert result.generation_path == "extractive_fallback"
+    assert result.fallback_source_rank == 1
+    assert result.answer == "报告人是陈明，单位是清华大学，时间是2026年4月24日10:00，地点是信息学院1A-200。 [1]"
+
+
 def test_source_derived_fallback_uses_target_contact_notice_instead_of_mentioned_faculty_page(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -1375,6 +1504,40 @@ def test_source_derived_fallback_answers_compact_person_profile_fields(
     assert result.answer == "李泽晖的身份是博士生，教育背景是上海大学本科，研究方向是算力电源。 [1]"
 
 
+def test_source_derived_fallback_answers_lab_member_row_fields(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    contexts = [
+        _context(
+            rank=3,
+            title="智能电源实验室成员",
+            url="https://sist.shanghaitech.edu.cn/lab/power/members",
+            text=(
+                "姓名 身份 教育背景 研究方向 专利经历\n"
+                "李泽晖 博士生 上海大学本科 算力电源 参与柔性电源控制相关专利\n"
+                "王明 硕士生 浙江大学本科 智能芯片 参与芯片测试平台专利"
+            ),
+        ),
+    ]
+    model_path = tmp_path / "qwen-local"
+    model_path.mkdir()
+    _patch_generation_sequence(
+        monkeypatch,
+        [
+            "证据不足：当前检索到的官方来源不足以回答这个问题。",
+            '{"status": "insufficient_evidence", "answer": ""}',
+        ],
+    )
+    answerer = RagAnswerer(StaticContextRetriever(contexts), model_path=model_path, device="cpu")  # type: ignore[arg-type]
+
+    result = answerer.answer("李泽晖的身份、教育背景和研究方向是什么？", mode="dense", top_k=1)
+
+    assert result.status == "answered"
+    assert result.generation_path == "extractive_fallback"
+    assert result.fallback_source_rank == 3
+    assert result.answer == "李泽晖的身份是博士生，教育背景是上海大学本科，研究方向是算力电源。 [3]"
+
+
 def test_source_derived_fallback_resolves_singular_student_before_undergraduate_school(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -1415,6 +1578,43 @@ def test_source_derived_fallback_resolves_singular_student_before_undergraduate_
     assert "王明" not in result.answer
     assert "浙江大学" not in result.answer
     assert result.answer.endswith("[2].")
+
+
+def test_source_derived_fallback_answers_faculty_profile_slots(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    contexts = [
+        _context(
+            rank=2,
+            title="王浩宇个人主页",
+            url="https://sist.shanghaitech.edu.cn/faculty/wanghy",
+            text=(
+                "王浩宇，信息学院教授，博士毕业于浙江大学。"
+                "办公室：信息学院3-530 邮箱：wanghy@shanghaitech.edu.cn "
+                "研究方向：电力电子与智能电网。"
+            ),
+        ),
+    ]
+    model_path = tmp_path / "qwen-local"
+    model_path.mkdir()
+    _patch_generation_sequence(
+        monkeypatch,
+        [
+            "证据不足：当前检索到的官方来源不足以回答这个问题。",
+            '{"status": "insufficient_evidence", "answer": ""}',
+        ],
+    )
+    answerer = RagAnswerer(StaticContextRetriever(contexts), model_path=model_path, device="cpu")  # type: ignore[arg-type]
+
+    result = answerer.answer("王浩宇教授的办公室、邮箱、博士毕业学校和研究方向是什么？", mode="dense", top_k=1)
+
+    assert result.status == "answered"
+    assert result.generation_path == "extractive_fallback"
+    assert result.fallback_source_rank == 2
+    assert result.answer == (
+        "王浩宇的办公室是信息学院3-530，邮箱是wanghy@shanghaitech.edu.cn，"
+        "博士毕业学校是浙江大学，研究方向是电力电子与智能电网。 [2]"
+    )
 
 
 def test_answer_context_selection_prefers_contact_fact_chunk_over_same_page_header(
@@ -1574,6 +1774,110 @@ def test_generation_prompt_uses_same_document_contact_sibling_chunk(
     assert "tongprogram@bigai.ai" in user_message
     assert "021-20684866" in user_message
     assert "admission.sist@shanghaitech.edu.cn" in user_message
+    assert result.answer.endswith("[1].")
+
+
+@pytest.mark.parametrize(
+    ("query", "sibling_text", "answer", "expected_text"),
+    [
+        (
+            "某位教师担任TIE、TTE、TPEA等IEEE Trans期刊副主编的情况是什么？",
+            (
+                "学术服务：担任IEEE Transactions on Industrial Electronics (TIE)、"
+                "IEEE Transactions on Transportation Electrification (TTE)、"
+                "IEEE Transactions on Power Electronics and Applications (TPEA)副主编。"
+            ),
+            "该教师担任TIE、TTE、TPEA等IEEE Trans期刊副主编 [1].",
+            "TPEA)副主编",
+        ),
+        (
+            "在校生作为第一发明人的专利申请号是什么？",
+            "专利成果：在校生张三为第一发明人，专利名称为智能传感器系统，申请号CN202510123456.7。",
+            "在校生张三作为第一发明人的专利申请号是CN202510123456.7 [1].",
+            "申请号CN202510123456.7",
+        ),
+        (
+            "直博招生的选拔方式或招生方式是否采用申请-考核制？",
+            "招生方式：直博研究生选拔方式采用申请-考核制，申请人须按通知提交材料并参加学院考核。",
+            "直博研究生选拔方式采用申请-考核制 [1].",
+            "直博研究生选拔方式采用申请-考核制",
+        ),
+        (
+            "2025级EE培养方案中，三选二课程计入本学科选修的规则是什么？",
+            "2025级EE培养方案说明：三选二课程中未计入专业必修的课程，可按规则计入本学科选修模块。",
+            "2025级EE三选二课程中未计入专业必修的课程可计入本学科选修模块 [1].",
+            "三选二课程中未计入专业必修",
+        ),
+        (
+            "电力电子课程是否会录制成视频供学生提前学习？",
+            "教学安排：电力电子课程的核心知识点会录制成视频，供学生提前学习，再开展课堂讨论。",
+            "电力电子课程核心知识点会录制成视频供学生提前学习 [1].",
+            "录制成视频，供学生提前学习",
+        ),
+    ],
+)
+def test_generation_prompt_uses_query_anchor_local_sibling_window(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    query: str,
+    sibling_text: str,
+    answer: str,
+    expected_text: str,
+) -> None:
+    context = ContextItem(
+        rank=1,
+        chunk_id=201,
+        document_id=88,
+        title="信息学院长页面",
+        url="https://sist.shanghaitech.edu.cn/example/page.htm",
+        category=None,
+        language="zh",
+        snippet="信息学院长页面包含多个栏目的概览信息。",
+        text=" ".join(f"首页 导航 学院新闻 占位内容{i}" for i in range(90)),
+        trace_ref="test:chunk:201",
+    )
+    sibling_chunks = [
+        {
+            "chunk_id": 201,
+            "document_id": 88,
+            "title": context.title,
+            "url": context.url,
+            "category": None,
+            "language": "zh",
+            "text": context.text,
+        },
+        {
+            "chunk_id": 202,
+            "document_id": 88,
+            "title": context.title,
+            "url": context.url,
+            "category": None,
+            "language": "zh",
+            "text": sibling_text,
+        },
+    ]
+    model_path = tmp_path / "qwen-local"
+    model_path.mkdir()
+    tokenizer = FakeChatTokenizer(answer)
+
+    def fake_load_model(self: RagAnswerer) -> tuple[FakeChatTokenizer, FakeModel]:
+        return tokenizer, FakeModel()
+
+    monkeypatch.setattr(RagAnswerer, "_load_model", fake_load_model)
+    answerer = RagAnswerer(
+        StaticContextRetrieverWithSiblingChunks([context], sibling_chunks),
+        model_path=model_path,
+        device="cpu",
+    )  # type: ignore[arg-type]
+
+    result = answerer.answer(query, mode="dense", top_k=1)
+
+    assert result.status == "answered"
+    assert [source.source_id for source in result.sources] == [1]
+    assert tokenizer.chat_template_kwargs is not None
+    user_message = tokenizer.chat_template_kwargs["messages"][1]["content"]  # type: ignore[index]
+    assert expected_text in user_message
+    assert "占位内容0" not in user_message
     assert result.answer.endswith("[1].")
 
 

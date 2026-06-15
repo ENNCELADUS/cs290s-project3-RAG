@@ -589,6 +589,73 @@ def test_judge_matches_q009_markdown_comparative_credit_atoms_from_generation_ru
     assert result.is_correct == 1
 
 
+def test_judge_matches_q014_q026_course_dedup_semantic_variants() -> None:
+    questions = {
+        question.id: question for question in load_questions(Path("data/test/question_final_structured_100.csv"))
+    }
+
+    answers = {
+        "q014": (
+            "这门课会在专业方向必修和专业任选两个模块中同时计入门数和学分，"
+            "但上一层级本学科选修计算总学分时会自动去重，只算1次，不会重复累加。[1]"
+        ),
+        "q026": "采用课程自动去重规则：交叉课程通过后在上层本学科选修总学分里只计算一次，不重复累加。[1]",
+    }
+
+    for question_id, answer in answers.items():
+        result = judge_answer(questions[question_id], answer, cited_expected_source_hit=True, has_citation=True)
+        assert result.status == "correct", f"{question_id}: {result.reason}"
+        assert result.is_correct == 1
+
+
+def test_judge_rejects_q014_q026_arbitrary_credit_answers() -> None:
+    questions = {
+        question.id: question for question in load_questions(Path("data/test/question_final_structured_100.csv"))
+    }
+
+    answers = {
+        "q014": "这门课共获得4学分，毕业总学分按4学分计入。[1]",
+        "q026": "交叉课程每个模块都会算学分，因此上一层级总学分会重复累加两次。[1]",
+    }
+
+    for question_id, answer in answers.items():
+        result = judge_answer(questions[question_id], answer, cited_expected_source_hit=True, has_citation=True)
+        assert result.status == "incorrect", f"{question_id}: {result.reason}"
+        assert result.is_correct == 0
+
+
+def test_judge_matches_q035_room_alias() -> None:
+    questions = {
+        question.id: question for question in load_questions(Path("data/test/question_final_structured_100.csv"))
+    }
+
+    result = judge_answer(
+        questions["q035"],
+        "材料应递交到华夏中路393号信息学院1号楼B区206办公室。[1]",
+        cited_expected_source_hit=True,
+        has_citation=True,
+    )
+
+    assert result.status == "correct", result.reason
+    assert result.is_correct == 1
+
+
+def test_judge_rejects_q035_wrong_room() -> None:
+    questions = {
+        question.id: question for question in load_questions(Path("data/test/question_final_structured_100.csv"))
+    }
+
+    result = judge_answer(
+        questions["q035"],
+        "材料递交到信息学院1号楼1A-207室。[1]",
+        cited_expected_source_hit=True,
+        has_citation=True,
+    )
+
+    assert result.status == "incorrect", result.reason
+    assert result.is_correct == 0
+
+
 def test_judge_matches_q068_markdown_list_numeric_atoms_from_generation_run() -> None:
     questions = {
         question.id: question for question in load_questions(Path("data/test/question_final_structured_100.csv"))
