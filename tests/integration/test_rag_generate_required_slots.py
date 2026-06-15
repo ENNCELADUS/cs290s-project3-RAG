@@ -1,0 +1,204 @@
+from __future__ import annotations
+
+from pathlib import Path
+
+import pytest
+
+from rag.generate import RagAnswerer
+from rag.retrieve import (
+    ContextItem,
+    HybridRetrievalConfig,
+    HybridRetrievalResult,
+    OptimizedRetrievalHit,
+    RetrievalTrace,
+)
+
+
+class _FakeTensor:
+    shape = (1, 3)
+
+    def to(self, device: str) -> _FakeTensor:
+        return self
+
+
+class _SequenceTokenizer:
+    def __init__(self, generated_texts: list[str]) -> None:
+        self.generated_texts = generated_texts
+
+    def __call__(self, prompt: str, return_tensors: str) -> dict[str, _FakeTensor]:
+        assert "Sources:" in prompt
+        return {"input_ids": _FakeTensor()}
+
+    def decode(self, token_ids: list[int], skip_special_tokens: bool) -> str:
+        if len(self.generated_texts) > 1:
+            return self.generated_texts.pop(0)
+        return self.generated_texts[0]
+
+
+class _FakeModel:
+    def generate(self, **kwargs: object) -> list[list[int]]:
+        return [[1, 2, 3, 4]]
+
+
+class _StaticHybridRetriever:
+    def __init__(self, contexts: list[ContextItem]) -> None:
+        self.contexts = contexts
+        self.calls: list[tuple[str, str, int]] = []
+
+    def retrieve(self, query: str, *, mode: str, top_k: int, **kwargs: object) -> HybridRetrievalResult:
+        self.calls.append((query, mode, top_k))
+        selected_contexts = self.contexts[:top_k]
+        return HybridRetrievalResult(
+            query=query,
+            mode="hybrid",
+            hits=[_hit_from_context(context) for context in selected_contexts],
+            contexts=selected_contexts,
+            config=HybridRetrievalConfig(final_top_k=top_k),
+        )
+
+    def contexts_for_hits(self, hits: list[object]) -> list[ContextItem]:
+        return self.contexts[: len(hits)]
+
+
+def test_lab_question_falls_back_to_all_required_slots_when_model_only_answers_email(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    model_path = tmp_path / "qwen-local"
+    model_path.mkdir()
+    _patch_generation_sequence(
+        monkeypatch,
+        [
+            "该实验室邮箱是yechf@shanghaitech.edu.cn。 [1]",
+            '{"status":"answered","answer":"该实验室邮箱是yechf@shanghaitech.edu.cn。 [1]"}',
+        ],
+    )
+    retriever = _StaticHybridRetriever(
+        [
+            _context(
+                rank=1,
+                title="精密传感与智能检测实验室招生通知",
+                url="https://sist.shanghaitech.edu.cn/2025/precision-sensing-lab.htm",
+                text=(
+                    "精密传感与智能检测实验室由叶朝锋课题组负责。"
+                    "研究方向：无损检测、电磁测量与成像、电磁场与电路系统建模。"
+                    "拟招收2-3个硕士或博士名额。"
+                    "联系邮箱：yechf@shanghaitech.edu.cn。"
+                    "组长：叶朝锋。"
+                ),
+            )
+        ]
+    )
+    answerer = RagAnswerer(retriever, model_path=model_path, device="cpu")  # type: ignore[arg-type]
+
+    result = answerer.answer(
+        "精密传感与智能检测实验室的研究方向、招生名额、联系邮箱和组长分别是什么？",
+        mode="hybrid",
+        top_k=1,
+    )
+
+    assert retriever.calls[0][1] == "hybrid"
+    assert result.status == "answered"
+    assert result.generation_path == "extractive_fallback"
+    assert "无损检测" in result.answer
+    assert "电磁测量与成像" in result.answer
+    assert "电磁场与电路系统建模" in result.answer
+    assert "2-3个硕士或博士名额" in result.answer
+    assert "yechf@shanghaitech.edu.cn" in result.answer
+    assert "叶朝锋" in result.answer
+    assert "[1]" in result.answer
+
+
+def test_procurement_question_falls_back_to_each_requested_project_supplier(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    model_path = tmp_path / "qwen-local"
+    model_path.mkdir()
+    _patch_generation_sequence(
+        monkeypatch,
+        [
+            "超高真空采购项目的供应商是上海甲仪器有限公司。 [1]",
+            '{"status":"answered","answer":"超高真空采购项目的供应商是上海甲仪器有限公司。 [1]"}',
+        ],
+    )
+    retriever = _StaticHybridRetriever(
+        [
+            _context(
+                rank=1,
+                title="超高真空采购项目询价结果公告",
+                url="https://sist.shanghaitech.edu.cn/2025/procurement-a.htm",
+                text="项目名称：超高真空采购项目。成交供应商：上海甲仪器有限公司。",
+            ),
+            _context(
+                rank=2,
+                title="高速相机采购项目询价结果公告",
+                url="https://sist.shanghaitech.edu.cn/2025/procurement-b.htm",
+                text="项目名称：高速相机采购项目。成交供应商：上海乙科技有限公司。",
+            ),
+        ]
+    )
+    answerer = RagAnswerer(retriever, model_path=model_path, device="cpu")  # type: ignore[arg-type]
+
+    result = answerer.answer("超高真空采购项目和高速相机采购项目的供应商分别是谁？", mode="hybrid", top_k=2)
+
+    assert retriever.calls[0][1] == "hybrid"
+    assert result.status == "answered"
+    assert result.generation_path == "extractive_fallback"
+    assert "超高真空采购项目" in result.answer
+    assert "上海甲仪器有限公司" in result.answer
+    assert "高速相机采购项目" in result.answer
+    assert "上海乙科技有限公司" in result.answer
+    assert "[1]" in result.answer
+    assert "[2]" in result.answer
+
+
+def _patch_generation_sequence(monkeypatch: pytest.MonkeyPatch, generated_texts: list[str]) -> None:
+    tokenizer = _SequenceTokenizer(generated_texts.copy())
+
+    def fake_load_model(self: RagAnswerer) -> tuple[_SequenceTokenizer, _FakeModel]:
+        return tokenizer, _FakeModel()
+
+    monkeypatch.setattr(RagAnswerer, "_load_model", fake_load_model)
+
+
+def _context(*, rank: int, title: str, url: str, text: str) -> ContextItem:
+    return ContextItem(
+        rank=rank,
+        chunk_id=rank,
+        document_id=rank,
+        title=title,
+        url=url,
+        category=None,
+        language="zh",
+        snippet=text[:240],
+        text=text,
+        trace_ref=f"test:{rank}",
+    )
+
+
+def _hit_from_context(context: ContextItem) -> OptimizedRetrievalHit:
+    return OptimizedRetrievalHit(
+        rank=context.rank,
+        chunk_id=context.chunk_id,
+        document_id=context.document_id,
+        title=context.title,
+        url=context.url,
+        canonical_url=context.url,
+        category=context.category,
+        language=context.language,
+        score=1.0,
+        rrf_score=1.0,
+        rerank_score=None,
+        snippet=context.snippet,
+        mode="hybrid",
+        trace=RetrievalTrace(
+            trace_id=context.trace_ref,
+            chunk_id=context.chunk_id,
+            sparse_rank=1,
+            sparse_score=1.0,
+            dense_rank=1,
+            dense_score=1.0,
+            rrf_score=1.0,
+            rerank_score=None,
+            final_rank=context.rank,
+        ),
+    )
