@@ -272,7 +272,7 @@ def _important_atoms(text: str) -> list[str]:
     atoms.extend(_english_title_atoms(readable_text))
     structured_atom_keys = {_compact_text(atom) for atom in atoms}
     for chunk in re.split(
-        r"[，,；;。:：、（）()和与及]|包括|分别|以及|其中|要求|修满|官方|确切|发布|上线|日期|时间|地点|单位|邀请人|演讲者|是|为",
+        r"[，,；;。:：、（）()和与及而]|包括|分别|以及|其中|要求|修满|官方|确切|发布|上线|日期|时间|地点|单位|邀请人|演讲者|是|为",
         text,
     ):
         chunk = chunk.strip()
@@ -291,6 +291,7 @@ def _normalize_atom_text(text: str) -> str:
 def _normalize_readable_text(text: str) -> str:
     text = text.replace("（", "(").replace("）", ")")
     text = text.replace("–", "-").replace("—", "-").replace("－", "-")
+    text = text.replace("**", "").replace("__", "")
     return re.sub(r"\s+", " ", text).strip()
 
 

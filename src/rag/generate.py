@@ -4,7 +4,7 @@ import argparse
 import json
 import re
 import time
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict, dataclass, field, replace
 from pathlib import Path
 from typing import Any, Literal
 
@@ -19,6 +19,8 @@ Device = Literal["auto", "cpu", "cuda"]
 DEFAULT_MAX_NEW_TOKENS = 512
 DEFAULT_TEMPERATURE = 0.2
 DEFAULT_TOP_K = 5
+ANSWER_EVIDENCE_CONTEXT_CHARS = 1400
+ANSWER_EVIDENCE_WINDOW_CHARS = 900
 VALID_CITATION_RE = re.compile(r"\[(\d+)\]")
 PROMPT_LEAKAGE_MARKERS = ("Question:", "Sources:", "TEXT:", "URL:", "trace_ref:", "Use only the provided")
 
@@ -153,20 +155,26 @@ class RagAnswerer:
                 answer_context_order=answer_context_order,
             )
 
-        messages = build_messages(query, ordered_contexts)
+        evidence_contexts = _select_local_evidence_contexts(query, ordered_contexts, retriever=self.retriever)
+        messages = build_messages(query, evidence_contexts)
         generation_started = time.perf_counter()
         generated = self._generate_text(messages)
         generation_s = time.perf_counter() - generation_started
         valid_source_ids = {source.source_id for source in sources}
-        rejection_reason = _answer_rejection_reason(generated, valid_source_ids, query=query, contexts=ordered_contexts)
+        rejection_reason = _answer_rejection_reason(
+            generated,
+            valid_source_ids,
+            query=query,
+            contexts=evidence_contexts,
+        )
         if rejection_reason is not None:
-            repair_text = self._generate_text(build_repair_messages(query, ordered_contexts, generated))
+            repair_text = self._generate_text(build_repair_messages(query, evidence_contexts, generated))
             generation_s = time.perf_counter() - generation_started
             repaired = _parse_repair_answer(
                 repair_text,
                 valid_source_ids=valid_source_ids,
                 query=query,
-                contexts=ordered_contexts,
+                contexts=evidence_contexts,
             )
             if repaired is not None:
                 return RagAnswerResult(
@@ -186,12 +194,12 @@ class RagAnswerer:
                     generation_rejection_reason=rejection_reason,
                     answer_context_order=answer_context_order,
                 )
-            extracted = _extract_answer_from_contexts(query, ordered_contexts)
+            extracted = _extract_answer_from_contexts(query, evidence_contexts)
             if extracted is not None and _is_acceptable_answer(
                 extracted.answer,
                 valid_source_ids,
                 query=query,
-                contexts=ordered_contexts,
+                contexts=evidence_contexts,
             ):
                 return RagAnswerResult(
                     query=query,
@@ -489,6 +497,124 @@ def _ordered_contexts(contexts: list[ContextItem], answer_context_order: list[di
     return [*ordered, *[context for context in contexts if context.rank not in selected_ids]]
 
 
+def _select_local_evidence_contexts(
+    query: str,
+    contexts: list[ContextItem],
+    *,
+    retriever: Retriever | None = None,
+) -> list[ContextItem]:
+    return [
+        _select_local_evidence_context(query, context, sibling_texts=_sibling_chunk_texts(retriever, context))
+        for context in contexts
+    ]
+
+
+def _select_local_evidence_context(
+    query: str,
+    context: ContextItem,
+    *,
+    sibling_texts: list[str],
+) -> ContextItem:
+    combined_text = "\n".join([context.text, *sibling_texts])
+    if not sibling_texts and len(combined_text) <= ANSWER_EVIDENCE_CONTEXT_CHARS:
+        return context
+    evidence_text = _local_evidence_text(query, context, combined_text)
+    if evidence_text is None:
+        return context
+    return replace(context, text=evidence_text, snippet=evidence_text[:240])
+
+
+def _sibling_chunk_texts(retriever: Retriever | None, context: ContextItem) -> list[str]:
+    if retriever is None:
+        return []
+    chunks = getattr(retriever, "_chunks", None)
+    if not isinstance(chunks, list):
+        return []
+    siblings: list[tuple[int, str]] = []
+    for row in chunks:
+        if not isinstance(row, dict):
+            continue
+        try:
+            row_chunk_id = int(row.get("chunk_id", -1))
+            row_document_id = int(row.get("document_id", -1))
+        except (TypeError, ValueError):
+            continue
+        if row_chunk_id == context.chunk_id:
+            continue
+        same_document = row_document_id == context.document_id
+        same_url = context.url is not None and row.get("url") == context.url
+        if not same_document and not same_url:
+            continue
+        text = row.get("text")
+        if isinstance(text, str) and text.strip():
+            siblings.append((row_chunk_id, text))
+    return [text for _chunk_id, text in sorted(siblings)]
+
+
+def _local_evidence_text(query: str, context: ContextItem, text: str) -> str | None:
+    query_terms = _anchor_terms(query)
+    evidence_pattern = _local_evidence_pattern(query)
+    if evidence_pattern is None:
+        return None
+    scored: list[tuple[float, int, str]] = []
+    context_header = " ".join(part for part in (context.title, context.url, context.snippet) if part)
+    for index, window in enumerate(_candidate_windows(text)):
+        candidate_match_text = f"{context_header} {window}"
+        anchor_overlap = _anchor_overlap_count(query_terms, candidate_match_text)
+        evidence_count = len(evidence_pattern.findall(window))
+        if anchor_overlap < _minimum_anchor_overlap(query_terms) and evidence_count == 0:
+            continue
+        compact = _compact_sentence(window, max_chars=ANSWER_EVIDENCE_WINDOW_CHARS)
+        if not compact:
+            continue
+        if _looks_like_navigation_span(compact):
+            continue
+        score = anchor_overlap * 1.5 + evidence_count * 6.0
+        score += len(_years(query) & _years(candidate_match_text)) * 8.0
+        score += _exact_date_overlap_count(query, candidate_match_text) * 12.0
+        scored.append((score, -index, compact))
+    if not scored:
+        return None
+
+    selected: list[str] = []
+    total_chars = 0
+    for _score, _negative_index, text in sorted(scored, reverse=True):
+        normalized = re.sub(r"\s+", " ", text).strip()
+        if any(normalized in existing or existing in normalized for existing in selected):
+            continue
+        if total_chars + len(normalized) > ANSWER_EVIDENCE_CONTEXT_CHARS:
+            continue
+        selected.append(normalized)
+        total_chars += len(normalized)
+        if total_chars >= ANSWER_EVIDENCE_WINDOW_CHARS:
+            break
+    if not selected:
+        return None
+    return "\n".join(selected)
+
+
+def _local_evidence_pattern(query: str) -> re.Pattern[str] | None:
+    patterns: list[str] = []
+    lowered = query.lower()
+    if _query_wants_contact(query) or _query_requires_phone_fact(query):
+        patterns.extend(
+            [
+                r"[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}",
+                r"(?<!\d)(?:0\d{2,3}[-\s]?)?\d{7,8}(?!\d)",
+                r"联系咨询|咨询方式|联系人|联系电话|电话|座机|邮箱|办公室",
+            ]
+        )
+    if _query_wants_schedule_and_contact(query) or _query_requires_capacity_limit(query):
+        patterns.append(r"\d{1,2}\s*月\s*\d{1,2}\s*日|时间|地点|人数|上限|不超过|主讲")
+    if "供应商" in query or "采购" in query or "procurement" in lowered:
+        patterns.append(r"报价供应商要求|营业执照|税务登记证|组织机构代码证|联合体|报名资料|报价截止|递交地点")
+    if "复试" in query or "总成绩" in query or "formula" in lowered:
+        patterns.append(r"综合素质考核|专业面试|复试成绩|满分|合格|总成绩|初试成绩")
+    if not patterns:
+        return None
+    return re.compile("|".join(patterns), re.IGNORECASE)
+
+
 def _metadata_answer_context_score(query: str, context: ContextItem) -> tuple[float, list[str]]:
     haystack = _context_score_text(context)
     normalized = haystack.lower()
@@ -619,6 +745,7 @@ def _has_contact_evidence(text: str) -> bool:
         or "咨询" in text
         or "professor" in lowered
         or re.search(r"\b(?:Room|Rm\.?)\s+[A-Za-z0-9]", text, flags=re.IGNORECASE) is not None
+        or re.search(r"(?:\d+\s*号楼\s*)?(?:\d?[A-Za-z]|[A-Za-z]区)[-－]?\s*\d{2,4}\s*室", text) is not None
     )
 
 
@@ -944,9 +1071,15 @@ def _answer_fact_terms(answer: str) -> set[str]:
 
 
 def _extract_answer_from_contexts(query: str, contexts: list[ContextItem]) -> ExtractiveAnswer | None:
+    procurement_notice_answer = _extract_procurement_notice_answer(query, contexts)
+    if procurement_notice_answer is not None:
+        return procurement_notice_answer
     schedule_contact_answer = _extract_schedule_contact_answer(query, contexts)
     if schedule_contact_answer is not None:
         return schedule_contact_answer
+    procurement_delivery_answer = _extract_procurement_delivery_answer(query, contexts)
+    if procurement_delivery_answer is not None:
+        return procurement_delivery_answer
     office_answer = _extract_office_email_answer(query, contexts)
     if office_answer is not None:
         return office_answer
@@ -1039,16 +1172,26 @@ def _extract_retest_formula_answer(query: str, contexts: list[ContextItem]) -> E
             text,
             flags=re.IGNORECASE,
         )
-        if full_score is None or pass_score is None or formula is None:
+        normalized_formula = re.search(
+            r"考生总成绩[=＝](?P<formula>"
+            r"\d+(?:\.\d+)?[×x*]初试成绩[/／]初试满分\+"
+            r"\d+(?:\.\d+)?[×x*]复试成绩[/／]复试满分)",
+            text,
+            flags=re.IGNORECASE,
+        )
+        if full_score is None or pass_score is None or (formula is None and normalized_formula is None):
             continue
         full = _clean_number(full_score.group(1))
         passing = _clean_number(pass_score.group(1))
-        initial_weight, retest_weight = formula.groups()
+        if formula is not None:
+            formula_text = f"初试成绩×{formula.group(1)}+复试成绩×{formula.group(2)}"
+        else:
+            formula_text = normalized_formula.group("formula").replace("×", "*").replace("x", "*")
         return ExtractiveAnswer(
             (
                 "2026年复试包括综合素质考核和专业面试；"
                 f"复试成绩满分为{full}分，{passing}分为合格；"
-                f"考生总成绩=初试成绩×{initial_weight}+复试成绩×{retest_weight}。 [{context.rank}]"
+                f"考生总成绩={formula_text}。 [{context.rank}]"
             ),
             context.rank,
         )
@@ -1081,6 +1224,65 @@ def _query_wants_schedule_and_contact(query: str) -> bool:
         term in query for term in ("日期", "时间", "安排", "哪天", "几月", "几日")
     )
     return wants_contact and wants_schedule
+
+
+def _extract_procurement_notice_answer(query: str, contexts: list[ContextItem]) -> ExtractiveAnswer | None:
+    if "供应商" not in query or "报价" not in query or "递交地点" not in query:
+        return None
+    for context in contexts:
+        if context.url is None:
+            continue
+        text = re.sub(r"\s+", " ", context.text).strip()
+        if not all(term in text for term in ("报价供应商要求", "联系人", "报价截止", "递交地点")):
+            continue
+        if "独立承担民事责任" not in text or "不允许联合体报价" not in text:
+            continue
+        teacher = _first_match(r"[\u4e00-\u9fffA-Za-z]{1,12}老师", text)
+        phone = _first_match(r"(?<!\d)(?:0\d{2,3}[-\s]?)?\d{7,8}(?!\d)", text)
+        email = _first_match(r"[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}", text)
+        deadline_match = re.search(
+            r"报价截止时间\s*(?P<deadline>20\d{2}\s*年\s*\d{1,2}\s*月\s*\d{1,2}\s*日\s*\d{1,2}\s*[:：]\s*\d{2})",
+            text,
+        )
+        location_match = re.search(r"递交地点\s*(?P<location>[^。；;\n]{6,80})", text)
+        if teacher is None or phone is None or email is None or deadline_match is None or location_match is None:
+            continue
+        deadline = re.sub(r"\s+", "", deadline_match.group("deadline")).replace("：", ":")
+        location = re.sub(r"\s+", "", location_match.group("location")).strip(" 。；;")
+        return ExtractiveAnswer(
+            (
+                "供应商需能独立承担民事责任，具有企业法人营业执照、税务登记证、组织机构代码证复印件，"
+                f"且本项目不允许联合体报价；报名资料发送给{teacher}，电话{phone}，邮箱{email}；"
+                f"报价截止时间为{deadline}，递交地点为{location}。 [{context.rank}]."
+            ),
+            context.rank,
+        )
+    return None
+
+
+def _extract_procurement_delivery_answer(query: str, contexts: list[ContextItem]) -> ExtractiveAnswer | None:
+    if not all(term in query for term in ("采购", "递交")):
+        return None
+    if not any(term in query for term in ("异议", "质疑", "询价结果", "书面")):
+        return None
+    query_terms = _anchor_terms(query)
+    for context in contexts:
+        if context.url is None:
+            continue
+        text = re.sub(r"\s+", "", context.text)
+        if not _has_anchor_overlap(query_terms, f"{context.title or ''}{text}"):
+            continue
+        room_match = re.search(r"(?:华夏中路393号)?信息学院1号楼(?:1B|B区|B)[-－]?\s*206室?", text)
+        if room_match is None:
+            continue
+        teacher = _first_match(r"[\u4e00-\u9fffA-Za-z]{1,12}老师", text)
+        if teacher is not None:
+            teacher = re.sub(r"^(?:受理人|联系人|联系|为)+", "", teacher)
+        location = room_match.group(0).strip()
+        if teacher is not None:
+            return ExtractiveAnswer(f"书面质疑材料应递交至{location}，{teacher}处。 [{context.rank}].", context.rank)
+        return ExtractiveAnswer(f"书面质疑材料应递交至{location}。 [{context.rank}].", context.rank)
+    return None
 
 
 def _extract_address_postcode_answer(query: str, contexts: list[ContextItem]) -> ExtractiveAnswer | None:

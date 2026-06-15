@@ -96,6 +96,12 @@ class StaticContextRetriever:
         return self.contexts[: len(hits)]
 
 
+class StaticContextRetrieverWithSiblingChunks(StaticContextRetriever):
+    def __init__(self, contexts: list[ContextItem], sibling_chunks: list[dict[str, object]]) -> None:
+        super().__init__(contexts)
+        self._chunks = sibling_chunks
+
+
 def test_hybrid_answer_generation_returns_numbered_citations(
     tmp_path: Path, fake_hybrid_sentence_transformer_module, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -713,6 +719,48 @@ def test_generation_rejects_unsupported_retest_formula_weights_and_falls_back(
     )
 
 
+def test_retest_formula_fallback_handles_score_normalization_formula(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    contexts = [
+        _context(
+            rank=1,
+            title="2026年信息学院硕士研究生招生复试规程",
+            url="https://example.edu/admission/2026-retest",
+            text=(
+                "2026年信息学院硕士研究生招生复试工作规程。"
+                "复试内容包括综合素质考核和专业面试。"
+                "复试成绩满分为100分，60分为合格。"
+                "考生总成绩=50*初试成绩/初试满分+50*复试成绩/复试满分。"
+            ),
+        ),
+    ]
+    model_path = tmp_path / "qwen-local"
+    model_path.mkdir()
+    _patch_generation_sequence(
+        monkeypatch,
+        [
+            "证据不足：当前检索到的官方来源不足以回答这个问题。",
+            '{"status": "insufficient_evidence", "answer": ""}',
+        ],
+    )
+    answerer = RagAnswerer(StaticContextRetriever(contexts), model_path=model_path, device="cpu")  # type: ignore[arg-type]
+
+    result = answerer.answer(
+        "2026年信息学院硕士研究生招生复试包括哪些部分？复试成绩满分和合格线是多少？总成绩如何计算？",
+        mode="dense",
+        top_k=1,
+    )
+
+    assert result.status == "answered"
+    assert result.generation_path == "extractive_fallback"
+    assert (
+        result.answer
+        == "2026年复试包括综合素质考核和专业面试；复试成绩满分为100分，60分为合格；"
+        "考生总成绩=50*初试成绩/初试满分+50*复试成绩/复试满分。 [1]"
+    )
+
+
 def test_generation_rejects_adjacent_stats_when_requested_lab_counts_are_missing(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -1147,6 +1195,104 @@ def test_incomplete_contact_generation_falls_back_to_source_phone(
     assert result.answer.endswith("[1].")
 
 
+def test_source_derived_fallback_composes_procurement_notice_answer_object(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    contexts = [
+        _context(
+            rank=1,
+            title="上海科技大学磷烷气体供气设备询价公告",
+            url="https://sist.shanghaitech.edu.cn/2019/0911/c5124a44707/page.htm",
+            text=(
+                "项目名称 上海科技大学磷烷气体供气设备。\n"
+                "报价供应商要求\n"
+                "1，供应商须能独立承担民事责任，具有能从事该项目范围内的企业法人营业执照、"
+                "税务登记证、组织机构代码证复印件；\n"
+                "2，本项目不允许联合体报价。\n"
+                "报名方式 请将以上所需报名资料复印件加盖公章扫描后发至联系人邮箱领取本次询价的需求文件。\n"
+                "联系人：刘老师\n"
+                "电话：021-20685370\n"
+                "邮箱：liutt1@shanghaitech.edu.cn\n"
+                "报价截止时间 2019年9月19日9:30时（北京时间）\n"
+                "报价文件递交地点 上海市浦东新区华夏中路393号信息学院1号楼B区206"
+            ),
+        ),
+    ]
+    model_path = tmp_path / "qwen-local"
+    model_path.mkdir()
+    _patch_generation_sequence(
+        monkeypatch,
+        [
+            "报名资料发送给刘老师，邮箱liutt1@shanghaitech.edu.cn。[1]",
+            '{"status": "insufficient_evidence", "answer": ""}',
+        ],
+    )
+    answerer = RagAnswerer(StaticContextRetriever(contexts), model_path=model_path, device="cpu")  # type: ignore[arg-type]
+
+    result = answerer.answer(
+        "如果供应商想参与上海科技大学磷烷气体供气设备询价，需要满足哪些报价供应商要求？"
+        "报名资料应发送给哪位联系人，报价截止时间和递交地点是什么？",
+        mode="dense",
+        top_k=1,
+    )
+
+    assert result.status == "answered"
+    assert result.generation_path == "extractive_fallback"
+    assert result.fallback_source_rank == 1
+    assert "独立承担民事责任" in result.answer
+    assert "营业执照、税务登记证、组织机构代码证复印件" in result.answer
+    assert "不允许联合体报价" in result.answer
+    assert "刘老师" in result.answer
+    assert "021-20685370" in result.answer
+    assert "liutt1@shanghaitech.edu.cn" in result.answer
+    assert "2019年9月19日9:30" in result.answer
+    assert "信息学院1号楼B区206" in result.answer
+    assert result.answer.endswith("[1].")
+
+
+def test_source_derived_fallback_composes_procurement_objection_delivery_contact(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    contexts = [
+        _context(
+            rank=1,
+            title="上海科技大学信息学院磷烷气体供气设备采购询价结果公告",
+            url="https://sist.shanghaitech.edu.cn/2019/0923/c5124a44920/page.htm",
+            text=(
+                "上海科技大学信息学院磷烷气体供气设备采购询价结果公告。"
+                "投标人如对询价结果有异议，请于本公告发布之日起三日内以书面形式提出质疑材料。"
+                "受理人为刘老师。"
+                "材料递交地址为上海市浦东新区华夏中路393号信息学院1号楼1B-206室。"
+            ),
+        )
+    ]
+    model_path = tmp_path / "qwen-local"
+    model_path.mkdir()
+    _patch_generation_sequence(
+        monkeypatch,
+        [
+            "证据不足：当前检索到的官方来源不足以回答这个问题。",
+            '{"status": "insufficient_evidence", "answer": ""}',
+        ],
+    )
+    answerer = RagAnswerer(StaticContextRetriever(contexts), model_path=model_path, device="cpu")  # type: ignore[arg-type]
+
+    result = answerer.answer(
+        "假设某个外部投标供应商对信息学院公开发布的“磷烷气体供气设备采购”询价结果存有异议，"
+        "如果其需要按照规定在发布之日起三日内递交书面质疑材料，其应该把材料具体递交到"
+        "华夏中路校区哪栋建筑的哪一个办公室？",
+        mode="dense",
+        top_k=1,
+    )
+
+    assert result.status == "answered"
+    assert result.generation_path == "extractive_fallback"
+    assert result.fallback_source_rank == 1
+    assert "刘老师" in result.answer
+    assert "信息学院1号楼1B-206室" in result.answer
+    assert result.answer.endswith("[1].")
+
+
 def test_incomplete_training_cap_generation_falls_back_to_source_limit(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -1305,6 +1451,130 @@ def test_answer_context_selection_prefers_contact_fact_chunk_over_same_page_head
     assert tokenizer.chat_template_kwargs is not None
     user_message = tokenizer.chat_template_kwargs["messages"][1]["content"]  # type: ignore[index]
     assert user_message.index("[5] TurtleBot4") < user_message.index("[1] TurtleBot4")
+
+
+def test_generation_prompt_uses_later_relevant_evidence_from_long_retrieved_page(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    long_front_matter = " ".join(f"首页 导航 学院概况 新闻列表 占位内容{i}" for i in range(80))
+    contexts = [
+        _context(
+            rank=1,
+            title="2026年“通计划”联合培养博士生专项计划通知",
+            url="https://sist.shanghaitech.edu.cn/2026/0527/c2826a1123008/page.htm",
+            text=(
+                f"{long_front_matter}\n"
+                "联系咨询方式：北京通用人工智能研究院座机010-85413687，"
+                "邮箱tongprogram@bigai.ai。\n"
+                "上海科技大学信息学院联系人为高老师，电话021-20684866，"
+                "邮箱admission.sist@shanghaitech.edu.cn。"
+            ),
+        )
+    ]
+    model_path = tmp_path / "qwen-local"
+    model_path.mkdir()
+    tokenizer = FakeChatTokenizer(
+        "北京通用人工智能研究院座机010-85413687，邮箱tongprogram@bigai.ai；"
+        "上海科技大学信息学院联系人为高老师，电话021-20684866，"
+        "邮箱admission.sist@shanghaitech.edu.cn [1]."
+    )
+
+    def fake_load_model(self: RagAnswerer) -> tuple[FakeChatTokenizer, FakeModel]:
+        return tokenizer, FakeModel()
+
+    monkeypatch.setattr(RagAnswerer, "_load_model", fake_load_model)
+    answerer = RagAnswerer(StaticContextRetriever(contexts), model_path=model_path, device="cpu")  # type: ignore[arg-type]
+
+    result = answerer.answer(
+        "在2026年“通计划”联合培养博士生专项计划通知中，北京通用人工智能研究院和"
+        "上海科技大学信息学院的联系咨询方式分别是什么？",
+        mode="dense",
+        top_k=1,
+    )
+
+    assert result.status == "answered"
+    assert tokenizer.chat_template_kwargs is not None
+    user_message = tokenizer.chat_template_kwargs["messages"][1]["content"]  # type: ignore[index]
+    assert "010-85413687" in user_message
+    assert "admission.sist@shanghaitech.edu.cn" in user_message
+    assert "占位内容0" not in user_message
+    assert result.answer.endswith("[1].")
+
+
+def test_generation_prompt_uses_same_document_contact_sibling_chunk(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    contexts = [
+        ContextItem(
+            rank=1,
+            chunk_id=101,
+            document_id=77,
+            title="2026年“通计划”联合培养博士生专项计划通知",
+            url="https://sist.shanghaitech.edu.cn/2026/0415/c2863a1120785/page.htm",
+            category=None,
+            language="zh",
+            snippet="上海科技大学和北京通用人工智能研究院联合培养博士生专项计划。地址：上海市徐汇区岳阳路319号。",
+            text="上海科技大学和北京通用人工智能研究院联合培养博士生专项计划。地址：上海市徐汇区岳阳路319号。邮编：200031。",
+            trace_ref="test:chunk:101",
+        )
+    ]
+    sibling_chunks = [
+        {
+            "chunk_id": 101,
+            "document_id": 77,
+            "title": contexts[0].title,
+            "url": contexts[0].url,
+            "category": None,
+            "language": "zh",
+            "text": contexts[0].text,
+        },
+        {
+            "chunk_id": 103,
+            "document_id": 77,
+            "title": contexts[0].title,
+            "url": contexts[0].url,
+            "category": None,
+            "language": "zh",
+            "text": (
+                "联系方式：北京通用人工智能研究院座机010-85413687（周一至周五9:00-18:00），"
+                "邮箱tongprogram@bigai.ai。上海科技大学信息科学与技术学院联系人为高老师，"
+                "电话021-20684866，邮箱admission.sist@shanghaitech.edu.cn。"
+            ),
+        },
+    ]
+    model_path = tmp_path / "qwen-local"
+    model_path.mkdir()
+    tokenizer = FakeChatTokenizer(
+        "北京通用人工智能研究院座机010-85413687，邮箱tongprogram@bigai.ai；"
+        "上海科技大学信息学院联系人为高老师，电话021-20684866，"
+        "邮箱admission.sist@shanghaitech.edu.cn [1]."
+    )
+
+    def fake_load_model(self: RagAnswerer) -> tuple[FakeChatTokenizer, FakeModel]:
+        return tokenizer, FakeModel()
+
+    monkeypatch.setattr(RagAnswerer, "_load_model", fake_load_model)
+    answerer = RagAnswerer(
+        StaticContextRetrieverWithSiblingChunks(contexts, sibling_chunks),
+        model_path=model_path,
+        device="cpu",
+    )  # type: ignore[arg-type]
+
+    result = answerer.answer(
+        "在2026年“通计划”联合培养博士生专项计划通知中，北京通用人工智能研究院和"
+        "上海科技大学信息学院的联系咨询方式分别是什么？",
+        mode="dense",
+        top_k=1,
+    )
+
+    assert result.status == "answered"
+    assert tokenizer.chat_template_kwargs is not None
+    user_message = tokenizer.chat_template_kwargs["messages"][1]["content"]  # type: ignore[index]
+    assert "010-85413687" in user_message
+    assert "tongprogram@bigai.ai" in user_message
+    assert "021-20684866" in user_message
+    assert "admission.sist@shanghaitech.edu.cn" in user_message
+    assert result.answer.endswith("[1].")
 
 
 def test_initial_generation_prompt_uses_answer_context_order_with_original_source_ids(

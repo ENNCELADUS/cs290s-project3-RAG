@@ -505,6 +505,39 @@ def test_judge_accepts_targeted_evaluator_patch_questions() -> None:
         assert result.is_correct == 1
 
 
+def test_q081_required_facts_match_question_target() -> None:
+    questions = {
+        question.id: question for question in load_questions(Path("data/test/question_final_structured_100.csv"))
+    }
+
+    question = questions["q081"]
+
+    assert question.required_facts == [
+        "挑战赛是Deep Past Challenge（深邃历史挑战赛）",
+        "参赛队伍为2673支",
+        "开发者为3311名",
+        "累计提交方案6.8万份",
+    ]
+    assert "全球总冠军" not in " ".join(question.required_facts)
+
+
+def test_judge_rejects_wrong_q081_chinese_count_units() -> None:
+    questions = {
+        question.id: question for question in load_questions(Path("data/test/question_final_structured_100.csv"))
+    }
+
+    result = judge_answer(
+        questions["q081"],
+        "队伍参加的是Deep Past Challenge（深邃历史挑战赛），比赛共有2672支队伍、"
+        "3310名开发者参与，并累计提交6.7万份方案。[1]",
+        cited_expected_source_hit=True,
+        has_citation=True,
+    )
+
+    assert result.status == "incorrect"
+    assert result.is_correct == 0
+
+
 def test_judge_matches_q067_professional_course_credit_summary() -> None:
     questions = {
         question.id: question for question in load_questions(Path("data/test/question_final_structured_100.csv"))
@@ -519,6 +552,92 @@ def test_judge_matches_q067_professional_course_credit_summary() -> None:
 
     assert result.status == "correct", result.reason
     assert result.is_correct == 1
+
+
+def test_judge_matches_q067_markdown_numeric_atoms_from_generation_run() -> None:
+    questions = {
+        question.id: question for question in load_questions(Path("data/test/question_final_structured_100.csv"))
+    }
+
+    result = judge_answer(
+        questions["q067"],
+        "根据2025级计算机科学与技术专业本科生培养方案，学生毕业至少需要修满**145**总学分。"
+        "其中，专业课程板块的学分要求如下：必修**20**学分，选修**39**学分，合计**59**学分 [1]。",
+        cited_expected_source_hit=True,
+        has_citation=True,
+    )
+
+    assert result.status == "correct", result.reason
+    assert result.is_correct == 1
+
+
+def test_judge_matches_q009_markdown_comparative_credit_atoms_from_generation_run() -> None:
+    questions = {
+        question.id: question for question in load_questions(Path("data/test/question_final_structured_100.csv"))
+    }
+
+    result = judge_answer(
+        questions["q009"],
+        "根据提供的2025级EE专业本科培养方案[1]：\n\n"
+        "*   **人文社科通识板块**：必修学分为**30**学分，选修学分为**15**学分，合计**45**学分。\n"
+        "*   **自然科学通识板块**：必修学分为**16**学分，选修学分为**16**学分，合计**32**学分。",
+        cited_expected_source_hit=True,
+        has_citation=True,
+    )
+
+    assert result.status == "correct", result.reason
+    assert result.is_correct == 1
+
+
+def test_judge_matches_q068_markdown_list_numeric_atoms_from_generation_run() -> None:
+    questions = {
+        question.id: question for question in load_questions(Path("data/test/question_final_structured_100.csv"))
+    }
+
+    result = judge_answer(
+        questions["q068"],
+        "根据提供的2025级本科生培养方案，2025级CS专业人工智能荣誉班与普通CS专业在自然科学通识板块"
+        "和专业课程板块的总学分要求对比如下：\n\n"
+        "**1. 2025级CS专业人工智能荣誉班**\n"
+        "*   **自然科学通识板块**：总学分为 **28** 学分（必修12学分 + 选修16学分）[1]。\n"
+        "*   **专业课程板块**：总学分为 **68** 学分（必修42学分 + 选修26学分）[1]。\n\n"
+        "**2. 2025级CS专业（普通班）**\n"
+        "*   **自然科学通识板块**：总学分为 **32** 学分（必修16学分 + 选修16学分）[2]。\n"
+        "*   **专业课程板块**：总学分为 **59** 学分（必修20学分 + 选修39学分）[2]。",
+        cited_expected_source_hit=True,
+        has_citation=True,
+    )
+
+    assert result.status == "correct", result.reason
+    assert result.is_correct == 1
+
+
+def test_judge_rejects_wrong_markdown_numeric_atoms_from_generation_contexts() -> None:
+    questions = {
+        question.id: question for question in load_questions(Path("data/test/question_final_structured_100.csv"))
+    }
+
+    wrong_q067 = judge_answer(
+        questions["q067"],
+        "根据2025级计算机科学与技术专业本科生培养方案，学生毕业至少需要修满**145**总学分。"
+        "其中，专业课程板块的学分要求如下：必修**20**学分，选修**38**学分，合计**59**学分 [1]。",
+        cited_expected_source_hit=True,
+        has_citation=True,
+    )
+    wrong_q068 = judge_answer(
+        questions["q068"],
+        "*   **CS专业人工智能荣誉班自然科学通识板块**：总学分为 **28** 学分。\n"
+        "*   **CS专业人工智能荣誉班专业课程板块**：总学分为 **67** 学分。\n"
+        "*   **普通CS专业自然科学通识板块**：总学分为 **32** 学分。\n"
+        "*   **普通CS专业专业课程板块**：总学分为 **59** 学分。[1]",
+        cited_expected_source_hit=True,
+        has_citation=True,
+    )
+
+    assert wrong_q067.status == "incorrect"
+    assert wrong_q067.is_correct == 0
+    assert wrong_q068.status == "incorrect"
+    assert wrong_q068.is_correct == 0
 
 
 def test_judge_matches_q052_committee_chair_summary() -> None:
