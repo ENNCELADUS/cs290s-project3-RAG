@@ -1,6 +1,6 @@
 # Retrieval Evaluation Experiments
 
-Last updated: 2026-06-13
+Last updated: 2026-06-15
 
 This document records the current report-facing retrieval evaluation for the ShanghaiTech/SIST RAG system. The old
 12-question Phase 2 pilot is historical only; the locked retrieval test paradigm is now the structured 100-question
@@ -580,45 +580,97 @@ Change:
   preserve fused top 2, final top 5, strict source diversity, CUDA local reranker, and the enriched index are unchanged.
 - no qrels edits, index-text changes, source-type priors, structured sidecar retrieval, or generation-answer changes.
 
-Remote run:
+Local rerun artifact:
 
 ```text
-run_id: remote_retrieve_query_expansion_qwen_conservative_20260613
-remote worktree: /home/richard/cs290s-project3-RAG-fix8-query-expansion
+run_id: rerun_fix8_query_expansion_20260613T080811Z
+artifact directory: data/eval/20260613T080811Z_rerun_fix8_query_expansion
 local code commit:
   1f36d35 Add retrieval query expansion plumbing
 remote eval commit:
   4772c5f Add retrieval query expansion plumbing
 expansion file:
-  data/eval/query_expansions_qwen3_0_6b_conservative_20260613.jsonl
-remote artifacts:
-  data/eval/run_remote_retrieve_query_expansion_qwen_conservative_20260613.jsonl
-  data/eval/summary_remote_retrieve_query_expansion_qwen_conservative_20260613.json
-  data/eval/review_queue_remote_retrieve_query_expansion_qwen_conservative_20260613.csv
-  data/eval/gap_notes_remote_retrieve_query_expansion_qwen_conservative_20260613.md
-  data/eval/results_before_after_remote_retrieve_query_expansion_qwen_conservative_20260613.xlsx
-records: 200
-status: dense 100 ok / 0 errors; hybrid 100 ok / 0 errors
+  data/eval/20260613T080811Z_rerun_fix8_query_expansion/expanded_queries_fix8.jsonl
+artifacts:
+  data/eval/20260613T080811Z_rerun_fix8_query_expansion/run_rerun_fix8_query_expansion_20260613T080811Z.jsonl
+  data/eval/20260613T080811Z_rerun_fix8_query_expansion/summary_rerun_fix8_query_expansion_20260613T080811Z.json
+  data/eval/20260613T080811Z_rerun_fix8_query_expansion/review_queue_rerun_fix8_query_expansion_20260613T080811Z.csv
+  data/eval/20260613T080811Z_rerun_fix8_query_expansion/gap_notes_rerun_fix8_query_expansion_20260613T080811Z.md
+  data/eval/20260613T080811Z_rerun_fix8_query_expansion/results_before_after_rerun_fix8_query_expansion_20260613T080811Z.xlsx
+records: 100
+status: hybrid 100 ok / 0 errors
 ```
 
-The query expansion result compared with the Fix 7 CUDA reranker anchor:
+The local rerun query-expansion result compared with the Fix 7 CUDA reranker anchor:
 
 | mode | source_hit@1 | source_hit@5 | source_recall@5 | mrr@5 | ndcg@5 | precision@5 | avg latency (s) |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 | Fix 7 `hybrid` + CUDA selective reranker | 0.65 | 0.88 | 0.853333 | 0.748333 | 0.738153 | 0.192 | 5.141354 |
-| Fix 8 `hybrid` + conservative Qwen expansion | 0.67 | 0.89 | 0.858333 | 0.757833 | 0.753315 | 0.196 | 8.389798 |
-| Delta | +0.02 | +0.01 | +0.005000 | +0.009500 | +0.015162 | +0.004 | +3.248444 |
+| Fix 8 local rerun `hybrid` + conservative Qwen expansion | 0.57 | 0.82 | 0.788333 | 0.671500 | 0.666252 | 0.178 | 8.967467 |
+| Delta | -0.08 | -0.06 | -0.065000 | -0.076833 | -0.071901 | -0.014 | +3.826113 |
 
 Interpretation:
 
-- Conservative local query expansion is an accepted retrieval-ranking improvement: it raises `source_hit@5` to 0.89,
-  `mrr@5` to 0.757833, and `ndcg@5` to 0.753315.
-- The improvement comes with a latency cost because each expanded query currently reruns the dense candidate path. Hybrid
-  average latency rises from 5.141354s to 8.389798s per query on the CUDA runner.
-- The first direct HyDE smoke produced hallucinated offices, emails, and institution names, so the accepted variant is
+- The local rerun Fix 8 artifact is the baseline for the subsequent Fix 10 artifact comparisons in this
+  document.
+- This rerun does not reproduce a gain over the Fix 7 CUDA reranker anchor: `source_hit@5`, `mrr@5`, and `ndcg@5` all
+  fall, while hybrid average latency rises from 5.141354s to 8.967467s per query.
+- The first direct HyDE smoke produced hallucinated offices, emails, and institution names, so the chosen variant is
   deliberately conservative: Qwen rewrites are filtered back to terms found in the original question.
 - This is still retrieval-only expansion. The generated rewrite is not packed into answer context and is not eligible as
   a citation source.
+
+### Fix 10: Reranker Model and Depth Controls
+
+Change:
+
+- control hypothesis: compare smaller CUDA reranker windows and two local reranker models while preserving the fused
+  top 2.
+- shared retrieval setting: hybrid sparse candidate depth 50, dense candidate depth 50, fused depth 50, final top 5,
+  strict source diversity, CUDA local reranker, and per-question expanded queries.
+- tested reranker models: `/home/richard/models/bge-reranker-v2-m3` and `/home/richard/models/Qwen3-Reranker-0.6B`.
+- tested rerank depths: `rerank_top_k=10` and `rerank_top_k=15`, both with `rerank_preserve_top_k=2`.
+- no qrels edits, index-text changes, or generation-answer changes.
+
+Local artifact runs:
+
+```text
+artifact directories:
+  data/eval/20260613T_fix10_bge_preserve2_top10
+  data/eval/20260613T_fix10_bge_preserve2_top15
+  data/eval/20260613T_fix10_qwen_preserve2_top10
+  data/eval/20260613T_fix10_qwen_preserve2_top15
+records: 100 per run
+status: hybrid 100 ok / 0 errors for each run
+```
+
+The best Fix 10 result is `bge_preserve2_top10`:
+
+| run | reranker | rerank_top_k | source_hit@1 | source_hit@5 | source_recall@5 | mrr@5 | ndcg@5 | precision@5 | avg latency (s) |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| `fix10_bge_preserve2_top10` | `BAAI/bge-reranker-v2-m3` | 10 | 0.57 | 0.81 | 0.778333 | 0.666500 | 0.660498 | 0.174 | 7.713905 |
+| `fix10_bge_preserve2_top15` | `BAAI/bge-reranker-v2-m3` | 15 | 0.57 | 0.80 | 0.768333 | 0.661833 | 0.654412 | 0.174 | 8.346532 |
+| `fix10_qwen_preserve2_top10` | `Qwen3-Reranker-0.6B` | 10 | 0.57 | 0.78 | 0.753333 | 0.655667 | 0.646279 | 0.168 | 8.222909 |
+| `fix10_qwen_preserve2_top15` | `Qwen3-Reranker-0.6B` | 15 | 0.57 | 0.76 | 0.740000 | 0.649167 | 0.638561 | 0.166 | 8.798788 |
+
+The best Fix 10 run compared with the local rerun Fix 8 baseline:
+
+| mode | source_hit@1 | source_hit@5 | source_recall@5 | mrr@5 | ndcg@5 | precision@5 | avg latency (s) |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| Fix 8 local rerun `hybrid` + conservative Qwen expansion | 0.57 | 0.82 | 0.788333 | 0.671500 | 0.666252 | 0.178 | 8.967467 |
+| Fix 10 best `hybrid` (`bge_preserve2_top10`) | 0.57 | 0.81 | 0.778333 | 0.666500 | 0.660498 | 0.174 | 7.713905 |
+| Delta | +0.00 | -0.01 | -0.010000 | -0.005000 | -0.005754 | -0.004 | -1.253562 |
+
+Interpretation:
+
+- Fix 10 is also rejected as a replacement for local rerun Fix 8. Its best variant is faster, but still loses top-5
+  coverage and rank-quality diagnostics.
+- Within Fix 10, `BAAI/bge-reranker-v2-m3` with `rerank_top_k=10` is the strongest local result in `data/eval`: it has
+  the best `source_hit@5`, `source_recall@5`, `mrr@5`, `ndcg@5`, and latency among the four variants.
+- Increasing the rerank window from 10 to 15 does not help in this setup, and the Qwen3 reranker variants are worse than
+  the BGE reranker variants on the same controls.
+- The best Fix 10 run still has 19 top-5 expected-source misses, so it is useful as negative evidence but not as the
+  report-facing after-optimization result.
 
 ## Report-Facing Before/After Comparison
 
@@ -627,34 +679,25 @@ The official retrieval-only report comparison uses a shared evaluation-canonical
 | condition | source_hit@1 | source_hit@5 | source_recall@5 | mrr@5 | ndcg@5 | precision@5 |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
 | Before optimization: Fix 1 `dense`, rescored | 0.52 | 0.74 | 0.723333 | 0.594833 | 0.614946 | 0.172 |
-| After optimization: Fix 8 `hybrid` conservative Qwen expansion | 0.67 | 0.89 | 0.858333 | 0.757833 | 0.753315 | 0.196 |
-| Delta | +0.15 | +0.15 | +0.135000 | +0.163000 | +0.138369 | +0.024 |
+| After optimization: Fix 8 local rerun `hybrid` conservative Qwen expansion | 0.57 | 0.82 | 0.788333 | 0.671500 | 0.666252 | 0.178 |
+| Delta | +0.05 | +0.08 | +0.065000 | +0.076667 | +0.051306 | +0.006 |
 
 This is the clean report-facing retrieval comparison because Fix 1 applies the shared URL/qrels canonicalization without
-changing retrieval ranking, while Fix 8 includes the accepted retrieval optimizations plus conservative local query
-expansion. The main caveat is runtime: Fix 8 improves retrieval accuracy but increases hybrid CUDA latency from
-5.141354s in Fix 7 to 8.389798s because the expanded query currently triggers an extra dense candidate pass.
+changing retrieval ranking, while the local rerun Fix 8 artifact includes the implemented retrieval optimizations plus
+conservative local query expansion. The caveat is that the local rerun Fix 8 artifact contains only the `hybrid` mode,
+so the before row and after row are comparable by shared question set and metric policy, not by being paired in the same
+run directory.
 
-The Fix 8 `dense` row is a diagnostic ceiling, not the official before-optimization baseline. It uses the enriched
-index text introduced as an optimization, so comparing latest `dense` directly against latest `hybrid` answers a
-different diagnostic question: whether hybrid fusion and selective reranking beat dense after both modes receive the
-same enriched index. On that diagnostic view, latest `hybrid` is ahead on `source_hit@5` 0.89 versus dense 0.85,
-`mrr@5` 0.757833 versus dense 0.742667, and `ndcg@5` 0.753315 versus dense 0.738275.
+No local rerun `dense` row exists for Fix 8, so dense-over-enriched-index diagnostics are intentionally omitted here.
 
 ## Remaining Failure Taxonomy
 
-After Fix 8, the top-5 source-hit overlap is:
+The local rerun Fix 8 artifact is hybrid-only, so it does not support a paired dense-vs-hybrid overlap table. Its
+gap notes contain 18 top-5 expected-source misses.
 
-| result type | question count | question IDs |
-| --- | ---: | --- |
-| Both hit | 81 | not listed individually |
-| Both miss | 7 | `q006`, `q022`, `q023`, `q024`, `q032`, `q033`, `q041` |
-| Dense-only hit | 4 | `q003`, `q013`, `q018`, `q050` |
-| Hybrid-only hit | 8 | `q029`, `q031`, `q037`, `q039`, `q046`, `q066`, `q072`, `q099` |
-
-Both-missed questions are dominated by factual and comparative cases. The
-expected URLs for checked disputed questions are present in the enriched chunk index, so the remaining issue is usually
-ranking, sibling pages, or qrels narrowness rather than complete corpus absence.
+Missed questions are dominated by factual and comparative cases. The expected URLs for checked disputed questions are
+present in the enriched chunk index, so the remaining issue is usually ranking, sibling pages, or qrels narrowness
+rather than complete corpus absence.
 
 Main observed causes:
 
@@ -665,25 +708,25 @@ Main observed causes:
 - Some official pages are answer-bearing siblings but fail the current qrels, such as Chinese/English sibling pages and
   faculty `main.htm` versus list/profile variants.
 - Course-table and faculty/course join questions need more structured retrieval signals than chunk similarity alone.
-- Conservative query expansion moved `q046` from both-miss to hybrid-only hit, but sparse terms and reranker scores can
+- Conservative query expansion can recover some previously missed evidence, but sparse terms and reranker scores can
   still lift sibling pages or old list pages above the exact expected URL.
 
 ## Next Optimization Candidates
 
 Prioritize actual retrieval changes separately from metric/qrels cleanup:
 
-1. Try contextual chunk enrichment v2 in a separate generated index, focusing on breadcrumbs, source type, update date,
-   entity aliases, and Chinese/English sibling hints while keeping displayed contexts as original official text.
-2. Optimize query expansion latency by caching the dense encoder once per `Retriever` or by limiting expansion retrieval
+1. Optimize query expansion latency by caching the dense encoder once per `Retriever` or by limiting expansion retrieval
    to sparse-only candidates before reranking.
+2. Revisit reranker-model or rerank-window changes only with a narrower intent signal. The 2026-06-13 Fix 10 controls
+   found `bge_preserve2_top10` best within that batch, but it still regressed hybrid `source_hit@5` to 0.81.
 3. Revisit source-type priors only with narrower intent-specific rules. A broad structured-sidecar prior trial on
    2026-06-13 regressed hybrid `source_hit@5` from 0.88 to 0.86, so the next version needs a more specific hypothesis.
 
 Keep qrels cleanup separate from retrieval optimization. The next qrels audit should target Chinese/English official
 siblings and answer-bearing faculty/list pages; same-article-ID aliases are already covered by the shared evaluation
 canonicalization policy. Existing remote diagnostics suggest that larger hybrid candidate pools alone were worse,
-`rerank_top_k=10` lost top-5 coverage, and the simple metadata boost trial matched the weighted RRF metrics exactly, so
-none of those should be the next priority without a more specific hypothesis.
+the simple metadata boost trial matched the weighted RRF metrics exactly, and the Fix 10 follow-up controls did not
+beat the local rerun Fix 8 baseline, so none of those should be the next priority without a more specific hypothesis.
 
 ## Verification
 
@@ -735,9 +778,21 @@ uv run --locked --no-sync --offline python -m pytest tests/integration/test_rag_
 uv run --locked --no-sync --offline ruff check src/rag/retrieve.py src/evaluate/cli.py src/evaluate/runner.py tests/integration/test_rag_ingest_index.py tests/integration/test_evaluate_phase5.py
 ```
 
-The remote Fix 8 run used `PYTHONPATH=src`, a conservative per-question expansion JSONL generated by local
-`Qwen3-0.6B`, and the same CUDA reranker/index parameters as Fix 7. A direct HyDE-style smoke was rejected before the
-full run because it hallucinated unsupported offices, emails, and institution names.
+The local rerun Fix 8 artifact used `data/eval/20260613T080811Z_rerun_fix8_query_expansion/run.sh`, a conservative
+per-question expansion JSONL generated by local `Qwen3-0.6B`, and the same CUDA reranker/index parameters as Fix 7. A
+direct HyDE-style smoke was rejected before the full run because it hallucinated unsupported offices, emails, and
+institution names.
+
+The post-Fix-8 generated local artifacts were checked by reading their summary JSON files and first-record retrieval
+configs:
+
+```text
+data/eval/20260613T080811Z_rerun_fix8_query_expansion/summary_rerun_fix8_query_expansion_20260613T080811Z.json
+data/eval/20260613T_fix10_bge_preserve2_top10/summary_fix10_bge_preserve2_top10_20260613.json
+data/eval/20260613T_fix10_bge_preserve2_top15/summary_fix10_bge_preserve2_top15_20260613.json
+data/eval/20260613T_fix10_qwen_preserve2_top10/summary_fix10_qwen_preserve2_top10_20260613.json
+data/eval/20260613T_fix10_qwen_preserve2_top15/summary_fix10_qwen_preserve2_top15_20260613.json
+```
 
 The enriched index text change was checked locally:
 

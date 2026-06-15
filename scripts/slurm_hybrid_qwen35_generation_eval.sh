@@ -52,6 +52,19 @@ TEMPERATURE="${TEMPERATURE:-0.0}"
 DEVICE="${DEVICE:-cuda}"
 ANSWER_RERANKER_DEVICE="${ANSWER_RERANKER_DEVICE:-cpu}"
 
+DEFAULT_HYBRID_RERANKER_MODEL_PATH="/public/home/wangar2023/models/bge-reranker-v2-m3"
+if [ ! -e "$DEFAULT_HYBRID_RERANKER_MODEL_PATH" ] && [ -e "/home/richard/models/bge-reranker-v2-m3" ]; then
+  DEFAULT_HYBRID_RERANKER_MODEL_PATH="/home/richard/models/bge-reranker-v2-m3"
+fi
+HYBRID_SPARSE_TOP_K="${HYBRID_SPARSE_TOP_K:-50}"
+HYBRID_DENSE_TOP_K="${HYBRID_DENSE_TOP_K:-50}"
+HYBRID_FUSED_TOP_K="${HYBRID_FUSED_TOP_K:-50}"
+HYBRID_RERANK_TOP_K="${HYBRID_RERANK_TOP_K:-10}"
+HYBRID_RERANK_PRESERVE_TOP_K="${HYBRID_RERANK_PRESERVE_TOP_K:-2}"
+HYBRID_RERANKER_MODEL_PATH="${HYBRID_RERANKER_MODEL_PATH:-$DEFAULT_HYBRID_RERANKER_MODEL_PATH}"
+HYBRID_RERANKER_DEVICE="${HYBRID_RERANKER_DEVICE:-cuda}"
+EXPANDED_QUERIES_PATH="${EXPANDED_QUERIES_PATH:-data/eval/20260613T080811Z_rerun_fix8_query_expansion/expanded_queries_fix8.jsonl}"
+
 mkdir -p "$OUTPUT_DIR"
 
 for required_path in \
@@ -62,7 +75,9 @@ for required_path in \
   "$BM25_PATH" \
   "$FAISS_PATH" \
   "$CHUNK_INDEX_PATH" \
-  "$REPORT_PATH"; do
+  "$REPORT_PATH" \
+  "$HYBRID_RERANKER_MODEL_PATH" \
+  "$EXPANDED_QUERIES_PATH"; do
   if [ ! -e "$required_path" ]; then
     echo "Missing required path: $required_path"
     exit 1
@@ -86,6 +101,14 @@ ARGS=(
   --faiss "$FAISS_PATH"
   --chunk-index "$CHUNK_INDEX_PATH"
   --report "$REPORT_PATH"
+  --sparse-top-k "$HYBRID_SPARSE_TOP_K"
+  --dense-top-k "$HYBRID_DENSE_TOP_K"
+  --fused-top-k "$HYBRID_FUSED_TOP_K"
+  --rerank-top-k "$HYBRID_RERANK_TOP_K"
+  --rerank-preserve-top-k "$HYBRID_RERANK_PRESERVE_TOP_K"
+  --reranker-model "$HYBRID_RERANKER_MODEL_PATH"
+  --reranker-device "$HYBRID_RERANKER_DEVICE"
+  --expanded-queries-jsonl "$EXPANDED_QUERIES_PATH"
 )
 
 if [ -n "${ANSWER_RERANKER_MODEL:-}" ]; then
@@ -118,6 +141,14 @@ echo "qwen_model: $QWEN_MODEL_PATH"
 echo "dense_model: $DENSE_MODEL_PATH"
 echo "device: $DEVICE"
 echo "top_k: $TOP_K"
+echo "hybrid_sparse_top_k: $HYBRID_SPARSE_TOP_K"
+echo "hybrid_dense_top_k: $HYBRID_DENSE_TOP_K"
+echo "hybrid_fused_top_k: $HYBRID_FUSED_TOP_K"
+echo "hybrid_rerank_top_k: $HYBRID_RERANK_TOP_K"
+echo "hybrid_rerank_preserve_top_k: $HYBRID_RERANK_PRESERVE_TOP_K"
+echo "hybrid_reranker_model: $HYBRID_RERANKER_MODEL_PATH"
+echo "hybrid_reranker_device: $HYBRID_RERANKER_DEVICE"
+echo "expanded_queries: $EXPANDED_QUERIES_PATH"
 echo "max_new_tokens: $MAX_NEW_TOKENS"
 echo "temperature: $TEMPERATURE"
 
