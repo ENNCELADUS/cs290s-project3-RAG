@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
 from typing import Any
 
@@ -12,6 +13,10 @@ from rag.retrieve import (
     HybridRetrievalResult,
     OptimizedRetrievalHit,
     RetrievalTrace,
+)
+
+ARTIFACT_PATH = Path(
+    "data/eval/generation_hybrid_qwen35_20260615T085457Z/run_generation_hybrid_qwen35_20260615T085457Z.jsonl"
 )
 
 
@@ -258,6 +263,44 @@ def test_hybrid_recovers_ee_professional_elective_minimum_from_flat_table(
     assert result.answer == "2025级电子信息工程专业中，专业课程板块至少需要选修27学分。 [1]"
 
 
+@pytest.mark.parametrize(
+    ("question_id", "expected_terms"),
+    [
+        ("q004", ("145学分", "任选课程占9学分")),
+        ("q009", ("人文社科通识板块要求45学分", "自然科学通识板块要求32学分")),
+        ("q047", ("专业课程板块至少需要选修27学分",)),
+    ],
+)
+def test_hybrid_recovers_ee_flat_table_credit_answers_from_real_artifacts(
+    question_id: str,
+    expected_terms: tuple[str, ...],
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    artifact = _artifact_record(question_id)
+    model_path = tmp_path / "qwen-local"
+    model_path.mkdir()
+    tokenizer = FakeChatTokenizer(artifact["answer"])
+
+    def fake_load_model(self: RagAnswerer) -> tuple[FakeChatTokenizer, FakeModel]:
+        return tokenizer, FakeModel()
+
+    monkeypatch.setattr(RagAnswerer, "_load_model", fake_load_model)
+    contexts = [ContextItem(**context) for context in artifact["retrieval"]["contexts"]]
+    answerer = RagAnswerer(StaticHybridRetriever(contexts), model_path=model_path, device="cpu")  # type: ignore[arg-type]
+
+    result = answerer.answer(artifact["query"], mode="hybrid", top_k=5)
+
+    assert result.status == "answered"
+    assert result.generation_path == "extractive_fallback"
+    assert result.generation_rejection_reason in {
+        "missing_requested_credit_fields",
+        "model_reported_insufficient_evidence",
+    }
+    for expected_term in expected_terms:
+        assert expected_term in result.answer
+
+
 def test_hybrid_rejects_doctoral_credit_answer_missing_course_practice(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -296,6 +339,15 @@ def test_hybrid_rejects_doctoral_credit_answer_missing_course_practice(
     assert "课程实践" in result.answer
     assert "8学分" in result.answer
     assert result.answer.endswith("[1]")
+
+
+def _artifact_record(question_id: str) -> dict[str, Any]:
+    with ARTIFACT_PATH.open() as handle:
+        for line in handle:
+            record = json.loads(line)
+            if record["id"] == question_id:
+                return record
+    raise AssertionError(f"missing artifact record: {question_id}")
 
 
 def _context(*, rank: int, title: str, url: str, text: str) -> ContextItem:

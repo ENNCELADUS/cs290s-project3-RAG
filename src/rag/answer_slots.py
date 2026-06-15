@@ -41,6 +41,7 @@ def required_slot_values(query: str, contexts: list[ContextItem]) -> list[Requir
     requested_slots = _requested_slot_names(query)
     if not requested_slots:
         return []
+    requested_procurement_projects = _procurement_projects_from_query(query)
 
     found: dict[str, RequiredSlotValue] = {}
     for context in contexts:
@@ -67,7 +68,8 @@ def required_slot_values(query: str, contexts: list[ContextItem]) -> list[Requir
     ordered: list[RequiredSlotValue] = []
     for name in requested_slots:
         if name == "procurement_suppliers":
-            ordered.extend(slot for slot in found.values() if slot.name.startswith("procurement_supplier:"))
+            supplier_slots = [slot for slot in found.values() if slot.name.startswith("procurement_supplier:")]
+            ordered.extend(_ordered_procurement_supplier_slots(supplier_slots, requested_procurement_projects))
         elif name in found:
             ordered.append(found[name])
     return ordered
@@ -178,6 +180,75 @@ def _first_match(pattern: str, text: str) -> str | None:
 
 def _query_wants_procurement_suppliers(query: str) -> bool:
     return "供应商" in query and "采购" in query and any(term in query for term in ("分别", "两个", "和", "及"))
+
+
+def _ordered_procurement_supplier_slots(
+    supplier_slots: list[RequiredSlotValue], requested_projects: list[str]
+) -> list[RequiredSlotValue]:
+    if not requested_projects:
+        return supplier_slots
+
+    ordered: list[RequiredSlotValue] = []
+    used_names: set[str] = set()
+    for requested_project in requested_projects:
+        for slot in supplier_slots:
+            if slot.name in used_names:
+                continue
+            project = slot.label.removesuffix("供应商")
+            if not _procurement_project_matches(requested_project, project):
+                continue
+            ordered.append(
+                RequiredSlotValue(
+                    name=f"procurement_supplier:{requested_project}",
+                    label=f"{requested_project}供应商",
+                    value=slot.value,
+                    source_rank=slot.source_rank,
+                )
+            )
+            used_names.add(slot.name)
+            break
+    return ordered
+
+
+def _procurement_projects_from_query(query: str) -> list[str]:
+    quoted_projects = [
+        _clean_requested_procurement_project(match.group("project"))
+        for match in re.finditer(r"[“\"'](?P<project>[^”\"']{2,80}?采购(?:项目)?)[”\"']", query)
+    ]
+    if quoted_projects:
+        return _unique_nonempty(quoted_projects)
+
+    projects = [
+        _clean_requested_procurement_project(match.group("project"))
+        for match in re.finditer(r"(?P<project>[\u4e00-\u9fffA-Za-z0-9（）()·\- ]{2,80}?采购项目)", query)
+    ]
+    return _unique_nonempty(projects)
+
+
+def _clean_requested_procurement_project(project: str) -> str:
+    return project.strip(" ，,。；;的").lstrip("和及与、")
+
+
+def _unique_nonempty(values: list[str]) -> list[str]:
+    seen: set[str] = set()
+    unique: list[str] = []
+    for value in values:
+        if not value or value in seen:
+            continue
+        unique.append(value)
+        seen.add(value)
+    return unique
+
+
+def _procurement_project_matches(requested_project: str, evidence_project: str) -> bool:
+    requested = _normalize_procurement_project(requested_project)
+    evidence = _normalize_procurement_project(evidence_project)
+    return requested in evidence or evidence in requested
+
+
+def _normalize_procurement_project(project: str) -> str:
+    normalized = _normalize_answer_text(project)
+    return normalized.removeprefix("上海科技大学").removeprefix("信息学院")
 
 
 def _procurement_supplier_values(context: ContextItem, text: str) -> list[RequiredSlotValue]:

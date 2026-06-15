@@ -17,6 +17,7 @@ class GraduateCreditSlots:
     course_credits: str | None
     practice_credits: str | None
     full_time: bool
+    credit_source_rank: int | None = None
 
 
 def extract_graduate_credit_answer(query: str, contexts: list[ContextItem]) -> ExtractiveAnswer | None:
@@ -48,10 +49,8 @@ def _expected_graduate_credit_tokens(query: str, contexts: list[ContextItem]) ->
         return _duration_total_tokens(master) + _duration_total_tokens(direct)
 
     tokens: list[str] = []
-    for context in contexts:
-        slots = _graduate_credit_slots(query, context)
-        if slots is None:
-            continue
+    slots = _single_graduate_credit_slots(query, contexts)
+    if slots is not None:
         tokens.extend(_duration_total_tokens(slots))
         if slots.course_credits is not None and ("课程学分" in query or "course credit" in query.lower()):
             tokens.append(f"{slots.course_credits}学分")
@@ -66,23 +65,71 @@ def _duration_total_tokens(slots: GraduateCreditSlots) -> list[str]:
 
 
 def _extract_single_graduate_credit_answer(query: str, contexts: list[ContextItem]) -> ExtractiveAnswer | None:
+    slots = _single_graduate_credit_slots(query, contexts)
+    if slots is None:
+        return None
+    parts = []
+    duration = f"{slots.label}基本学制{slots.basic_years}年、最长学制{slots.max_years}年"
+    if slots.full_time and ("全日制" in query or "full-time" in query.lower()):
+        duration += "，且为全日制"
+    parts.append(duration)
+    parts.append(f"总学分不低于{slots.total_credits}学分")
+    if slots.course_credits is not None and ("课程学分" in query or "course credit" in query.lower()):
+        parts.append(f"课程学分不低于{slots.course_credits}学分")
+    if slots.practice_credits is not None and ("实践" in query or "practice" in query.lower()):
+        parts.append(f"课程实践部分不低于{slots.practice_credits}学分")
+    citation_ranks = [slots.source_rank]
+    if slots.credit_source_rank is not None and slots.credit_source_rank != slots.source_rank:
+        citation_ranks.append(slots.credit_source_rank)
+    citations = "".join(f"[{rank}]" for rank in citation_ranks)
+    return ExtractiveAnswer(f"{'；'.join(parts)}。 {citations}", slots.source_rank)
+
+
+def _single_graduate_credit_slots(query: str, contexts: list[ContextItem]) -> GraduateCreditSlots | None:
     for context in contexts:
         slots = _graduate_credit_slots(query, context)
         if slots is None:
             continue
-        parts = []
-        duration = f"{slots.label}基本学制{slots.basic_years}年、最长学制{slots.max_years}年"
-        if slots.full_time and ("全日制" in query or "full-time" in query.lower()):
-            duration += "，且为全日制"
-        parts.append(duration)
-        parts.append(f"总学分不低于{slots.total_credits}学分")
-        if slots.course_credits is not None and ("课程学分" in query or "course credit" in query.lower()):
-            parts.append(f"课程学分不低于{slots.course_credits}学分")
-        if slots.practice_credits is not None and ("实践" in query or "practice" in query.lower()):
-            parts.append(f"课程实践部分不低于{slots.practice_credits}学分")
-        if len(parts) < 2:
+        return slots
+    return _combined_graduate_credit_slots(query, contexts)
+
+
+def _combined_graduate_credit_slots(query: str, contexts: list[ContextItem]) -> GraduateCreditSlots | None:
+    duration_context: ContextItem | None = None
+    basic_years: str | None = None
+    max_years: str | None = None
+    for context in contexts:
+        text = _normalized_text(context)
+        duration = _duration_fields(text)
+        if duration is None or not _graduate_context_matches_query(query, text):
             continue
-        return ExtractiveAnswer(f"{'；'.join(parts)}。 [{slots.source_rank}]", slots.source_rank)
+        duration_context = context
+        basic_years, max_years = duration
+        break
+    if duration_context is None or basic_years is None or max_years is None:
+        return None
+
+    for context in contexts:
+        text = _normalized_text(context)
+        credits = _credit_fields(text)
+        if credits is None or not _graduate_context_matches_query(query, text):
+            continue
+        total_credits, course_credits, practice_credits = credits
+        if ("课程学分" in query or "course credit" in query.lower()) and course_credits is None:
+            continue
+        if ("实践" in query or "practice" in query.lower()) and practice_credits is None:
+            continue
+        return GraduateCreditSlots(
+            label=_graduate_credit_label(query, f"{_normalized_text(duration_context)} {text}"),
+            source_rank=duration_context.rank,
+            basic_years=basic_years,
+            max_years=max_years,
+            total_credits=total_credits,
+            course_credits=course_credits,
+            practice_credits=practice_credits,
+            full_time="全日制" in _normalized_text(duration_context),
+            credit_source_rank=context.rank,
+        )
     return None
 
 
@@ -138,6 +185,42 @@ def _query_wants_comparison(query: str) -> bool:
 
 def _graduate_credit_slots(query: str, context: ContextItem) -> GraduateCreditSlots | None:
     text = _normalized_text(context)
+    duration = _duration_fields(text)
+    credits = _credit_fields(text)
+    if duration is None or credits is None:
+        return None
+    basic_years, max_years = duration
+    total_credits, course_credits, practice_credits = credits
+    return GraduateCreditSlots(
+        label=_graduate_credit_label(query, text),
+        source_rank=context.rank,
+        basic_years=basic_years,
+        max_years=max_years,
+        total_credits=total_credits,
+        course_credits=course_credits,
+        practice_credits=practice_credits,
+        full_time="全日制" in text,
+        credit_source_rank=context.rank,
+    )
+
+
+def _duration_fields(text: str) -> tuple[str, str] | None:
+    paired_matches = list(
+        re.finditer(
+            r"(?:基本学制|基本修业年限)(?:为)?\s*(?P<basic>\d+(?:\.\d+)?)\s*年"
+            r"[^。；;]{0,40}?"
+            r"(?:最长学制|最长修业年限)(?:为)?\s*(?P<max>\d+(?:\.\d+)?)\s*年",
+            text,
+        )
+    )
+    for match in paired_matches:
+        window = text[max(0, match.start() - 80) : match.end() + 20]
+        if any(term in window for term in ("直博", "博士", "改革专项")):
+            return _clean_number(match.group("basic")), _clean_number(match.group("max"))
+    if paired_matches:
+        match = paired_matches[0]
+        return _clean_number(match.group("basic")), _clean_number(match.group("max"))
+
     basic_years = _first_number(
         (
             r"(?:基本学制|基本修业年限)(?:为)?\s*(\d+(?:\.\d+)?)\s*年",
@@ -146,28 +229,39 @@ def _graduate_credit_slots(query: str, context: ContextItem) -> GraduateCreditSl
         text,
     )
     max_years = _first_number((r"(?:最长学制|最长修业年限)(?:为)?\s*(\d+(?:\.\d+)?)\s*年",), text)
+    if basic_years is None or max_years is None:
+        return None
+    return basic_years, max_years
+
+
+def _credit_fields(text: str) -> tuple[str, str | None, str | None] | None:
     total_credits = _first_number(
         (
-            r"总学分不低于\s*(\d+(?:\.\d+)?)\s*(?:个)?\s*学分",
+            r"总学分不低\s*于\s*(\d+(?:\.\d+)?)\s*(?:个)?\s*学分",
             r"总学分要求\s*(\d+(?:\.\d+)?)",
         ),
         text,
     )
-    if basic_years is None or max_years is None or total_credits is None:
+    if total_credits is None:
         return None
-    return GraduateCreditSlots(
-        label=_graduate_credit_label(query, text),
-        source_rank=context.rank,
-        basic_years=basic_years,
-        max_years=max_years,
-        total_credits=total_credits,
-        course_credits=_first_number((r"课程学分不低于\s*(\d+(?:\.\d+)?)\s*学分",), text),
-        practice_credits=_first_number(
-            (r"(?:课程实践部分|实践教学课程实践部分)[^。；;，,\n]{0,12}?不低于\s*(\d+(?:\.\d+)?)\s*学分",),
+    return (
+        total_credits,
+        _first_number((r"课程学分不低\s*于\s*(\d+(?:\.\d+)?)\s*学分",), text),
+        _first_number(
+            (r"(?:课程实践部分|实践教学课程实践部分)[^。；;，,\n]{0,12}?不低\s*于\s*(\d+(?:\.\d+)?)\s*学分",),
             text,
         ),
-        full_time="全日制" in text,
     )
+
+
+def _graduate_context_matches_query(query: str, text: str) -> bool:
+    if "企业" in query and "企业" not in text:
+        return False
+    if "直博" in query and "直博" not in text:
+        return False
+    if "博士" in query and not any(term in text for term in ("博士", "直博", "硕博连读")):
+        return False
+    return True
 
 
 def _graduate_credit_label(query: str, text: str) -> str:

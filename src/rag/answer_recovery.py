@@ -358,6 +358,8 @@ def _query_requests_degree_total_credit(query: str) -> bool:
     lowered_query = query.lower()
     if "total credit" in lowered_query:
         return True
+    if "板块" in query and "总学分" not in query:
+        return False
     if "毕业" in query or "修满" in query:
         return True
     if "总学分" not in query:
@@ -366,8 +368,6 @@ def _query_requests_degree_total_credit(query: str) -> bool:
         r"总学分[、,，和及]",
         query,
     ):
-        return False
-    if "板块" in query:
         return False
     return True
 

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
 from typing import Any
 
@@ -12,6 +13,10 @@ from rag.retrieve import (
     HybridRetrievalResult,
     OptimizedRetrievalHit,
     RetrievalTrace,
+)
+
+ARTIFACT_PATH = Path(
+    "data/eval/generation_hybrid_qwen35_20260615T085457Z/run_generation_hybrid_qwen35_20260615T085457Z.jsonl"
 )
 
 
@@ -112,6 +117,29 @@ def test_hybrid_source_derived_answer_fills_doctoral_enterprise_practice_credit(
     assert "[1]" in result.answer
 
 
+def test_hybrid_source_derived_answer_fills_doctoral_enterprise_practice_credit_from_real_artifact(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    artifact = _artifact_record("q078")
+    model_path = tmp_path / "qwen-local"
+    model_path.mkdir()
+    _patch_generation_sequence(monkeypatch, [artifact["answer"]])
+    contexts = [ContextItem(**context) for context in artifact["retrieval"]["contexts"]]
+    answerer = RagAnswerer(_StaticHybridRetriever(contexts), model_path=model_path, device="cpu")  # type: ignore[arg-type]
+
+    result = answerer.answer(artifact["query"], mode="hybrid", top_k=5)
+
+    assert result.status == "answered"
+    assert result.generation_path == "extractive_fallback"
+    assert result.generation_rejection_reason is not None
+    assert "5年" in result.answer
+    assert "7年" in result.answer
+    assert "42学分" in result.answer
+    assert "40学分" in result.answer
+    assert "课程实践" in result.answer
+    assert "8学分" in result.answer
+
+
 def test_hybrid_source_derived_answer_compares_master_and_direct_phd_duration_credit_slots(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -191,6 +219,15 @@ def _patch_generation_sequence(monkeypatch: pytest.MonkeyPatch, generated_texts:
         return tokenizer, _FakeModel()
 
     monkeypatch.setattr(RagAnswerer, "_load_model", fake_load_model)
+
+
+def _artifact_record(question_id: str) -> dict[str, Any]:
+    with ARTIFACT_PATH.open() as handle:
+        for line in handle:
+            record = json.loads(line)
+            if record["id"] == question_id:
+                return record
+    raise AssertionError(f"missing artifact record: {question_id}")
 
 
 def _context(*, rank: int, title: str, url: str, text: str) -> ContextItem:

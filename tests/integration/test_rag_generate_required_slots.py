@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 import pytest
@@ -279,6 +280,45 @@ def test_procurement_result_question_assembles_each_requested_supplier_without_o
     assert "公示期满" not in result.answer
 
 
+def test_q030_artifact_procurement_fallback_uses_requested_project_order(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    model_path = tmp_path / "qwen-local"
+    model_path.mkdir()
+    _patch_generation_sequence(
+        monkeypatch,
+        [
+            (
+                "上海科技大学二氯二氢硅气体供气设备采购 项目编号： 询价日期： 2019 年 9 月 19 日 "
+                "推荐成交单位：上海弗川自动化技术有限公司 投标人如对询价结果有异议，请于本公告发布之日起"
+                "三日内以书面形式向上海科技大学信息学院提出异议，公示期满无质疑，不再另行公告询价结果。 [1]"
+            ),
+            (
+                '{"status":"answered","answer":"上海科技大学二氯二氢硅气体供气设备采购 项目编号： '
+                "询价日期： 2019 年 9 月 19 日 推荐成交单位：上海弗川自动化技术有限公司 "
+                "投标人如对询价结果有异议，请于本公告发布之日起三日内以书面形式向上海科技大学信息学院"
+                '提出异议，公示期满无质疑，不再另行公告询价结果。 [1]"}'
+            ),
+        ],
+    )
+    query, contexts = _q030_artifact_query_and_contexts()
+    retriever = _StaticHybridRetriever(contexts)
+    answerer = RagAnswerer(retriever, model_path=model_path, device="cpu")  # type: ignore[arg-type]
+
+    result = answerer.answer(query, mode="hybrid", top_k=5)
+
+    assert result.status == "answered"
+    assert result.generation_path == "extractive_fallback"
+    assert result.answer.index("磷烷气体供气设备采购") < result.answer.index("二氯二氢硅气体供气设备采购")
+    assert result.answer.count("上海弗川自动化技术有限公司") >= 2
+    assert "[1]" in result.answer
+    assert "[3]" in result.answer
+    assert "项目编号" not in result.answer
+    assert "询价日期" not in result.answer
+    assert "投标人如" not in result.answer
+    assert "公告期限" not in result.answer
+
+
 def _patch_generation_sequence(monkeypatch: pytest.MonkeyPatch, generated_texts: list[str]) -> None:
     tokenizer = _SequenceTokenizer(generated_texts.copy())
 
@@ -301,6 +341,33 @@ def _context(*, rank: int, title: str, url: str, text: str) -> ContextItem:
         text=text,
         trace_ref=f"test:{rank}",
     )
+
+
+def _q030_artifact_query_and_contexts() -> tuple[str, list[ContextItem]]:
+    artifact_path = Path(
+        "data/eval/generation_hybrid_qwen35_20260615T085457Z/run_generation_hybrid_qwen35_20260615T085457Z.jsonl"
+    )
+    for line in artifact_path.read_text(encoding="utf-8").splitlines():
+        record = json.loads(line)
+        if record["id"] != "q030":
+            continue
+        contexts = [
+            ContextItem(
+                rank=context["rank"],
+                chunk_id=context["chunk_id"],
+                document_id=context["document_id"],
+                title=context["title"],
+                url=context["url"],
+                category=context["category"],
+                language=context["language"],
+                snippet=context["snippet"],
+                text=context["text"],
+                trace_ref=context["trace_ref"],
+            )
+            for context in record["retrieval"]["contexts"]
+        ]
+        return record["query"], contexts
+    raise AssertionError(f"q030 not found in {artifact_path}")
 
 
 def _hit_from_context(context: ContextItem) -> OptimizedRetrievalHit:
