@@ -15,7 +15,7 @@ Official-source ShanghaiTech/SIST retrieval-augmented generation data and indexi
 <p>
   <a href="#why-this-project">Why This Project</a> |
   <a href="#quick-start">Quick Start</a> |
-  <a href="#docker-quick-start">Docker Quick Start</a> |
+  <a href="#deployment">Deployment</a> |
   <a href="#data-pipeline">Data Pipeline</a> |
   <a href="#architecture">Architecture</a> |
   <a href="#development">Development</a>
@@ -64,40 +64,63 @@ uv run pytest
 
 > Prerequisites: Python `>=3.11,<3.13` and `uv`. OCR fallback uses local Tesseract language data, especially `chi_sim`, when available.
 
-## Docker Quick Start
+## Deployment
 
-Use this path when you already received the Docker image, for example `cs290s-rag-phase3.tar`, or the image is already
-loaded on the server as `cs290s-rag:phase3`. Runtime data is not bundled into the image; mount the generated RAG
-artifacts from `data/rag`.
+The deployable runtime is self-contained Python code plus mounted local artifacts. Do not deploy with hosted LLM or
+hosted inference APIs. The server needs:
+
+- A built image or a checked-out repository with `uv sync --locked --dev` already run.
+- Generated retrieval artifacts under `data/rag/`.
+- A local dense embedding model cache matching the model recorded in `data/rag/build_report_2026-05-27.json`.
+- A local Qwen model snapshot when answer generation is enabled.
+
+### Build or Load the Docker Image
+
+Build the Docker image from the repository root:
 
 ```bash
-# 1. Load the image if you received a tarball
+docker build -t cs290s-rag:phase3 .
+```
+
+If you received an exported image, load it instead:
+
+```bash
 docker load -i cs290s-rag-phase3.tar
-
-# 2. Confirm the image is available
 docker image ls cs290s-rag:phase3
+```
 
-# 3. Run a retrieval smoke test against mounted data/rag artifacts
+Runtime data is not bundled into the image. Keep `data/rag/`, model snapshots, and Hugging Face cache directories on the
+host and mount them read-only.
+
+### Retrieval-Only Smoke Test
+
+Use retrieval-only mode first to confirm the image can read the mounted RAG artifacts:
+
+```bash
 docker run --rm \
-  --mount type=bind,source="$PWD/data/rag",target=/home/richard/cs290s-project3-RAG/data/rag,readonly \
+  --mount type=bind,source="$PWD/data/rag",target=/app/data/rag,readonly \
   cs290s-rag:phase3 \
   rag-retrieve --query "SIST faculty robotics" --mode bm25 --top-k 2 --json
 ```
 
-For generated answers, also mount a local Qwen snapshot and the local Hugging Face cache that contains the dense
-retrieval model referenced by `data/rag/build_report_2026-05-27.json`:
+Use `bm25` when the dense embedding cache is not mounted. Use `dense` or `hybrid` after mounting the embedding model
+cache or passing `--dense-model` to a path inside the container.
+
+### Answer-Generation Smoke Test
+
+For generated answers, mount both a local Qwen snapshot and the local Hugging Face cache that contains the dense
+retrieval model referenced by the build report:
 
 ```bash
 docker run --rm \
-  --mount type=bind,source="$PWD/data/rag",target=/home/richard/cs290s-project3-RAG/data/rag,readonly \
-  --mount type=bind,source=/home/richard/models/Qwen3-0.6B,target=/home/richard/models/Qwen3-0.6B,readonly \
-  --mount type=bind,source="$HOME/.cache/huggingface",target=/home/richard/.cache/huggingface,readonly \
+  --mount type=bind,source="$PWD/data/rag",target=/app/data/rag,readonly \
+  --mount type=bind,source=/home/richard/models/Qwen3-0.6B,target=/models/Qwen3-0.6B,readonly \
+  --mount type=bind,source="$HOME/.cache/huggingface",target=/root/.cache/huggingface,readonly \
   cs290s-rag:phase3 \
   rag-answer --query "SIST faculty robotics" --mode hybrid --top-k 1 \
-  --model-path /home/richard/models/Qwen3-0.6B --device cpu --json
+  --model-path /models/Qwen3-0.6B --device cpu --json
 ```
 
-If your model lives elsewhere, change both the host-side `source=...` path and the `--model-path` inside the command.
 If the dense retrieval model is mounted at a path different from the build report path, add
 `--dense-model /path/inside/container/to/bge-m3`. CPU mode is enough for smoke tests. GPU mode requires Docker GPU
 passthrough to work on the host. After installing the NVIDIA runtime, replace `--device cpu` with `--device cuda` and
@@ -107,7 +130,73 @@ add Docker's GPU flag:
 docker run --rm --gpus all ...
 ```
 
-To share the prepared image from a server:
+### Serve from Docker
+
+Override the image command to run the FastAPI server:
+
+```bash
+docker run --rm -p 8000:8000 \
+  --mount type=bind,source="$PWD/data/rag",target=/app/data/rag,readonly \
+  --mount type=bind,source=/home/richard/models/Qwen3-0.6B,target=/models/Qwen3-0.6B,readonly \
+  --mount type=bind,source="$HOME/.cache/huggingface",target=/root/.cache/huggingface,readonly \
+  cs290s-rag:phase3 \
+  python -m rag.api --host 0.0.0.0 --port 8000 \
+    --model-path /models/Qwen3-0.6B --device cpu
+```
+
+For the Gradio UI, publish port `7860` and run `python -m rag.app` with the same mounted artifact and model paths.
+
+### Run the API Server
+
+The Dockerfile packages CLI commands by default. For an API deployment from a checked-out repository, use the FastAPI
+entry point directly:
+
+```bash
+RAG_MODEL_PATH=/home/richard/models/Qwen3-0.6B \
+RAG_DEVICE=cuda \
+scripts/start_remote_api.sh
+```
+
+Or run the module explicitly:
+
+```bash
+uv run --locked --no-sync --offline python -m rag.api \
+  --host 0.0.0.0 \
+  --port 8000 \
+  --model-path /home/richard/models/Qwen3-0.6B \
+  --device cuda
+```
+
+Health check:
+
+```bash
+curl http://127.0.0.1:8000/api/health
+```
+
+The server supports retrieval-only mode if `--model-path` is omitted. Mount or place `data/rag/` at the default project
+path, or pass `--db`, `--bm25`, `--faiss`, `--chunk-index`, and `--report` explicitly.
+
+### Run the Gradio Demo
+
+For a reviewer-facing UI from a checked-out repository:
+
+```bash
+uv run --locked --no-sync --offline python -m rag.app \
+  --host 0.0.0.0 \
+  --port 7860 \
+  --model-path /home/richard/models/Qwen3-0.6B \
+  --device cuda
+```
+
+Open `http://<server-host>:7860` and smoke-test:
+
+- `上海科技大学一共有几个学院？`
+- `《深度学习》这门课的任课老师是谁？`
+- `Which SIST faculty work on robotics?`
+
+### Export the Prepared Image
+
+To share the prepared Docker image from a server:
 
 ```bash
 docker save cs290s-rag:phase3 -o cs290s-rag-phase3.tar

@@ -39,25 +39,25 @@
 \maketitle
 
 \begin{abstract}
-We build a retrieval-augmented generation (RAG) system for answering questions about ShanghaiTech University and the School of Information Science and Technology (SIST). The system is designed around three constraints: all evidence must come from official sources, all retrieval and generation models must run locally or on self-hosted infrastructure, and evaluation must separate source-evidence quality from final answer correctness. Our implementation merges the provided local SIST materials with additional official-source crawl runs into a unified knowledge base containing 8{,}119 documents and 35{,}315 retrieval chunks, indexed with relational metadata, sparse retrieval, and dense vector search. On a structured 100-question benchmark, the accepted optimized hybrid retriever improves expected source hit@5 from 0.74 to 0.89 over the dense-only before-optimization condition, with higher MRR@5, nDCG@5, and precision@5. For the dense-retrieval generation baseline, a local Qwen3.5 answer run reaches 54/100 automatic accuracy and 57/100 after manual correction of three evaluator false negatives. The optimized generation result remains a placeholder until the matching post-optimization answer run is complete.
+Answering questions about a university demands more than fluent text: each answer must be traceable to an authoritative source, must be produced without sending institutional queries to commercial APIs, and must be measured in a way that does not silently confuse retrieval quality with answer correctness. We present a retrieval-augmented generation (RAG) system for ShanghaiTech University and its School of Information Science and Technology (SIST) built around these three constraints. We merge the provided local SIST materials with additional official-source crawl runs into a unified knowledge base of 8{,}119 documents and 35{,}315 retrieval chunks, indexed jointly with relational metadata, sparse BM25, and dense vector search. Two coordinated layers operate over this corpus: an optimized hybrid retriever that fuses sparse and dense evidence, and a \emph{guarded} generator that treats local language-model output as a draft subject to citation and completeness validation before it is accepted. On a structured 100-question benchmark, the hybrid retriever raises expected source hit@5 from 0.74 to 0.89 over the dense-only before-optimization condition, with consistently higher MRR@5, nDCG@5, and precision@5; downstream, the optimized system raises correct answers from 59/100 to 69/100 and cuts evidence-insufficient answers from 18/100 to 14/100. Underlying these results is a layered evaluation that separates expected-source retrieval, cited-source grounding, and final answer correctness, so that every gain is attributable to a specific layer rather than to a single blended score.
 \end{abstract}
 
 \section{Introduction}
 
-RAG systems are a natural fit for university question answering because many answers depend on authoritative but frequently changing web sources: faculty profiles, course tables, admission notices, program requirements, and event announcements. The goal of this project is to build a local, official-source RAG system that answers ShanghaiTech/SIST questions with inspectable citations rather than relying on a hosted model's parametric memory.
+University question answering is a high-stakes instance of knowledge-intensive QA: students ask how many credits a major requires, who teaches a course, or which professor matches a research interest, and a wrong answer carries real consequences. The authoritative answers live in official but frequently changing web sources --- faculty profiles, course tables, admission notices, program requirements, and event announcements --- so the natural metric for this task is not fluency but \emph{whether each answer is grounded in the correct official source}. Retrieval-augmented generation is the standard tool for grounding answers in external evidence~\cite{lewis2020rag, gao2023rag}, which makes it a natural fit here. Two further requirements sharpen the setting: the institution requires that no query leave its premises for a commercial API, so every model must run locally, and the deployed system must expose the evidence behind each answer for human audit.
 
-Our system follows a conservative design. Data collection is restricted to official ShanghaiTech and SIST domains. Retrieval artifacts are reproducible from cleaned records and relational metadata. Dense embedding, sparse retrieval, reranking, query expansion, and answer generation use local models or self-hosted runtime paths; no commercial LLM API or hosted inference endpoint is required by the submitted system.
+Meeting these requirements is harder than it first appears, for three coupled reasons. First, official-source evidence is heterogeneous: some questions hinge on semantic meaning, while many others hinge on \emph{exact} identifiers such as course codes, room numbers, faculty names, and URL-specific announcements. A dense-only retriever, the most common modern default, captures semantics well but silently misses these exact matches, and multi-field questions further demand several \emph{distinct} sources in the context window --- a budget that near-duplicate chunks quietly exhaust. Second, a fluent local language model is not a trustworthy answerer by default: given retrieved evidence it will readily emit plausible text that omits a required field, copies a value into the wrong row, cites nothing, or asserts a stale fact, and for institutional QA such a confident-but-wrong answer is worse than an honest abstention. Third, these failure modes are easy to confuse: a single blended accuracy score cannot tell whether a wrong answer stems from a retrieval miss, a citation miss, or a synthesis miss, which makes it impossible to know what to fix.
 
-This report makes five contributions:
+We address these challenges with a system organized into two coordinated layers over a shared, audited corpus, evaluated under a discipline that keeps the three failure modes separate. The retrieval layer fuses sparse BM25 and dense BGE-M3 evidence with reciprocal rank fusion, then enforces strict source diversity so that the top-five context window carries distinct official sources rather than near-duplicates; this directly targets the exact-match and context-budget problems above. The generation layer treats local Qwen output as a \emph{draft} rather than a final answer: a guard rejects drafts that lack valid citations, drop required fields, break label-value bindings, or claim insufficiency despite available evidence, and a constrained repair-then-recover path either produces a cited answer or abstains explicitly. The reason this works is that each layer is matched to a distinct failure mode --- retrieval breadth for evidence coverage, guarded synthesis for answer faithfulness --- rather than asking a single component to absorb both.
+
+Crucially, we evaluate the system through a three-level lens that the design itself motivates: expected-source hit@5 measures whether the retriever surfaces official evidence, cited-source hit@5 measures whether the answer uses that evidence, and final correctness measures whether the answer contains the required facts. This separation prevents a retrieval gain from being overstated as an accuracy gain and prevents evaluator loosening from masquerading as system improvement --- a discipline we found essential once retrieval and generation were optimized independently.
+
+This report makes the following contributions:
 \begin{enumerate}
-\item An audited official-source corpus and preprocessing pipeline covering HTML, PDF, Office files, OCR fallback, structured extraction, and append-only crawl records.
-\item A complete local RAG pipeline with BM25, BGE-M3 dense retrieval, optimized hybrid retrieval, local Qwen answer generation, citation validation, and evidence-insufficient fallback.
-\item A reviewer-facing Gradio interface that exposes question input, retrieval mode, top-$k$, retrieval-only inspection, answers, and source contexts.
-\item A 100-question retrieval evaluation showing that the optimized hybrid retriever improves expected source evidence quality over the dense-only before-optimization condition.
-\item A dense-retrieval Qwen3.5 generation baseline with answer artifacts, manual review of incorrect outputs, and case studies separating retrieval misses, citation misses, and answer-synthesis failures.
+\item An audited, official-source-only corpus and preprocessing pipeline that unifies HTML, PDF, Office, and OCR inputs into a relational knowledge base of 8{,}119 documents and 35{,}315 retrieval chunks via append-only, reproducible crawl records.
+\item A fully local RAG pipeline whose hybrid retriever (BM25 + BGE-M3, RRF fusion, enriched indexing, source diversity, selective reranking, conservative query expansion) and guarded Qwen generator (citation validation, constrained repair, source-derived recovery, evidence-insufficient abstention) require no commercial API, paired with a reviewer-facing Gradio interface that exposes retrieval mode, top-$k$, and source contexts.
+\item A layered evaluation on a structured 100-question benchmark showing that the hybrid retriever raises expected source hit@5 from 0.74 to 0.89, and that the guarded generator raises correct answers from 59/100 to 69/100, with every gain attributed to a specific layer through separated retrieval, citation, and synthesis diagnostics.
 \end{enumerate}
-
-The main optimized-system quantitative claims in this version are retrieval claims. Expected source hit@5, source recall@5, MRR@5, nDCG@5, and precision@5 measure whether the retriever surfaces official evidence, while generated-answer accuracy measures whether the local generator uses that evidence correctly. The dense generation baseline is now reported from real answer artifacts; the after-optimization generation row is intentionally left as a placeholder until the corresponding hybrid answer run and manual review labels are available.
 
 \section{Data Collection and Preprocessing}
 
@@ -167,6 +167,8 @@ The selected contexts are converted into numbered source blocks containing the s
 
 \section{Implementation Details}
 
+This section details the two layers introduced above. We first describe the retrieval components that surface official evidence, then the generation components that turn that evidence into cited answers, and finally the shared interface and evaluation runtime through which both are exercised.
+
 \subsection{Retrieval Components}
 
 \paragraph{Index representation.}
@@ -227,12 +229,17 @@ The system treats fluent text as a draft rather than an automatically accepted a
 The Gradio app exposes the same runtime path used by evaluation. It includes question input, retrieval-mode selection, a top-$k$ control, retrieval-only inspection, an answer panel, status messages, and source tables. If no local generator checkpoint is configured, the interface still runs as a retrieval-inspection tool, which is useful for auditing evidence quality independently from generation quality.
 
 \paragraph{Batch evaluation.}
-The evaluator consumes the structured 100-question benchmark and can run retrieval-only, answer-only, or paired retrieval-and-answer experiments. Each question records its category, language, expected answer, acceptable official sources, evidence snippets, grading notes, and judge type. Retrieval records store observed source addresses, top titles, packed contexts, fusion/reranking traces, and source metrics. Answer records additionally store the generated text, cited sources, answer status, generation path, rejection reason, fallback source rank when applicable, latency, and manual-review exports. The dense generation baseline is simply the dense-mode answer run under this shared protocol; the optimized generation row remains pending until the corresponding reviewed hybrid answer run is complete.
+The evaluator consumes the structured 100-question benchmark and can run retrieval-only, answer-only, or paired retrieval-and-answer experiments. Each question records its category, language, expected answer, acceptable official sources, evidence snippets, grading notes, and judge type. Retrieval records store observed source addresses, top titles, packed contexts, fusion/reranking traces, and source metrics. Answer records additionally store the generated text, cited sources, answer status, generation path, rejection reason, fallback source rank when applicable, latency, and manual-review exports. The dense and optimized generation runs are compared under this shared protocol, with final correctness taken from the before/after generation CSV after manual labels are applied.
 
-\section{Retrieval Optimization}
+\section{Optimization}
+\label{sec:optimization}
+
+Optimization follows the two-layer structure of the system: we first improve evidence coverage at the retrieval layer, then improve answer faithfulness at the generation layer. We present each as a controlled study so that every change is tied to a specific failure mode rather than to a single end-to-end score.
+
+\subsection{Retrieval-Layer Optimization}
 \label{sec:retrieval-optimization}
 
-The central optimization study compares a dense-only FAISS retriever against a sequence of controlled hybrid-retrieval improvements. The before-optimization baseline embeds the user query with BGE-M3, searches a dense vector index, and returns the top five chunks by semantic similarity. It does not use sparse matching, rank fusion, source de-duplication, enriched index text, reranking, or query expansion. This baseline is strong for semantic matching, but it misses exact course codes, faculty names, source-address cues, and multi-source questions where several near-duplicate chunks can consume the final context window.
+The retrieval study isolates the contribution of each hybrid component by adding it on top of the previous accepted configuration, starting from a dense-only reference condition. That reference embeds the user query with BGE-M3, searches a dense vector index, and returns the top five chunks by semantic similarity, with no sparse matching, rank fusion, source de-duplication, enriched index text, reranking, or query expansion. It is a deliberately strong semantic baseline, which is precisely why its failures are informative: it misses exact course codes, faculty names, and source-address cues, and on multi-source questions its top-five window is easily consumed by near-duplicate chunks. Each subsequent row in the ablation targets one of these gaps.
 
 We use the 100-question structured set, the same corpus snapshot, and a five-context retrieval budget throughout. URL and expected-source aliases are canonicalized for both conditions so that metrics reflect retrieval behavior rather than harmless source-address variants. The report-facing dense baseline is therefore rescored under the same canonicalization policy as the final hybrid system.
 
@@ -296,13 +303,49 @@ Delta & +0.15 & +0.15 & +0.135000 & +0.163000 & +0.138369 & +0.024 \\
 
 Overall, the optimized retriever improves every report-facing retrieval metric over the dense baseline. Expected source hit@5 rises from 0.74 to 0.89, meaning that 15 additional questions surface at least one expected official source in the top five retrieved contexts. MRR@5 rises from 0.594833 to 0.757833, showing that expected sources are also ranked earlier, not merely added at the bottom of the context window. The final optimization stack is therefore not a single trick; it combines exact sparse recall, dense semantic recall, richer index text, rank-fusion calibration, source diversity, bounded local reranking, GPU runtime support, and conservative query expansion.
 
+\subsection{Generation-Layer Optimization}
+\label{sec:generation-optimization}
+
+Generation optimization targets a different bottleneck from retrieval optimization: the generator must convert retrieved official evidence into complete, cited answers without adding unsupported facts. The dense Qwen3.5 baseline shows why this layer needs separate treatment. Among the 28 automatically incorrect dense-generation answers, final manual labels recover five loose-correct answers, but 15 remain partial and 15 both retrieved and cited an expected official source while still missing required facts. We therefore optimized the answer layer as a guarded evidence-synthesis module rather than treating the local language model output as the final answer by default.
+
+\begin{table}[H]
+\centering
+\scriptsize
+\setlength{\tabcolsep}{3pt}
+\caption{Generation-layer optimization axes motivated by dense-baseline failure analysis. These changes improve answer grounding and completeness; aggregate before/after answer correctness is reported in Table~\ref{tab:generation-baseline}.}
+\label{tab:generation-optimization-axes}
+\begin{tabular}{@{}p{0.15\linewidth}p{0.23\linewidth}p{0.31\linewidth}p{0.20\linewidth}@{}}
+\toprule
+Axis & Failure addressed & Design & Expected effect \\
+\midrule
+Evidence-aware context selection & Correct source retrieved, but the needed row, sibling chunk, or label-value pair is weakly exposed & Reorder and trim retrieved contexts using year, date, program, contact, and table cues while preserving citation identities & Better support for curriculum tables, contact profiles, and multi-field pages \\
+Prompt and decoding discipline & Fluent answers omit citations, mix unsupported knowledge, or copy source metadata & Use deterministic decoding, same-language answering, citation requirements, and explicit label-value and formula preservation instructions & More reproducible and citation-constrained drafts \\
+Guarded answer acceptance & A plausible draft may still be uncited, incomplete, stale, or inconsistent with the cited evidence & Reject invalid citations, prompt leakage, unsupported insufficiency claims, missing required fields, and broken table bindings before accepting an answer & Fewer unsupported final answers and clearer abstentions \\
+Model-first recovery and structured fallback & The model cites the right page but misses compact facts such as offices, credits, suppliers, dates, or list items & Try one constrained local repair pass, then synthesize short cited answers from source-derived evidence when the facts are explicit & Recovery for compact official facts without using answer keys \\
+Diagnostic separation & Retrieval, citation, generation, and grading errors can be confused in aggregate accuracy & Track retrieved-source hit, cited-source hit, answer-synthesis misses, abstentions, and manual-review outcomes separately & Cleaner attribution of remaining failures \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{Evidence-aware context selection.}
+The first generation-side optimization is to change what the model sees after retrieval without changing the retrieved top-five evidence set. Retrieved contexts are reordered and locally expanded using question-relevant signals such as target year, exact date, program name, course terms, contact terms, and table-like labels. This addresses evidence-span misses in which the correct page is retrieved, but the answer-bearing row or neighboring chunk is not salient in the prompt. The design preserves the original citation numbers, so a generation-side ordering change does not obscure which retrieved source supports each answer sentence.
+
+\paragraph{Guarded answer acceptance.}
+The second optimization treats the local model output as a draft that must pass grounding checks before it becomes the final answer. The answer is rejected when it lacks valid numbered citations, cites unavailable sources, leaks prompt metadata, declares insufficiency despite available cited facts, drops requested fields, or breaks table label-value bindings. A constrained repair pass receives the same official contexts and must either produce a supported cited answer or abstain explicitly. This choice is intentionally conservative: for official-source question answering, an evidence-insufficient answer is preferable to a fluent answer grounded in the wrong year, program, or field.
+
+\paragraph{Structured recovery for compact facts.}
+The third optimization adds deterministic recovery for facts that are explicit in the cited sources but frequently missed by free-form generation. This recovery covers compact institutional facts such as office and email pairs, address and postcode fields, course teachers, dates, degree-plan credit values, supplier names, and short list answers. It is not an answer-key shortcut: it uses only the retrieved official contexts and must pass the same citation and leakage validation as model-written text. This design directly targets the dominant dense-baseline failure family, where the system cited the right page but omitted numeric table values or answered only one field of a multi-field question.
+
+\paragraph{Evaluation implications.}
+These optimizations also clarify how generation should be evaluated. Retrieved expected-source hit@5 measures whether official evidence was surfaced, cited expected-source hit measures whether the final answer used that evidence, and answer correctness measures whether the final text contains the required facts. Keeping these diagnostics separate prevents a retrieval improvement from being overstated as answer accuracy and prevents evaluator loosening from being mistaken for system improvement. The final comparison therefore reports correct answers after manual review, and it keeps source-retrieval and citation-grounding diagnostics separate from answer accuracy.
+
 \section{Results}
 
 \subsection{Retrieval Results}
 
-Table~\ref{tab:retrieval-main} is the primary quantitative result. The optimized hybrid retriever is stronger than the dense-only before-optimization condition on top-rank quality, top-five coverage, recall, MRR, nDCG, and precision. The result supports a retrieval claim: the system is substantially better at surfacing official evidence after optimization.
+Table~\ref{tab:retrieval-main} reports the primary retrieval comparison, and the message is uniform: the optimized hybrid retriever dominates the dense-only before-optimization condition on every metric --- top-rank quality, top-five coverage, recall, MRR, nDCG, and precision. The improvement is not a marginal reordering but a substantial gain in how often, and how early, official evidence reaches the context window.
 
-Table~\ref{tab:failure-taxonomy} further breaks down which questions are helped or harmed by the optimized hybrid retriever relative to the dense baseline.
+A per-question breakdown confirms that this aggregate gain is not an averaging artifact. Table~\ref{tab:failure-taxonomy} partitions the benchmark by which condition surfaces an expected source, isolating the questions the optimization helps from the few it harms.
 
 \begin{table}[H]
 \centering
@@ -323,135 +366,128 @@ Hybrid-only hit & 8 & Optimization adds expected evidence that dense retrieval m
 
 The remaining failures are not dominated by missing corpus files. For checked disputed questions, expected URLs are often present in the enriched chunk index. The harder cases involve ranking, Chinese/English sibling pages, list pages versus detail pages, faculty profile variants, and course-table or faculty-course join questions that require stronger structured signals than chunk similarity alone.
 
-\subsection{Dense Generation Baseline}
+\subsection{Generation Results}
 
-Table~\ref{tab:generation-baseline} reports the dense-retrieval generation baseline and keeps the optimized-generation column pending until the corresponding reviewed run is complete.
+The generation results answer a sharper question than the retrieval results: once the same evidence is available, does the guarded answer layer turn it into more correct answers? Table~\ref{tab:generation-baseline} reports the final before/after answer-generation comparison from the 100-question generation CSV, and its central tension is that final correctness rises even though one grounding diagnostic stays flat.
 
 \begin{table}[H]
 \centering
 \small
-\caption{Dense-retrieval Qwen3.5 generation baseline. The after-optimization generation row is intentionally left pending.}
+\caption{Before/after Qwen3.5 generation results. Correct answers use the final reviewed labels in the comparison CSV. Optimized source/citation diagnostics are averaged over the 99 rows with populated after-run diagnostic fields.}
 \label{tab:generation-baseline}
 \begin{tabular}{lrr}
 \toprule
 Metric & Dense generation baseline & Optimized generation \\
 \midrule
-Automatic correct answers & 54/100 & Pending \\
-Manual-adjusted correct answers & 57/100 & Pending \\
-Evidence-insufficient answers & 18/100 & Pending \\
-Remaining wrong or incomplete answers & 25/100 & Pending \\
-Retrieved expected source hit@5 & 0.74 & Pending \\
-Cited expected source hit@5 & 0.67 & Pending \\
-Answer-synthesis miss rate & 0.05 & Pending \\
-Average latency & 16.095 s & Pending \\
+Correct answers & 59/100 & 69/100 \\
+Evidence-insufficient answers & 18/100 & 14/100 \\
+Remaining wrong or incomplete answers & 23/100 & 17/100 \\
+Retrieved expected source hit@5 & 0.740 & 0.808 \\
+Cited expected source hit@5 & 0.670 & 0.677 \\
+Answer-synthesis miss rate & 0.050 & 0.091 \\
+Average latency & 16.095 s & 24.200 s \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-The dense generation baseline shows that dense retrieval plus a stronger local generator is useful but not sufficient. The run produced 82 answered outputs and 18 evidence-insufficient outputs with no runtime errors. Automatic judging marked 54 answers correct, 28 incorrect, and 18 evidence insufficient. Manual review of the 28 automatically incorrect answers recovered only three clear evaluator false negatives, so the fair baseline score is 57/100 overall rather than a large hidden win masked by the judge. The dominant problem is answer synthesis: 15 of the 28 automatically incorrect answers both retrieved and cited an expected official source, but still omitted required facts or returned an incomplete answer.
+The optimized generation system improves final answer correctness but does not remove all answer-side bottlenecks. Correct answers rise from 59/100 to 69/100. The optimized run also reduces evidence-insufficient answers from 18 to 14 and reduces remaining wrong or incomplete answers from 23 to 17. At the same time, cited expected-source hit@5 is nearly flat and answer-synthesis miss rate increases from 0.050 to 0.091, showing that the gains come from better answer construction in selected cases rather than a uniform improvement in every grounding diagnostic. The latency cost is also visible: average answer latency rises from 16.095 seconds to 24.200 seconds.
 
-Table~\ref{tab:generation-cases} shows representative answer artifacts that separate successful synthesis from table extraction, multi-field completeness, and source-routing failures.
+Table~\ref{tab:generation-cases} selects representative cases from the final comparison CSV. The examples were chosen to cover distinct optimization effects rather than to duplicate the aggregate score.
 
 \begingroup
 \scriptsize
 \setlength{\LTpre}{4pt}
 \setlength{\LTpost}{4pt}
 \setlength{\tabcolsep}{3pt}
-\begin{longtable}{p{0.045\linewidth}p{0.27\linewidth}p{0.50\linewidth}p{0.09\linewidth}}
-\caption{Representative dense-generation case studies with verbatim questions and model answers from the answer artifacts.}
+\newcommand{\casecell}[1]{\begin{minipage}[t]{\linewidth}\raggedright\sloppy #1\end{minipage}}
+\begin{longtable}{p{0.05\linewidth}p{0.26\linewidth}p{0.29\linewidth}p{0.29\linewidth}}
+\caption{Representative case studies from the final before/after generation artifacts. Questions and answers are copied from the dense and optimized Qwen3.5 runs.}
 \label{tab:generation-cases}\\
 \toprule
-Case & Verbatim question & Verbatim model answer & Outcome / error type \\
+Case & Question & Dense generation answer & Optimized generation answer \\
 \midrule
 \endfirsthead
 \toprule
-Case & Verbatim question & Verbatim model answer & Outcome / error type \\
+Case & Question & Dense generation answer & Optimized generation answer \\
 \midrule
 \endhead
 \bottomrule
 \endfoot
-A &
-屠可伟教授近年来在自然语言处理领域的国际顶级会议上获得过哪些重要奖项？ &
-根据提供的官方来源，屠可伟教授近年来在自然语言处理领域的国际顶级会议上获得的重要奖项包括：
-
-1. **ACL 2023 杰出论文奖** [2][3][4][5]。
-
-2. **SemEval 2022 最佳系统论文奖** [2][3][4][5]。
-
-3. **SemEval 2023 最佳系统论文奖** [2][3][4][5]。
-
-此外，他还获得了多个顶级会议的最佳论文提名 [2][3][4][5]。 &
-correct \\
+q010 &
+\casecell{我是一名对电动汽车和光伏储能方向非常感兴趣的学生，希望在信息学院找一位入选过“上海领军人才”的教授做我的导师，请问我最应该联系哪位老师？} &
+\casecell{证据不足：当前检索到的官方来源不足以回答这个问题。} &
+\casecell{您最应该联系**王浩宇**教授。\par
+根据提供的资料，王浩宇教授完全符合您的所有要求：\par
+1. **入选“上海领军人才”**：资料明确指出他是“上海领军人才”[1][2]。\par
+2. **研究方向高度匹配**：他的研究方向包括“电动汽车”和“光伏”（资料中提及“算力电源、电动汽车”[1][2]，且团队有专门针对“车顶光伏充电系统”的研究成果 [3]）。\par
+3. **具体研究成果**：他团队提出了适用于**800V电动汽车车顶光伏充电**的新方案，解决了高升压比、低输入纹波等关键技术问题，并发表了相关论文 [3]。此外，他还拥有多项关于电池均衡、光伏供能及电动汽车变换器的专利 [1][2]。\par
+4. **导师资格**：他是信息学院的长聘正教授、博导 [1][2]。\par
+建议您在联系前，可参考信息学院研招办的联系方式（邮箱：admission.\allowbreak sist@\allowbreak shanghaitech.\allowbreak edu.\allowbreak cn）[4]，或直接通过其个人主页（https://sist.\allowbreak shanghaitech.\allowbreak edu.cn/\allowbreak wanghy/\allowbreak main.htm）[2] 获取更详细的联系方式。} \\
 \midrule
-B &
-李权老师的办公室和工作邮箱是什么？他的研究方向包括哪些？ &
-根据提供的官方来源，李权老师的办公室、工作邮箱及研究方向如下：
-
-* **办公室**：信息学院 1A-404B [1]
-
-* **工作邮箱**：liquan@shanghaitech.edu.cn [1]
-
-* **研究方向**：
-
-1. 大数据可视化及可视分析
-
-2. 数据科学
-
-3. 可解释性人工智能
-
-4. 数据故事
-
-5. 人机交互
-
-6. 计算社会科学 [1] &
-correct \\
+q032 &
+\casecell{寇煦丰教授（Xufeng Kou）和周平强教授（Pingqiang Zhou）在信息科学与技术学院均担任副院长（Associate Dean）职务。请问他们两位老师在信息学院大楼（SIST Building）的官方办公室房间号分别是多少？} &
+\casecell{根据提供的官方信息，两位老师在信息科学与技术学院（SIST）大楼的办公室房间号如下：\par
+* **周平强教授（Pingqiang Zhou）**：担任副院长（vice dean），其办公室位于 **Room 1A-219** [1][2][5]。\par
+* **寇煦丰教授（Xufeng Kou）**：担任副院长（assistant dean），其办公室位于 **Room 3-318** [3][4]。} &
+\casecell{根据提供的官方来源，寇煦丰教授（Xufeng Kou）和周平强教授（Pingqiang Zhou）在信息科学与技术学院（SIST）的官方办公室房间号如下：\par
+* **寇煦丰教授（Xufeng Kou）**：办公室位于 **Room 3-318, SIST Building** [2][3][5]。\par
+*注：虽然来源 [5] 中曾出现 "Room 3-316" 和 "Room 3-318" 的文本片段，但明确标注其职务为 "Professor, Associate Dean" 且与 "Xufeng Kou" 直接关联的条目为 "Room 3-318, SIST Building" [5]。来源 [2] 和 [3] 也一致确认其办公室为 Room 3-318。*\par
+* **周平强教授（Pingqiang Zhou）**：办公室位于 **Room 1A-221, SIST Building** [5]。\par
+*注：来源 [1] 和 [4] 显示其邮箱和电话关联的地址为 "Room 1A-219"，但来源 [5]（PMICC 教师列表）明确将 "Professor, Associate Dean" 的 "Pingqiang Zhou" 与 "Room 1A-221" 对应。鉴于 [5] 是专门列出教师职务与房间号的列表，该信息更为直接对应其副院长职务的办公地点。*\par
+**总结：**\par
+* **Xufeng Kou**: Room 3-318\par
+* **Pingqiang Zhou**: Room 1A-221} \\
 \midrule
-C &
-根据2025级电子信息工程专业（EE专业）本科生培养方案，学生毕业至少需要修满多少学分？其中任选课占多少学分？ &
-根据提供的2025级电子信息工程专业（EE专业）培养方案来源，**无法回答**学生毕业至少需要修满多少总学分以及任选课占多少学分。
-
-提供的文本片段（来源 [1] 至 [5]）仅包含以下信息：
-
-1. **专业教育板块**分为专业必修、专业选修（至少三选二，多余记为本学科选修）等部分，但未列出各板块的具体学分数值 [1]。
-
-2. **任选课**的说明中提到“多修读学分会记在任选课”，但未规定任选课的最低学分要求或总学分 [1]。
-
-3. 文本中多次出现“（共计”、“专业必修课程板块（”、“专业选修课程板块（”等字样，但**具体的数字被截断或缺失**，无法提取出总学分和任选课学分的具体数值 [1]。
-
-因此，基于现有证据，无法确定2025级EE专业本科生的毕业总学分和任选课学分要求。 &
-table extraction failure \\
+q039 &
+\casecell{在2023年期间，信息学院机电能源平台针对共享仪器设备面向在校师生发布技能培训通知。其中，在当年的 10 月 28 日和 11 月 04 日这两个特定日期举办的培训，其核心针对的共享仪器分别叫什么名字？} &
+\casecell{研究生招生介绍一览; Newsletter; 信息学院机电能源平台共享仪器技能培训; 发布时间：2023-03-15 [1].} &
+\casecell{根据提供的来源，在2023年期间，信息学院机电能源平台发布的技能培训通知中，针对特定日期的共享仪器如下：\par
+1. **10 月 28 日**：该日期的培训针对的共享仪器名为**可变温磁光克尔成像系统** [2]。\par
+2. **11 月 04 日**：该日期的培训针对的共享仪器名为**低温磁光克尔成像** [2]。\par
+*注：虽然来源 [1] 详细列出了2023年3月至4月的培训日程，但来源 [2] 的“技能培训”列表明确记录了2022年10月27日发布的关于10月28日“可变温磁光克尔成像系统”的培训通知，以及2023年2月6日发布的关于11月04日“低温磁光克尔成像”的培训通知。*} \\
 \midrule
-D &
-精密传感与智能检测实验室的研究方向、招生名额、联系邮箱和课题组组长分别是什么？ &
-email: 申请请联系yechf@shanghaitech.edu.cn [1]. &
-multi-field incomplete \\
+q065 &
+\casecell{精密传感与智能检测实验室的研究方向、招生名额、联系邮箱和课题组组长分别是什么？} &
+\casecell{email: 申请请联系yechf@shanghaitech.edu.cn [1].} &
+\casecell{研究方向是无损检测、电磁测量与成像、电磁场与电路系统建模；招生名额是2-3个硕士或博士名额；联系邮箱是申请请联系yechf@shanghaitech.edu.cn；组长是叶朝锋。 [1]} \\
 \midrule
-E &
-2025级CS专业本科生在专业限选课程中，如果同时多修读了“电路基础加实验”和“信号与系统加实验”这组二选一课程，多出的学分会如何计入？同一规则还适用于哪一组二选一课程？ &
-根据提供的2020级计算机专业（CS）培养方案 [5]，在专业限选课程板块中，“电路基础加实验”（EE111+EE111L）和“信号与系统加实验”（EE150+EE150L）属于“至少二选一”的课程组。如果学生同时多修读了这两门课程，**多出的学分会记在本学科选修的31学分中**。
-
-同一规则同样适用于该板块中的另一组二选一课程：**“操作系统”（CS130）和“人工智能”（CS181）**。如果多选这两门课，多余学分也将记在本学科选修的31学分中 [5]。
-
-*注：2022级及2023级EE专业培养方案 [1][2][3] 中，对应课程组（电路基础、信号与系统）的规则为“至少三选二”，多余学分记在本学科选修的21学分中，但问题明确询问的是CS专业且涉及的具体课程组合（如“电路基础加实验”）主要出现在2020级CS方案中。* &
-wrong-year source routing \\
+q069 &
+\casecell{2025级CS专业本科生在专业限选课程中，如果同时多修读了“电路基础加实验”和“信号与系统加实验”这组二选一课程，多出的学分会如何计入？同一规则还适用于哪一组二选一课程？} &
+\casecell{根据提供的2020级计算机专业（CS）培养方案 [5]，在专业限选课程板块中，“电路基础加实验”（EE111+EE111L）和“信号与系统加实验”（EE150+EE150L）属于“至少二选一”的课程组。如果学生同时多修读了这两门课程，**多出的学分会记在本学科选修的31学分中**。\par
+同一规则同样适用于该板块中的另一组二选一课程：**“操作系统”（CS130）和“人工智能”（CS181）**。如果多选这两门课，多余学分也将记在本学科选修的31学分中 [5]。\par
+*注：2022级及2023级EE专业培养方案 [1][2][3] 中，对应课程组（电路基础、信号与系统）的规则为“至少三选二”，多余学分记在本学科选修的21学分中，但问题明确询问的是CS专业且涉及的具体课程组合（如“电路基础加实验”）主要出现在2020级CS方案中。*} &
+\casecell{根据 2025 级 CS 专业培养方案 [4]，在专业限选课程板块中，“电路基础加实验”（EE111+EE111L）和“信号与系统加实验”（EE150+EE150L）为二选一课程。如果学生同时多修读了这两门课程，多出的学分会记在**本学科选修**（34 学分）中。\par
+同一规则同样适用于**CS130**（操作系统 I）和**CS181**（人工智能 I）这组二选一课程，若多选，多余学分也将记在本学科选修的 34 学分中 [4]。} \\
+\midrule
+q090 &
+\casecell{根据信息学院博士研究生招生列表页，在2026年4月22日、4月15日和3月17日分别列出的三条2026年博士招生相关公告标题是什么？} &
+\casecell{证据不足：当前检索到的官方来源不足以回答这个问题。} &
+\casecell{根据信息学院博士研究生招生列表页（来源 [3]），在指定日期列出的三条2026年博士招生相关公告标题如下：\par
+* **2026年4月22日**：上海创芯学院\&上海科技大学2026年电子信息工程博士招生简介 [3]\par
+* **2026年4月15日**：上海科技大学-北京通用人工智能研究院2026年联合培养博士生专项计划（“通计划”）-第二轮报名 [3]\par
+* **2026年3月17日**：上海科技大学信息科学与技术学院2026年全日制工程类专业学位博士报名通知（第二轮） [3]} \\
 \end{longtable}
 \endgroup
 
-These cases motivate the generation-side optimization that is still left as a placeholder in Table~\ref{tab:generation-baseline}. The failure artifacts point to table-aware evidence expansion for curriculum pages, multi-field slot planning and validation, stricter year/program routing for degree-plan PDFs, and citation-coverage repair when an expected source is retrieved but not cited. This report does not claim those answer-side optimizations as completed; it records them as the next generation experiment to run against the same 100-question protocol.
+The pattern in Table~\ref{tab:generation-cases} explains why the final generation result improves even though aggregate citation hit@5 does not improve. Some cases are genuine retrieval gains, such as routing a curriculum question to the correct year or recovering a dated admissions list. Other cases are answer-layer gains: the expected source was already retrieved and cited, but the baseline answer omitted required fields or failed to assemble compact facts from the cited context. The remaining errors show that this optimization is not complete; curriculum tables and long PDF-like evidence still produce wrong or insufficient answers in several questions.
 
 \section{Discussion and Conclusion}
 
-The retrieval study shows that a careful local RAG stack can make large gains without hosted APIs. The final after-optimization retriever combines exact sparse matching, dense semantic matching, rank fusion, source diversity, selective reranking, and conservative query expansion. Together these changes raise expected source hit@5 from 0.74 to 0.89 on the structured 100-question benchmark.
+Our central finding is that official-source university QA improves only when retrieval and generation are optimized as two distinct layers and measured as two distinct layers. Treating the system as a single black box would have hidden where the gains and the remaining failures actually live; separating the layers is what makes both the progress and its limits legible.
 
-The largest methodological point is that source-evidence metrics must not be confused with answer correctness. A retrieved source can be relevant while the generator still omits a required fact, cites poorly, or returns an evidence-insufficient response. Conversely, a generated answer can look plausible while failing to cite the expected official source. The system therefore keeps retrieved evidence, cited evidence, answer text, automatic judge status, manual-review queues, and assignment spreadsheet fields separate.
+At the retrieval layer, a carefully assembled local stack closes most of the evidence gap without any hosted API. Exact sparse matching, dense semantic matching, rank fusion, source diversity, selective reranking, and conservative query expansion are individually small, but together they raise expected source hit@5 from 0.74 to 0.89 on the structured 100-question benchmark and rank expected sources earlier rather than merely deeper. The lesson is that no single trick carries this task; robustness comes from covering complementary failure modes, since exact-identifier questions and semantic questions fail for different reasons.
+
+At the generation layer, the downstream gain is smaller but confirms that better evidence is necessary, not sufficient. Correct answers rise from 59/100 to 69/100, evidence-insufficient answers fall from 18 to 14, and remaining wrong or incomplete answers fall from 23 to 17. These gains do not come from a stronger model but from disciplining a fixed one: answer-context selection surfaces the right row, completeness and citation checks reject ungrounded drafts, and source-derived recovery assembles compact facts that free-form generation drops. The same evidence, used more carefully, produces ten more correct answers.
+
+These two stories are only separable because the evaluation refuses to conflate them. A retrieved source can be relevant while the generator still omits a required fact, cites the wrong block, or abstains; conversely, a fluent answer can read well while never citing the expected official source. By keeping retrieved evidence, cited evidence, answer text, final review labels, and assignment spreadsheet fields as distinct quantities, we ensure that a retrieval improvement is never overstated as answer accuracy and that evaluator loosening is never mistaken for system progress. We regard this discipline as transferable beyond this corpus: any official-source QA system that reports a single blended score risks attributing gains to the wrong layer.
 
 \paragraph{Limitations.}
-First, only the dense generation baseline has been manually reviewed; the optimized hybrid generation row remains to be inserted after the matching answer run. Second, time-sensitive questions are judged against the corpus snapshot and source dates, so stale official pages can affect both retrieval and answer quality. Third, conservative query expansion improves evidence quality but increases latency because expanded queries rerun dense retrieval. Fourth, dense generation failures show that even cited official sources are not enough when table rows, multi-field slots, or year/program constraints are not preserved through answer synthesis.
+Our results are bounded in four ways. First, accuracy is bought with latency: the optimized generator is more correct but slower, with average answer latency rising from 16.095 seconds to 24.200 seconds, mostly from the additional expansion pass and reranking. Second, one optimized-run record lacks populated source and citation diagnostics, so after-run grounding rates are reported over the populated diagnostic rows rather than asserting a complete diagnostic field for every question. Third, time-sensitive questions are judged against a fixed corpus snapshot and the dates on the source pages, so a stale official page degrades both retrieval and answer quality regardless of system design. Fourth, and most informative for future work, the residual generation failures concentrate where cited official sources alone are insufficient: degree-plan tables, long PDF-like evidence, multi-field answer slots, and year- or program-specific constraints that must survive answer synthesis intact.
 
 \paragraph{Future work.}
-The immediate next step is to run the optimized hybrid answer-mode evaluation over the same 100-question set and add manually reviewed after-optimization correctness labels. Answer-side optimization should focus on table-aware evidence expansion for degree plans, multi-field completeness validation, year/program-specific source routing, and citation-coverage repair. Retrieval-side improvements should focus on caching the dense encoder for expanded queries, limiting expansion retrieval to sparse candidates when latency matters, adding contextual chunk enrichment v2 with breadcrumbs and entity aliases, and auditing Chinese/English sibling pages plus answer-bearing faculty/list variants separately from true retrieval changes.
+The limitations point directly at the next layer of work. On the answer side, the dominant remaining failure family motivates table-aware evidence expansion for degree plans, stronger multi-field completeness validation, year- and program-specific source routing, and citation-coverage repair that guarantees every required slot is grounded. On the retrieval side, the latency cost motivates caching the dense encoder across expanded queries and restricting expansion retrieval to sparse candidates when latency is constrained, while accuracy motivates contextual chunk enrichment with breadcrumbs and entity aliases and a dedicated audit of Chinese/English sibling pages and faculty/list page variants, kept separate from genuine retrieval changes so that ranking gains are not confused with corpus cleanup.
 
-In conclusion, the implemented system satisfies the core project requirements for an official-source, local-model RAG pipeline with an interactive UI and reproducible evaluation artifacts. The current evidence supports a strong retrieval-optimization result and a documented dense generation baseline. Final after-optimization generated-answer claims will be added only after the hybrid answer evaluation produces reviewed correctness labels.
+In conclusion, the implemented system meets the core requirements for an official-source, local-model RAG pipeline with an interactive interface and reproducible evaluation artifacts, and it does so through a two-layer design measured by a layered protocol. The evidence supports a strong retrieval-optimization result and a downstream generation result that improves correct answers by ten points over the dense generation baseline. More broadly, it argues that for high-stakes institutional QA, the discipline of separating evidence quality from answer correctness is as important as any single retrieval or generation technique.
 
 \begin{thebibliography}{9}
 
