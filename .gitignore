@@ -35,7 +35,6 @@ data/*.sqlite-*
 data/eval/run_*.jsonl
 data/eval/retrieval_pilot_*.jsonl
 data/eval/retrieval_pilot_*.md
-data/eval/results_before_after_*.xlsx
 data/eval/gap_notes_*.md
 data/eval/**/job.err
 data/eval/**/job.out

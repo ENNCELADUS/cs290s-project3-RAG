@@ -1,0 +1,29 @@
+id,auto_status,manual_status,manual_score,rationale
+q004,incorrect,incorrect,0,答案明确说无法给出145总学分和9任选课，核心数值缺失。
+q005,incorrect,loose_correct,1,答案列出TIE、TTE、TPEA三项；第三项全称扩展不严谨，但在宽松人工口径下可按TPEA命中CPSS Trans. Power Electron. Appl.。
+q007,incorrect,loose_correct,1,答案给出1098名本科生和1548名研究生，内容与标准答案一致；仅官方主页 source hit 未命中。
+q009,incorrect,incorrect,0,答案未给出45学分和32学分，核心数值缺失。
+q010,incorrect,loose_correct,1,答案明确推荐王浩宇，并说明上海领军人才、电动汽车、光伏相关方向，满足题意。
+q011,incorrect,partial_correct,0.5,课程识别部分接近，但把理论加实验总学分答成2学分；按只答中课程线索但核心学分错误给半分。
+q015,incorrect,loose_correct,1,答案说明至少三选二/至少选两门，多选学分计入本学科选修；虽未写22学分，规则实质正确。
+q016,incorrect,incorrect,0,答案说无法回答推荐学期和课程代码，缺失一(2)学期、EE111、EE111L等核心答案。
+q018,incorrect,incorrect,0,答案识别张芯韵，但未给出办公室和邮箱，核心问项未答。
+q020,incorrect,loose_correct,1,答案给出1098本科生、1548研究生、83个课题组，内容与标准答案一致；额外联合实验室数量不影响。
+q023,incorrect,loose_correct,1,英文全称基本命中联合实验室名称，仅漏掉Healthcare；按小缺词放宽算对。
+q027,incorrect,incorrect,0,答案明确无法回答，并把EE111误判为板级电路设计实践，未给出EE111L/1.0学分。
+q028,incorrect,incorrect,0,答案只给出无关邮箱，未给出高老师办公室1A207。
+q031,incorrect,partial_correct,0.5,答案给出中文联合实验室名称但未给出题目要求的英文官方全称；按英文全称缺失给半分。
+q032,incorrect,loose_correct,1,答案给出寇煦丰3-318、周平强1A-221，与标准答案一致。
+q041,incorrect,loose_correct,1,答案给出2013年和Cher Wang/王雪红，与标准答案一致。
+q043,incorrect,loose_correct,1,答案直接包含“一场关于Money与心的对话”，额外活动细节不影响。
+q044,incorrect,partial_correct,0.5,答案给出部分研究方向但未给出美国马里兰大学；按研究方向半命中给半分。
+q045,incorrect,incorrect,0,答案误答为EE相关方向，未给出CS六个方向。
+q046,incorrect,partial_correct,0.5,答案答对何旭明1A-221，但未给出屠可伟1A-304B；两问中命中一问给半分。
+q047,incorrect,incorrect,0,题目问至少多少选修学分，答案答成至少2门，未给出27学分。
+q051,incorrect,loose_correct,1,答案给出福建南平一中和上海交通大学密西根学院，与标准答案一致。
+q052,incorrect,incorrect,0,答案把学术委员会主任答成曹国华，且未答学位委员会主任寇煦丰。
+q053,incorrect,loose_correct,1,答案给出中国科学院高能物理研究所和信息学院3-301，与标准答案一致。
+q067,incorrect,incorrect,0,答案明确无法回答，未给出145、20、39、59学分。
+q070,incorrect,incorrect,0,答案只有课程表标题，未给出AI方向必修课和CS280任课教师。
+q072,incorrect,incorrect,0,答案未给出CS280/CS282开课学期和任课教师对比。
+q085,incorrect,loose_correct,1,答案给出2026年1月21日至26日、新加坡、第40届AAAI、医学影像重建，与标准答案一致。

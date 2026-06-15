@@ -1,29 +1,29 @@
 id,manual_score,manual_label,note
-q004,0,wrong_insufficient,"Refuses to answer; misses 145 total credits and 9 elective credits."
-q005,0,partial_not_correct,"Gets two journals, but expands the third as IEEE Transactions on Power Electronics instead of CPSS Transactions on Power Electronics and Applications."
-q009,0,wrong_insufficient,"Refuses to answer; misses 45 and 32 credits."
-q011,0,wrong_insufficient,"Does not find the 2025 source and misses Circuit Foundations plus 4+1 credits."
-q015,0,partial_not_correct,"Captures three-choose-two and overflow-to-elective rule, but omits the required 22-credit bucket."
-q018,0,partial_not_correct,"Identifies Zhang Xinyun and email, but misses office room 3-210."
-q023,0,wrong_official_name,"Gives a close but not official English lab name; company/lab English wording is wrong."
-q028,0,wrong_insufficient,"Refuses the office answer despite expected-source citation."
-q030,0,partial_not_correct,"Answers only the phosphine project; misses the dichlorosilane project."
-q031,0,wrong_insufficient,"Refuses the English official full name."
-q032,0,partial_not_correct,"Kou Xufeng room is correct, but Zhou Pingqiang room is wrong."
-q033,0,wrong_insufficient,"Fails to find Lian Lixiang's Fall EE150 record."
-q034,1,evaluator_false_negative,"Correctly answers Power Electronics / 电力电子 as the recorded self-study course."
-q037,0,wrong_insufficient,"Refuses the course code; misses EE111."
-q039,0,wrong_irrelevant,"Returns unrelated training/news text."
-q041,1,evaluator_false_negative,"Correctly gives 2013 and Cher Wang / Wang Xuehong."
-q043,1,evaluator_false_negative,"Correctly paraphrases the topic as the relationship/dialogue between money and the heart."
-q044,0,partial_not_correct,"Mentions some research areas, but misses University of Maryland and several required directions."
-q045,0,wrong_partial,"Lists different concentration buckets and misses information security and bioinformatics."
-q047,0,wrong_insufficient,"Refuses the required 27 elective credits."
-q051,0,partial_with_hallucination,"High school is correct, but Michigan College is missing and Antai is hallucinated."
-q053,0,partial_not_correct,"Institution is correct, but room 3-301 is missing."
-q065,0,partial_not_correct,"Only gives email; misses directions, quota, and PI."
-q067,0,partial_not_correct,"Only gives 39 elective credits; misses total 145, required 20, and total professional 59."
-q069,0,wrong_source_stale_answer,"Uses 2020/31-credit information instead of 2025/34-credit information."
-q070,0,wrong_insufficient,"Refuses the 2025 CS AI direction and 2025-2026 Deep Learning instructor facts."
-q077,0,wrong_partial,"Gets 1 year, but misses dual-advisor confirmation and answers doctoral 15/14 instead of master's 33/32."
-q078,0,partial_not_correct,"Gets 5/7 years and 42/40 credits, but misses course-practice minimum of 8 credits."
+q004,0,wrong_insufficient,Refuses to answer; misses 145 total credits and 9 elective credits.
+q005,1,loose_correct,"Lists TIE, TTE, and TPEA; the third title expansion is imprecise but acceptable under the same permissive alias rule used for after opt."
+q009,0,wrong_insufficient,Refuses to answer; misses 45 and 32 credits.
+q011,0,wrong_insufficient,Refuses to answer and misses Circuit Foundations plus 4+1 credits.
+q015,1,loose_correct,Captures the three-choose-two rule and overflow-to-elective rule; omission of the 22-credit bucket is tolerated under the loose rule.
+q018,0.5,partial_correct,"Identifies Zhang Xinyun and gives zhangxy12@shanghaitech.edu.cn, but misses office room 3-210."
+q023,0.5,partial_correct,"Gives a close English joint-lab name, but the official company wording is not exact."
+q028,0,wrong_insufficient,Refuses the office answer despite expected-source citation.
+q030,0.5,partial_correct,"Answers the phosphine project supplier as Shanghai Fuchuan Automation Technology Co., Ltd., but misses the dichlorosilane project."
+q031,0.5,partial_correct,Identifies the Chinese joint-lab name but does not provide the requested English official full name.
+q032,0.5,partial_correct,"Kou Xufeng room 3-318 is correct, but Zhou Pingqiang room is wrong."
+q033,0.5,partial_correct,"Gets Zhou Yong teaching EE150 in the spring record, but misses Lian Lixiang as the fall instructor."
+q034,1,loose_correct,Correctly answers Power Electronics / 电力电子 as the recorded self-study course.
+q037,0,wrong_insufficient,Refuses the course code; misses EE111.
+q039,0,wrong_irrelevant,Returns unrelated training/news text.
+q041,1,loose_correct,Correctly gives 2013 and Cher Wang / Wang Xuehong.
+q043,1,loose_correct,Correctly paraphrases the topic as the relationship/dialogue between money and the heart.
+q044,0.5,partial_correct,"Mentions some relevant research areas including computing power supply and power electronics, but misses University of Maryland and several required directions."
+q045,0.5,partial_correct,"Partially overlaps with AI, data science, systems, and robotics, but misses information security and bioinformatics."
+q047,0,wrong_insufficient,Refuses the required 27 elective credits.
+q051,0.5,partial_correct,"High school is correct, but Michigan College is missing and Antai is hallucinated."
+q053,0.5,partial_correct,"Institution is correct, but room 3-301 is missing."
+q065,0.5,partial_correct,"Gives the contact email yechf@shanghaitech.edu.cn, but misses directions, quota, and PI."
+q067,0.5,partial_correct,"Gives the 39 elective credits, but misses total 145, required 20, and total professional 59."
+q069,0.5,partial_correct,"Captures the two-choice rule and the analogous OS/AI group, but uses stale 31-credit information instead of 2025/34 credits."
+q070,0,wrong_insufficient,Refuses the 2025 CS AI direction and 2025-2026 Deep Learning instructor facts.
+q077,0.5,partial_correct,"Gets the 1-year course-study rule, but misses dual-advisor confirmation and gives doctoral 15/14 instead of master's 33/32."
+q078,0.5,partial_correct,"Gets 5/7 years and 42/40 credits, but misses the course-practice minimum of 8 credits."

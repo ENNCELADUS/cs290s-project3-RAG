@@ -1,0 +1,1095 @@
+id,category,complexity,query,gt_answer,sys_resp_before_opt,sys_resp_after_opt,is_correct_before_opt,is_correct_after_opt,correctness_delta_after_minus_before,before_auto_judge_status,after_auto_judge_status,before_answer_status,after_answer_status,before_judge_reason,after_judge_reason,before_manual_label,after_manual_label,before_manual_note,after_manual_note,before_retrieved_expected_source_hit@5,after_retrieved_expected_source_hit@5,before_cited_expected_source_hit@5,after_cited_expected_source_hit@5,before_answer_synthesis_miss,after_answer_synthesis_miss,before_latency_s,after_latency_s,expected_source_urls,before_cited_source_urls,after_cited_source_urls
+q001,Factual,Low,上海科技大学信息科学与技术学院的官方地址和邮编是什么？,地址是上海市浦东新区华夏中路393号，邮编：201210。,上海科技大学信息科学与技术学院的官方地址是上海市浦东新区华夏中路393号，邮编是201210 [1][2][3][4][5]。,上海科技大学信息科学与技术学院的官方地址是上海市浦东新区华夏中路393号，邮编是201210 [1][2][3][4][5]。,1,1,0,correct,correct,answered,answered,loose atom judge matched 4/4 atoms,loose atom judge matched 4/4 atoms,,,,,0.0,0.0,0.0,0.0,0.0,0.0,47.779,56.895,https://sist.shanghaitech.edu.cn/,https://sist.shanghaitech.edu.cn/_t335/2023/0315/c7339a1076030/page.htm; https://sist.shanghaitech.edu.cn/2025/1009/c7339a1115699/page.htm; https://sist.shanghaitech.edu.cn/_t335/2022/0214/c2863a345236/page.htm; https://sist.shanghaitech.edu.cn/_t335/2022/0214/c9494a345252/page.htm,https://sist.shanghaitech.edu.cn/_t335/2023/0315/c7339a1076030/page.htm; https://sist.shanghaitech.edu.cn/2025/1009/c7339a1115699/page.htm; https://sist.shanghaitech.edu.cn/_t335/2022/0214/c2863a345236/page.htm; https://sist.shanghaitech.edu.cn/2024/1125/c2858a1103620/page.htm; https://sist.shanghaitech.edu.cn/_t335/tzgg/list3.htm
+q002,Factual,Low,王浩宇教授的办公室具体在哪里？他的工作邮箱是什么？,他的办公室在信息学院3-530，工作邮箱是 wanghy@shanghaitech.edu.cn。,证据不足：当前检索到的官方来源不足以回答这个问题。,证据不足：当前检索到的官方来源不足以回答这个问题。,0,0,0,evidence_insufficient,evidence_insufficient,insufficient_evidence,insufficient_evidence,evidence insufficient answer,evidence insufficient answer,,,,,1.0,1.0,0.0,0.0,1.0,1.0,17.182,24.01,https://sist.shanghaitech.edu.cn/wanghy/,,
+q003,Factual,Low,屠可伟教授的主要研究方向包含哪些领域？,主要研究方向包括自然语言处理（NLP）、机器学习和人工智能。,"根据提供的官方来源，屠可伟教授的主要研究方向包含以下领域：
+
+1.  **自然语言处理** (Natural Language Processing, NLP)
+2.  **机器学习** (Machine Learning)
+3.  **人工智能** (Artificial Intelligence, AI)
+
+此外，其研究目前侧重于结合语言结构的新型 Transformer 架构和大语言模型 [1][2][3][4][5]。","根据提供的官方来源，屠可伟教授的主要研究方向包含以下领域：
+
+1.  **自然语言处理 (Natural Language Processing, NLP)**：这是其核心研究领域。具体包括：
+    *   **句法解析 (Syntactic Parsing)**：涵盖依存句法解析（Dependency Parsing）和成分句法解析（Constituency Parsing）。他研究如何自动解析句子的内在结构（如主谓宾结构、短语结构等），并探索无监督句法解析和无监督篇章解析技术 [1][3][4][5]。
+    *   **文法学习 (Grammar Learning)**：早期博士期间专注于自然语言处理领域的文法学习，并探索将文法建模方法应用于复杂结构 [3]。
+    *   **无监督解析 (Unsupervised Parsing)**：研究仅使用无标注训练文本自动学习文本解析器的方向 [5]。
+    *   **跨语言结构预测 (Cross-lingual Structure Prediction)** [5]。
+
+2.  **机器学习 (Machine Learning)**：作为人工智能领域的重要组成部分，是其研究的基础方向之一 [1][2]。
+
+3.  **人工智能 (Artificial Intelligence)**：总体研究领域，特别是结合语言结构的新型架构 [1][2]。
+
+4.  **计算机视觉 (Computer Vision)**：在博士后期间及加入上科大后的前两年，他曾致力于将语言文法技术扩展到视觉领域，探索文法在图像、视频等数据上的应用 [3]。
+
+5.  **深度学习与大型语言模型 (Deep Learning & Large Language Models)**：近年来，他的研究重点转向探索文法与深度学习的结合，特别是结合语言结构的新型 Transformer 架构以及预训练大语言模型 [1][3]。
+
+6.  **知识工程 (Knowledge Engineering)**：硕士求学期间曾跟随导师研究此方向，属于符号主义人工智能的一个分支 [3]。",1,1,0,correct,correct,answered,answered,loose atom judge matched 5/5 atoms,loose atom judge matched 5/5 atoms,,,,,1.0,1.0,1.0,1.0,0.0,0.0,12.967,33.553,https://sist.shanghaitech.edu.cn/_t492/jzggk/list.psp; https://sist.shanghaitech.edu.cn/tukw/; https://sist.shanghaitech.edu.cn/tukw/list.htm; https://sist.shanghaitech.edu.cn/tukw/main.htm,https://sist.shanghaitech.edu.cn/tukw/list.htm; https://sist.shanghaitech.edu.cn/jzggk/list.htm; https://sist.shanghaitech.edu.cn/tukw/; https://sist.shanghaitech.edu.cn/tukw/main.htm,https://sist.shanghaitech.edu.cn/tukw/list.htm; https://sist.shanghaitech.edu.cn/2023/0420/c2858a1076936/page.htm; https://sist.shanghaitech.edu.cn/2022/0326/c2858a438235/page.htm; https://sist.shanghaitech.edu.cn/2021/0707/c2858a67411/page.htm; https://sist.shanghaitech.edu.cn/tukw/main.htm
+q004,Factual,Low,根据2025级电子信息工程专业（EE专业）本科生培养方案，学生毕业至少需要修满多少学分？其中任选课占多少学分？,毕业至少需要修满145学分，其中任选课占9学分。,"根据提供的2025级电子信息工程专业（EE专业）培养方案来源，**无法回答**学生毕业至少需要修满多少总学分以及任选课占多少学分。
+
+提供的文本片段（来源 [1] 至 [5]）仅包含以下信息：
+1.  **专业教育板块**分为专业必修、专业选修（至少三选二，多余记为本学科选修）等部分，但未列出各板块的具体学分数值 [1]。
+2.  **任选课**的说明中提到“多修读学分会记在任选课”，但未规定任选课的最低学分要求或总学分 [1]。
+3.  文本中多次出现“（共计”、“专业必修课程板块（”、“专业选修课程板块（”等字样，但**具体的数字被截断或缺失**，无法提取出总学分和任选课学分的具体数值 [1]。
+
+因此，基于现有证据，无法确定2025级EE专业本科生的毕业总学分和任选课学分要求。","根据提供的2025级电子信息工程专业（EE专业）本科生培养方案来源，**无法直接回答**学生毕业至少需要修满的总学分以及任选课的具体学分数值。
+
+虽然来源 [1] 提到了“专业教育板块”、“专业必修课程板块”和“专业选修课程板块”，并指出“至少三选二，如果多选，多余学分将记在本学科选修的”，但提供的文本片段中**缺失了具体的学分数字**（例如“共计XX学分”、“专业必修XX学分”等关键数据）。文本中仅包含课程板块的名称和选课规则，未包含毕业所需的总学分门槛和任选课的固定学分要求。
+
+因此，基于现有证据，无法给出具体的学分数值。",0,0,0,incorrect,incorrect,answered,answered,loose atom judge missing required quantity atoms: 2,loose atom judge missing required quantity atoms: 2,wrong_insufficient,incorrect,Refuses to answer; misses 145 total credits and 9 elective credits.,答案明确说无法给出145总学分和9任选课，核心数值缺失。,1.0,1.0,1.0,1.0,0.0,0.0,16.514,20.434,https://faculty.sist.shanghaitech.edu.cn/office/Academics/Undergraduate/Degree%20Programmes/2025%20Bachelor%20Degree%20Programs%20in%20EE.htm,https://faculty.sist.shanghaitech.edu.cn/office/Academics/Undergraduate/Degree%20Programmes/2025%20Bachelor%20Degree%20Programs%20in%20EE.htm; https://faculty.sist.shanghaitech.edu.cn/office/Academics/Undergraduate/Degree%20Programmes/2021%20Bachelor%20Degree%20Programs%20in%20EE.htm,https://faculty.sist.shanghaitech.edu.cn/office/Academics/Undergraduate/Degree%20Programmes/2025%20Bachelor%20Degree%20Programs%20in%20EE.htm
+q005,Factual,Medium,王浩宇教授目前在哪些国际学术期刊担任副主编职务？,他目前担任 IEEE Trans. Ind. Electron.、IEEE Trans. Transp. Electrif. 以及 CPSS Trans. Power Electron. Appl. 的副主编。,"根据提供的来源，王浩宇教授目前担任副主编的国际学术期刊包括：
+
+1.  **IEEE Transactions on Industrial Electronics (IEEE TIE)**：来源明确指出其“现任 IEEE TIE 副主编”[1][2][3][4]。
+2.  **IEEE Transactions on Transportation Electrification (TTE)**：来源指出其“现任...TTE 副主编”[1][2][3][4]。
+3.  **IEEE Transactions on Power Electronics (TPEA)**：来源指出其“现任...TPEA 副主编”[1][2][3][4]。
+
+此外，来源还提到他长期担任 IEEE APEC 领域主席，并多次在 APEC、ECCE、ITEC 等会议组委会任职，但这些属于会议职务而非期刊副主编职务 [1][2][3][4]。","根据提供的来源，王浩宇教授目前担任副主编的国际学术期刊包括：
+
+1.  **IEEE Transactions on Industrial Electronics (IEEE TIE)**：来源明确指出他“现任 IEEE TIE 副主编”[1][2]。
+2.  **IEEE Transactions on Transportation Electrification (TTE)**：来源指出他“现任...TTE 副主编”[1][2]。
+3.  **IEEE Transactions on Power Electronics (TPEA)**：来源指出他“现任...TPEA 副主编”[1][2]。
+
+此外，来源还提到他长期担任 IEEE APEC 领域主席，并在多个会议组委会任职，但上述三项是明确列出的期刊副主编职务。
+
+[1][2]",1,1,0,incorrect,incorrect,answered,answered,loose atom judge matched 2/3 atoms,loose atom judge matched 2/3 atoms,loose_correct,loose_correct,"Lists TIE, TTE, and TPEA; the third title expansion is imprecise but acceptable under the same permissive alias rule used for after opt.",答案列出TIE、TTE、TPEA三项；第三项全称扩展不严谨，但在宽松人工口径下可按TPEA命中CPSS Trans. Power Electron. Appl.。,1.0,1.0,1.0,1.0,0.0,0.0,16.002,20.975,https://sist.shanghaitech.edu.cn/wanghy/,https://sist.shanghaitech.edu.cn/wanghy/list.htm; https://sist.shanghaitech.edu.cn/wanghy/; https://sist.shanghaitech.edu.cn/wanghy/main.htm,https://sist.shanghaitech.edu.cn/wanghy/list.htm; https://sist.shanghaitech.edu.cn/wanghy/main.htm
+q006,Factual,Medium,屠可伟教授近年来在自然语言处理领域的国际顶级会议上获得过哪些重要奖项？,他曾获得过 ACL 2023 杰出论文奖，以及 SemEval 2022 和 2023 的两次最佳系统论文奖。,"根据提供的官方来源，屠可伟教授近年来在自然语言处理领域的国际顶级会议上获得的重要奖项包括：
+
+1.  **ACL 2023 杰出论文奖** [2][3][4][5]。
+2.  **SemEval 2022 最佳系统论文奖** [2][3][4][5]。
+3.  **SemEval 2023 最佳系统论文奖** [2][3][4][5]。
+
+此外，他还获得了多个顶级会议的最佳论文提名 [2][3][4][5]。","根据提供的资料，屠可伟教授近年来在自然语言处理领域的国际顶级会议上获得的重要奖项如下：
+
+1.  **ACL 2023 杰出论文奖**：屠可伟教授曾获得该奖项 [3]。
+2.  **SemEval 2022 最佳系统论文奖**：屠可伟教授曾获得该奖项 [3]。
+3.  **SemEval 2023 最佳系统论文奖**：屠可伟教授曾获得该奖项 [3]。
+
+此外，资料还提到他获得了多个顶级会议的最佳论文提名，但未列出具体年份和会议名称 [3]。",1,1,0,correct,correct,answered,answered,all required facts matched,all required facts matched,,,,,1.0,1.0,1.0,1.0,0.0,0.0,11.543,19.442,https://sist.shanghaitech.edu.cn/_t492/jzggk/list.psp; https://sist.shanghaitech.edu.cn/tukw/; https://sist.shanghaitech.edu.cn/tukw/list.htm; https://sist.shanghaitech.edu.cn/tukw/main.htm,https://sist.shanghaitech.edu.cn/tukw/main.htm; https://sist.shanghaitech.edu.cn/_t492/jzggk/list.psp,https://sist.shanghaitech.edu.cn/tukw/main.htm
+q007,Time-sensitive,Medium,截至2025年9月，上海科技大学信息学院共有多少名在校本科生和研究生？,截至2025年9月，信息学院共有1098名本科生和1548名研究生。,证据不足：当前检索到的官方来源不足以回答这个问题。,"截至2025年9月，上海科技大学信息学院共有**1098名**在校本科生和**1548名**在校研究生。
+
+数据来源：
+*   本科生人数：1098人 [2]
+*   研究生人数：1548人 [2]
+
+注：来源[3]提供的截至2025年6月的全校在籍学生数据（本科生1977人，硕士研究生2842人，博士研究生1361人）为全校范围数据，且时间早于问题要求的2025年9月，故未采用。",0,1,1,evidence_insufficient,incorrect,insufficient_evidence,answered,evidence insufficient answer,loose atom judge matched 1/3 atoms,,loose_correct,,答案给出1098名本科生和1548名研究生，内容与标准答案一致；仅官方主页 source hit 未命中。,0.0,0.0,0.0,0.0,0.0,0.0,8.027,18.606,https://sist.shanghaitech.edu.cn/,,https://sist.shanghaitech.edu.cn/_s43/main.psp; https://sist.shanghaitech.edu.cn/yjszs/
+q008,Time-sensitive,Medium,屠可伟教授团队关于“Generative Pretrained Structured Transformers”的研究成果，是在哪一年的什么会议上发表的？,该成果于2024年发表在第62届计算语言学协会年会（ACL 2024）上。,"屠可伟教授团队关于“Generative Pretrained Structured Transformers”的研究成果是在**2024年**的**ACL 2024**（第62届计算语言学协会年会）会议上发表的。该会议于2024年8月11日至16日在泰国曼谷举行，论文标题为""Generative Pretrained Structured Transformers: Unsupervised Syntactic Language Models at Scale""，作者包括Xiang Hu、Pengyu Ji、Qingyang Zhu、Wei Wu和Kewei Tu [3]。","屠可伟教授团队关于""Generative Pretrained Structured Transformers""（GPST）的研究成果是在**2024年**的**第62届计算语言学协会年会（ACL 2024）**上发表的。该会议于2024年8月11日至16日在泰国曼谷举行 [3]。",1,1,0,correct,correct,answered,answered,loose atom judge matched 2/2 atoms,loose atom judge matched 2/2 atoms,,,,,1.0,1.0,1.0,1.0,0.0,0.0,11.422,16.328,https://faculty.sist.shanghaitech.edu.cn/faculty/tukw/,https://faculty.sist.shanghaitech.edu.cn/faculty/tukw/,https://faculty.sist.shanghaitech.edu.cn/faculty/tukw/
+q009,Comparative,Medium,在2025级EE专业的本科培养方案中，人文社科通识板块与自然科学通识板块的学分要求各是多少？,人文社科通识板块要求修满45学分，而自然科学通识板块要求修满32学分。,"根据提供的2025级EE专业本科培养方案来源[1]，文档中明确列出了“人文社科通识教育”和“自然科学通识教育”板块，并提及了“学分（不含英语）”的要求，但**提供的文本片段中未包含这两个板块具体的学分数值**。
+
+文档仅展示了板块名称（如“人文社科通识教育”、“自然科学通识教育”）及部分课程列表（如“文明经典导读课程群”、“创意与艺术课程群”、“信息科学技术导论”等），以及“四、推荐性课程设置（共计学分”这一标题行，但具体的数字数据在提供的文本中缺失或被截断。
+
+因此，基于现有证据，无法回答2025级EE专业人文社科通识板块与自然科学通识板块的具体学分要求。","根据提供的2025级EE专业本科培养方案来源，文档中明确列出了“人文社科通识教育”和“自然科学通识教育”作为推荐性课程设置的板块，但**未直接提供这两个板块具体的学分数值要求**。文档仅提及了“四、推荐性课程设置（共计学分）”这一标题，随后列出了板块名称，但具体的数字数据在提供的文本片段中缺失或未被完整提取。
+
+因此，基于现有证据，无法回答2025级EE专业人文社科通识板块与自然科学通识板块的具体学分要求。
+
+[1]",0,0,0,incorrect,incorrect,answered,answered,loose atom judge missing required quantity atoms: 2,loose atom judge missing required quantity atoms: 2,wrong_insufficient,incorrect,Refuses to answer; misses 45 and 32 credits.,答案未给出45学分和32学分，核心数值缺失。,1.0,1.0,1.0,1.0,0.0,0.0,14.48,18.587,https://faculty.sist.shanghaitech.edu.cn/office/Academics/Undergraduate/Degree%20Programmes/2025%20Bachelor%20Degree%20Programs%20in%20EE.htm,https://faculty.sist.shanghaitech.edu.cn/office/Academics/Undergraduate/Degree%20Programmes/2025%20Bachelor%20Degree%20Programs%20in%20EE.htm,https://faculty.sist.shanghaitech.edu.cn/office/Academics/Undergraduate/Degree%20Programmes/2025%20Bachelor%20Degree%20Programs%20in%20EE.htm
+q010,Conditional,High,我是一名对电动汽车和光伏储能方向非常感兴趣的学生，希望在信息学院找一位入选过“上海领军人才”的教授做我的导师，请问我最应该联系哪位老师？,你应该联系王浩宇教授。他入选了上海领军人才，且核心研究方向正好包括电动汽车与光伏储能。,证据不足：当前检索到的官方来源不足以回答这个问题。,"您最应该联系**王浩宇**教授。
+
+根据提供的资料，王浩宇教授完全符合您的所有要求：
+1.  **入选“上海领军人才”**：资料明确指出他是“上海领军人才”[1][2]。
+2.  **研究方向高度匹配**：他的研究方向包括“电动汽车”和“光伏”（资料中提及“算力电源、电动汽车”[1][2]，且团队有专门针对“车顶光伏充电系统”的研究成果 [3]）。
+3.  **具体研究成果**：他团队提出了适用于**800V电动汽车车顶光伏充电**的新方案，解决了高升压比、低输入纹波等关键技术问题，并发表了相关论文 [3]。此外，他还拥有多项关于电池均衡、光伏供能及电动汽车变换器的专利 [1][2]。
+4.  **导师资格**：他是信息学院的长聘正教授、博导 [1][2]。
+
+建议您在联系前，可参考信息学院研招办的联系方式（邮箱：admission.sist@shanghaitech.edu.cn）[4]，或直接通过其个人主页（https://sist.shanghaitech.edu.cn/wanghy/main.htm）[2] 获取更详细的联系方式。",0,1,1,evidence_insufficient,incorrect,insufficient_evidence,answered,evidence insufficient answer,loose atom judge matched 1/5 atoms,,loose_correct,,答案明确推荐王浩宇，并说明上海领军人才、电动汽车、光伏相关方向，满足题意。,0.0,1.0,0.0,1.0,0.0,0.0,20.158,28.293,https://sist.shanghaitech.edu.cn/wanghy/,,https://sist.shanghaitech.edu.cn/wanghy/list.htm; https://sist.shanghaitech.edu.cn/wanghy/main.htm; https://sist.shanghaitech.edu.cn/2025/0811/c2858a1114213/page.htm; https://sist.shanghaitech.edu.cn/_upload/article/files/bd/2b/a2b0371e49c0b1d8aa960999ed73/4f2b9530-112e-436a-b720-eea7cdd780c1.pdf
+q011,Multi-hop,High,2025级EE专业本科生在大一下学期（即一(2)学期）推荐修读的专业必修课中，有一门是由UC Berkeley合作开设的，这门课叫什么名字？理论和实验课加起来一共占几学分？,这门课是《电路基础》（含电路基础实验）。理论课占4学分，实验课占1学分，总计5学分。,"根据提供的来源，**无法回答**2025级EE专业本科生在大一下学期（一(2)学期）推荐修读的、由UC Berkeley合作开设的专业必修课的具体名称及学分。
+
+原因如下：
+1.  **年级不匹配**：提供的来源仅包含2021级至2024级的本科生培养方案，没有2025级的具体课程安排。
+2.  **课程信息缺失**：在提供的文本中，虽然提到了EE专业（如[1], [5]）和CS专业（如[2], [3], [4]）的课程代码（如EE111, EE150），但**没有任何一段文本明确说明**哪门课程是由""UC Berkeley合作开设”的，也没有提供这些课程在“大一下学期”的具体推荐修读时间或详细的理论/实验学分构成。
+3.  **内容碎片化**：来源文本多为培养方案的片段，缺乏完整的课程列表、学期安排及合作院校的具体标注。
+
+因此，基于现有证据，无法确定该课程名称及学分。","根据提供的来源，2025级EE专业本科生在大一下学期（一(2)学期）推荐修读的专业必修课中，由UC Berkeley合作开设的课程是**EE111**（通常对应中文名称为**电路基础**或**电路原理**，在部分文档中直接以代码形式出现，如[3][4][5]中提到的“电路基础”）。
+
+关于该课程的学分：
+在来源[3]、[4]和[5]中，该课程被标记为 **EE111+EE111L**。
+- **EE111** 为理论课。
+- **EE111L** 为实验课。
+- 两者加起来一共占 **2学分**（通常理论课1学分，实验课1学分，合计2学分）。
+
+*注：提供的来源中未明确写出“一(2)学期”这一具体学期的推荐修读时间，也未直接给出中文课程名称与EE111的对应关系（仅通过上下文推断“电路基础”），且未明确标注“UC Berkeley合作”字样，但EE111是上海交大信息学院EE专业标志性的与Berkeley合作的课程。若严格依据“来源中明确包含UC Berkeley合作”这一条件，提供的文本片段中仅在第2个来源的碎片文本中出现了""Berkeley""一词，但未将其与EE111或具体课程名称直接绑定。然而，结合EE111+EE111L的固定搭配及上海交大EE专业背景，EE111即为所求课程。*
+
+**修正与严格依据来源的回答：**
+提供的来源文本中，**没有明确证据**直接将“由UC Berkeley合作开设”这一属性绑定到具体的课程名称上，尽管文本中出现了""Berkeley""一词（来源[2]），但未说明是哪门课。
+然而，来源[3]、[4]、[5]明确列出了专业必修课程板块中的 **EE111+EE111L**，并标注为“至少二选一”（在部分文档中）或作为必修模块的一部分。在EE专业培养方案中，EE111通常指代与Berkeley合作的电路基础课程。
+如果必须仅依据提供的文本片段：
+1.  **课程名称**：来源中未直接给出EE111的中文全称（来源[1]提到EE111但未给中文名，来源[3][4][5]提到“电路基础”但未明确绑定EE111代码，尽管逻辑上高度相关）。来源[2]提到Berkeley但未绑定课程。
+2.  **学分**：来源[3][4][5]显示为 **EE111+EE111L**。通常理论课（EE111）为1学分，实验课（EE111L）为1学分，合计 **2学分**。
+
+鉴于题目要求“使用提供的来源”，且来源中缺乏将""UC Berkeley合作”与“课程名”直接连接的明确语句（除了隐含的EE111常识），最严谨的回答是指出来源中关于EE111+EE111L的学分结构，并说明课程代码。
+
+**最终结论（基于来源推断）：**
+这门课是 **EE111**（通常称为**电路基础**，来源[3][4][5]提及“电路基础”且EE111为对应代码）。
+理论和实验课加起来一共占 **2学分**（来源[3][4][5]显示为 **EE111+EE111L**，即理论1学分+实验1学分）。
+
+*注意：提供的来源文本中未显式写出“EE111是由UC Berkeley合作开设”这句话，也未显式写出“电路基础”的中文名称对应EE111，这是基于上海交大EE专业培养方案的通用知识。若严格限制仅看文本，证据链在“合作”与“课程名”的连接处有缺失，但“EE111+EE111L""的学分结构是明确的。*
+
+**回答：**
+这门课叫 **EE111**（对应中文课程通常为**电路基础**，来源[3][4][5]提及“电路基础”且EE111为相关代码）。理论和实验课（EE111+EE111L）加起来一共占 **2学分**（来源[3][4][5]）。",0,0,0,incorrect,incorrect,answered,answered,loose atom judge missing required quantity atoms: 3,loose atom judge missing required quantity atoms: 2,wrong_insufficient,partial_correct,Refuses to answer and misses Circuit Foundations plus 4+1 credits.,课程识别部分接近，但把理论加实验总学分答成2学分；按只答中课程线索但核心学分错误给半分。,0.0,0.0,0.0,0.0,0.0,0.0,17.897,65.742,https://faculty.sist.shanghaitech.edu.cn/office/Academics/Undergraduate/Degree%20Programmes/2025%20Bachelor%20Degree%20Programs%20in%20EE.htm,https://faculty.sist.shanghaitech.edu.cn/office/Academics/Undergraduate/Degree%20Programmes/2024%20Bachelor%20Degree%20Programs%20in%20EE.htm; https://faculty.sist.shanghaitech.edu.cn/office/Academics/Undergraduate/Degree%20Programmes/2021%20Bachelor%20Degree%20Programs%20in%20EE.htm; https://faculty.sist.shanghaitech.edu.cn/office/Academics/Undergraduate/Degree%20Programmes/2022%20Bachelor%20Degree%20Programs%20in%20CS.htm; https://faculty.sist.shanghaitech.edu.cn/office/Academics/Undergraduate/Degree%20Programmes/2023%20Bachelor%20Degree%20Programs%20in%20CS.htm,https://faculty.sist.shanghaitech.edu.cn/office/Academics/Undergraduate/Degree%20Programmes/2023%20Bachelor%20Degree%20Programs%20in%20CS.htm; https://faculty.sist.shanghaitech.edu.cn/office/Academics/Undergraduate/Degree%20Programmes/2022%20Bachelor%20Degree%20Programs%20in%20CS.htm; https://faculty.sist.shanghaitech.edu.cn/office/Academics/Undergraduate/Degree%20Programmes/2021%20Bachelor%20Degree%20Programs%20in%20CS.htm; https://faculty.sist.shanghaitech.edu.cn/office/Academics/Undergraduate/Degree%20Programmes/2020%20Bachelor%20Degree%20Programs%20in%20CS.html; https://faculty.sist.shanghaitech.edu.cn/office/Academics/Courses/SIST_2023-2024_Courses.htm
+q012,Comparative,Medium,信息学院的三位副院长王浩宇教授、屠可伟教授和何旭明教授，他们的博士毕业院校以及所获博士学位的国家（或地区）分别是什么？,王浩宇博士毕业于美国马里兰大学（美国）；屠可伟博士毕业于美国爱荷华州立大学（美国）；何旭明博士毕业于加拿大多伦多大学（加拿大）,证据不足：当前检索到的官方来源不足以回答这个问题。,证据不足：当前检索到的官方来源不足以回答这个问题。,0,0,0,evidence_insufficient,evidence_insufficient,insufficient_evidence,insufficient_evidence,evidence insufficient answer,evidence insufficient answer,,,,,1.0,0.0,0.0,0.0,0.0,0.0,16.362,29.794,https://sist.shanghaitech.edu.cn/wanghy/; https://sist.shanghaitech.edu.cn/_t492/jzggk/list.psp; https://sist.shanghaitech.edu.cn/hexm_en/main.htm,,
+q013,Comparative,Medium,如果我想修读信息学院副院长们开设的研究生或高阶课程，屠可伟老师在春季学期（Spring）主要执教的自然语言处理（NLP）相关的核心课程代码是什么？而王浩宇老师在秋季学期（Fall）推荐开设的模拟电路相关课程代码又是什么？,屠可伟老师在春季学期开设的自然语言处理课程代码为CS274A；王浩宇老师在秋季学期开设的模拟电路相关课程代码为EE115A（或EE115）。,证据不足：当前检索到的官方来源不足以回答这个问题。,证据不足：当前检索到的官方来源不足以回答这个问题。,0,0,0,evidence_insufficient,evidence_insufficient,insufficient_evidence,insufficient_evidence,evidence insufficient answer,evidence insufficient answer,,,,,0.0,0.0,0.0,0.0,0.0,0.0,21.844,29.666,https://sist.shanghaitech.edu.cn/wanghy/; https://faculty.sist.shanghaitech.edu.cn/faculty/tukw/; https://faculty.sist.shanghaitech.edu.cn/office/Academics/Courses/SIST_2022-2023_Courses.htm,,
+q014,Conditional,High,我是一名信息学院的本科生，如果我修读并通过了一门同时出现在“专业方向必修”和“专业任选”模块中的课程（例如《计算机视觉I》），这门课程的学分在教务系统计算毕业总学分时会被计算几次？它是否能同时满足这两个模块的门数和学分要求？,在教务系统结算“计划完成情况”时，该课程会同时计入这两个模块，即同时满足两个模块的“课程门数要求”与“学分要求”；但是在结算上一层级（如“本学科选修”）的总学分时，该课程的学分仅会被计算1次，不能重复累加。,"根据上海科技大学（SIST）2021级至2023级本科生培养方案及相关说明 [1][2][3][4][5]，针对您提出的问题，解答如下：
+
+1.  **毕业总学分计算次数**：
+    该课程在教务系统计算毕业总学分时**仅会被计算 1 次**。
+    虽然教务系统在检查“专业方向必修”和“专业任选”两个模块时，会分别认定该课程满足了对应模块的学分要求，但在计算上一层级（如“本学科选修”或“专业选修”）的总学分时，系统会自动进行**课程去重**处理，避免同一门课程的学分被重复累加 [1][2][3][4][5]。
+
+2.  **是否同时满足两个模块的门数和学分要求**：
+    **是**，该课程可以同时满足这两个模块的要求。
+    教务系统在审核“计划完成情况”时，会**同时检查**每个层级、每一个模块中的“课程门数要求”与“学分要求”。只要您修读并通过该课程，系统会判定该课程既属于“专业方向必修”模块，也属于“专业任选”模块，从而同时完成这两个模块的计数和学分达标检查 [1][2][3][4][5]。
+
+**总结**：修读并通过《计算机视觉 I》后，它在“专业方向必修”和“专业任选”两个模块中均被认可（满足门数和学分要求），但在计算全校或专业总学分时，其学分只被计入一次，不会重复计算。","根据上海科技大学信息学院（SIST）2022级至2025级本科生培养方案及相关的Q&A文件，关于同时出现在“专业方向必修”和“专业任选”模块中的课程（如《计算机视觉I》）的学分计算规则如下：
+
+1.  **模块内学分与门数要求**：该课程在修读并通过后，会**同时计入**“专业方向必修”和“专业任选”两个模块的学分和门数要求。这意味着它可以同时帮助满足这两个模块各自的考核指标 [1][2][3][4][5]。
+2.  **总学分计算（去重规则）**：在计算获得总学分时（例如在上一层级“本学科选修”模块汇总时），教务系统会对课程进行**自动去重**。因此，该课程的学分在毕业总学分中**仅会被计算1次**，不会重复累加 [1][2][3][4][5]。
+3.  **完成策略**：学生需要在每个层级（模块）足量修读并通过要求的课程门数与学分。虽然一门课可以覆盖两个子模块的要求，但由于总学分去重，学生仍需修读其他不同的课程来补足总学分缺口 [2]。
+
+**结论**：
+*   **计算次数**：在毕业总学分中计算 **1次**。
+*   **模块满足情况**：能**同时满足**“专业方向必修”和“专业任选”这两个模块的门数和学分要求。",1,1,0,correct,correct,answered,answered,matched special fact,matched special fact,,,,,1.0,1.0,1.0,1.0,0.0,0.0,24.249,31.221,https://faculty.sist.shanghaitech.edu.cn/office/Academics/Undergraduate/Others/Degree_Program_Concentration_QA.pdf,https://faculty.sist.shanghaitech.edu.cn/office/Academics/Undergraduate/Degree%20Programmes/2022%20Bachelor%20Degree%20Programs%20in%20CS.htm; https://faculty.sist.shanghaitech.edu.cn/office/Academics/Undergraduate/Degree%20Programmes/2020%20Bachelor%20Degree%20Programs%20in%20CS.html; https://faculty.sist.shanghaitech.edu.cn/office/Academics/Undergraduate/Degree%20Programmes/2023%20Bachelor%20Degree%20Programs%20in%20CS.htm; https://faculty.sist.shanghaitech.edu.cn/office/Academics/Undergraduate/Degree%20Programmes/2021%20Bachelor%20Degree%20Programs%20in%20CS.htm; https://faculty.sist.shanghaitech.edu.cn/office/Academics/Undergraduate/Others/Degree_Program_Concentration_QA.pdf,https://faculty.sist.shanghaitech.edu.cn/office/Academics/Undergraduate/Degree%20Programmes/2022%20Bachelor%20Degree%20Programs%20in%20CS.htm; https://faculty.sist.shanghaitech.edu.cn/office/Academics/Undergraduate/Others/Degree_Program_Concentration_QA.pdf; https://faculty.sist.shanghaitech.edu.cn/office/Academics/Undergraduate/Degree%20Programmes/2024%20Bachelor%20Degree%20Programs%20in%20CS.htm; https://faculty.sist.shanghaitech.edu.cn/office/Academics/Undergraduate/Degree%20Programmes/2025%20Bachelor%20Degree%20Programs%20in%20CS.htm; https://faculty.sist.shanghaitech.edu.cn/office/Academics/Undergraduate/Degree%20Programmes/2023%20Bachelor%20Degree%20Programs%20in%20CS.htm
+q015,Conditional,Medium,2025级电子信息工程专业（EE专业）的本科生在修读专业选修课程板块时，如果面对《通信原理》、《半导体器件基础》和《控制原理》这三门专业限选课，具体的修读与学分分流规则是什么？,具体的修读规则是至少“三选二”；如果学生将三门课程全部修读并拿到学分，多出来的其中一门课的学分将会自动记入本学科选修的22学分当中。,"根据提供的2025级电子信息工程专业（EE专业）培养方案来源，关于《通信原理》、《半导体器件基础》和《控制原理》这三门专业限选课在专业选修课程板块的修读规则如下：
+
+在专业选修课程板块中，学生需遵循“至少三选二”的规则，即从指定的课程列表中至少选择两门课程进行修读 [1]。如果学生选择修读超过两门课程，多余的学分将记入“本学科选修”（即任选课）板块，而不是计入专业选修板块的必修要求中 [1]。
+
+虽然提供的文本片段中明确列出了“通信原理（大三上开）”作为推荐课程之一，并指出学生可根据个人兴趣、能力及先后修读关系自主选择修课学期 [1]，但具体的课程列表（包含《半导体器件基础》和《控制原理》是否在同一组“三选二”列表中）以及每门课的具体学分要求，建议参考教务系统中的完整培养方案或本硕博课程体系详情 [1]。
+
+**总结规则：**
+*   **选择数量**：至少选择2门（三选二）[1]。
+*   **超额处理**：若多选，多余学分记入任选课（本学科选修）[1]。
+*   **选课建议**：学生可根据兴趣、能力及先修关系自主选择修读学期 [1]。","根据提供的2025级电子信息工程专业（EE专业）培养方案，关于《通信原理》、《半导体器件基础》和《控制原理》这三门专业限选课（属于专业选修课程板块）的修读与学分分流规则如下：
+
+1.  **选课数量要求**：学生必须从该板块的课程中**至少选择两门**进行修读 [3]。
+2.  **学分处理规则**：如果学生选择修读超过两门课程（即多选），**多余的学分将记在“本学科选修”中**，而不是计入该专业选修板块的最低要求内 [3]。
+3.  **课程属性**：这三门课程（通信原理、半导体器件基础、控制原理）均被列为该专业选修课程板块中的具体可选课程，且《通信原理》注明在大三上学期开设 [3]。
+4.  **选课灵活性**：课程设置仅作为推荐，学生可以根据个人的兴趣、能力以及先后修读的关系自主选择修课学期 [3]。
+
+*注：提供的资料中未明确列出这三门课程各自的具体学分数值，仅明确了“至少三选二”的板块规则及多余学分的归属。*
+
+**引用来源：**
+[3] 2025级本科生培养方案EE专业",1,1,0,incorrect,incorrect,answered,answered,loose atom judge missing required quantity atoms: 1,loose atom judge missing required quantity atoms: 1,loose_correct,loose_correct,Captures the three-choose-two rule and overflow-to-elective rule; omission of the 22-credit bucket is tolerated under the loose rule.,答案说明至少三选二/至少选两门，多选学分计入本学科选修；虽未写22学分，规则实质正确。,1.0,1.0,1.0,1.0,0.0,0.0,20.602,27.413,https://faculty.sist.shanghaitech.edu.cn/office/Academics/Undergraduate/Degree%20Programmes/2025%20Bachelor%20Degree%20Programs%20in%20EE.htm,https://faculty.sist.shanghaitech.edu.cn/office/Academics/Undergraduate/Degree%20Programmes/2025%20Bachelor%20Degree%20Programs%20in%20EE.htm,https://faculty.sist.shanghaitech.edu.cn/office/Academics/Undergraduate/Degree%20Programmes/2025%20Bachelor%20Degree%20Programs%20in%20EE.htm
+q016,Multi-hop,High,针对2025级电子信息工程专业（EE专业）本科生，修读由美国加州大学伯克利分校（UC Berkeley）合作开设的专业必修课程，安排在哪个学年哪个学期推荐修读？这门课程的理论课和实验课课程代码分别是什么？,标有“*”号的UC Berkeley合作必修课程为《电路基础》（含电路基础实验），其推荐修读时间为大一学年的第二学期（一（2）学期）。其理论课课程代码为EE111，实验课课程代码为EE111L。,证据不足：当前检索到的官方来源不足以回答这个问题。,"根据提供的2025级电子信息工程专业（EE专业）培养方案来源 [3]，针对您提出的问题，回答如下：
+
+1.  **推荐修读学年与学期**：
+    来源 [3] 中关于UC Berkeley合作课程（Berkeley）的说明仅指出：“注：本课程设置仅作为推荐，学生可以根据个人的兴趣、能力以及先后修读的关系自主选择修课学期。”
+    **结论**：提供的来源中**未包含**该课程具体的推荐修读学年和学期信息。
+
+2.  **课程代码**：
+    来源 [3] 中仅出现了""Berkeley""字样，**未列出**该课程具体的理论课和实验课课程代码。
+    （注：其他来源 [2]、[4]、[5] 中提到的 EE111+EE111L 和 EE150+EE150L 为信号与系统相关课程，并非明确标注为UC Berkeley合作课程）。
+
+**综上所述，基于提供的官方来源，无法回答该UC Berkeley合作课程的具体推荐修读学期及课程代码。**",0,0,0,evidence_insufficient,incorrect,insufficient_evidence,answered,evidence insufficient answer,loose atom judge matched 4/10 atoms,,incorrect,,答案说无法回答推荐学期和课程代码，缺失一(2)学期、EE111、EE111L等核心答案。,0.0,1.0,0.0,1.0,0.0,0.0,22.478,25.448,https://faculty.sist.shanghaitech.edu.cn/office/Academics/Undergraduate/Degree%20Programmes/2025%20Bachelor%20Degree%20Programs%20in%20EE.htm,,https://faculty.sist.shanghaitech.edu.cn/office/Academics/Undergraduate/Degree%20Programmes/2025%20Bachelor%20Degree%20Programs%20in%20EE.htm; https://faculty.sist.shanghaitech.edu.cn/office/Academics/Undergraduate/Degree%20Programmes/2025%20Bachelor%20Degree%20Programs%20in%20CS.htm; https://oaa.shanghaitech.edu.cn/2025/0902/c4234a1114668/page.htm; https://faculty.sist.shanghaitech.edu.cn/office/Academics/Undergraduate/Degree%20Programmes/2023%20Bachelor%20Degree%20Programs%20in%20CS.htm
+q017,Multi-hop,High,信息学院副院长王浩宇教授在2026年4月作为第二发明人申请的一项中国发明专利名称是什么？该专利的第一发明人是谁？他/她在王教授课题组中的在校身份是什么？,该专利的名称是《一种电流倍增型直流变换器》（申请号：202610489555X）。第一发明人是王子尧，他目前是王浩宇教授课题组在读的硕士研究生（其教育背景为上科大本科毕业）。,证据不足：当前检索到的官方来源不足以回答这个问题。,证据不足：当前检索到的官方来源不足以回答这个问题。,0,0,0,evidence_insufficient,evidence_insufficient,insufficient_evidence,insufficient_evidence,evidence insufficient answer,evidence insufficient answer,,,,,1.0,1.0,0.0,0.0,1.0,1.0,17.17,32.265,https://sist.shanghaitech.edu.cn/wanghy/; https://sist.shanghaitech.edu.cn/wanghy/main.htm,,
+q018,Multi-hop,High,信息学院中有一位毕业于香港中文大学、核心研究方向包含“AI驱动的芯片设计自动化(AI4EDA)”的女性常任教授/研究员，请问她的办公室在信息学院几号楼的几楼几号房间？工作邮箱是什么？,该老师为张芯韵（助理教授、研究员、博导），她的办公室在信息学院3-210室（即3号楼2层530或210等，此处精准为3号楼210）；工作邮箱是 zhangxy12@shanghaitech.edu.cn。,"根据提供的来源，信息学院中符合“毕业于香港中文大学”、“核心研究方向包含'AI驱动的芯片设计自动化 (AI4EDA)'""且为“女性常任教授/研究员”（助理教授、研究员、博导）的学者是**张芯韵博士**（Zhang Xinyun）。
+
+然而，提供的来源中**未包含**张芯韵博士的办公室具体房间号（仅来源 [3] 和 [5] 提供了其工作邮箱和个人主页，但未提及办公室位置）。
+
+**已知信息如下：**
+*   **姓名**：张芯韵 (Zhang Xinyun)
+*   **职位**：助理教授、研究员、博导 [3][5]
+*   **毕业院校**：2025 年在香港中文大学取得计算机科学与工程博士学位 [3][5]
+*   **研究方向**：AI 驱动的芯片设计自动化 (AI4EDA)、IC 可制造性设计、IC 物理设计 [3][5]
+*   **工作邮箱**：zhangxy12@shanghaitech.edu.cn [3]
+*   **办公室位置**：来源中未提供 [3][5]
+
+**结论：**
+关于该教授的**工作邮箱**为 **zhangxy12@shanghaitech.edu.cn**。关于其**办公室具体位置**（几号楼几楼几号房间），提供的来源中**没有包含相关证据**。","根据提供的资料，信息学院中符合“毕业于香港中文大学”、“核心研究方向包含'AI驱动的芯片设计自动化(AI4EDA)'""且为“女性常任教授/研究员”的学者是**张芯韵博士**（助理教授、研究员、博导）。
+
+关于她的办公室位置和工作邮箱，资料中**未提供**具体信息：
+1.  **办公室位置**：资料 [1]、[2]、[3] 仅提及她加入“后摩尔中心（PMICC）”，未说明具体的楼栋、楼层和房间号。资料 [4] 中提到的“信息学院2-302C室”属于廉黎祥教授，与张芯韵无关。
+2.  **工作邮箱**：资料 [2] 中列出的邮箱 `zhangxy12@shanghaitech.edu.cn` 与张芯韵博士的个人主页链接 `https://yxgnahz.github.io/` 中的用户名 `yxgnahz` 不一致，且该邮箱出现在廉黎祥教授（资料 [4]）的上下文中，因此无法确认该邮箱是否属于张芯韵博士。
+
+**结论**：
+*   **姓名**：张芯韵
+*   **职位**：助理教授、研究员、博士生导师
+*   **毕业院校**：香港中文大学（2025年博士）
+*   **研究方向**：AI驱动的芯片设计自动化 (AI4EDA)、IC可制造性设计、IC物理设计
+*   **办公室位置**：资料中**无证据**显示其具体办公室房间号。
+*   **工作邮箱**：资料中**无确凿证据**显示其工作邮箱（资料 [2] 中的邮箱与个人主页用户名不匹配，且上下文指向其他人员）。",0,0,0,incorrect,incorrect,answered,answered,loose atom judge matched 5/11 atoms,loose atom judge matched 5/11 atoms,partial_correct,incorrect,"Identifies Zhang Xinyun and gives zhangxy12@shanghaitech.edu.cn, but misses office room 3-210.",答案识别张芯韵，但未给出办公室和邮箱，核心问项未答。,1.0,1.0,1.0,1.0,0.0,0.0,22.073,33.979,https://sist.shanghaitech.edu.cn/zxy1/main.htm,https://sist.shanghaitech.edu.cn/zxy1/; https://sist.shanghaitech.edu.cn/zxy1/list.htm,https://sist.shanghaitech.edu.cn/zxy1/list.htm; https://sist.shanghaitech.edu.cn/zxy1/; https://sist.shanghaitech.edu.cn/2026/0331/c2858a1120392/page.htm; https://sist.shanghaitech.edu.cn/lianlx/main.htm
+q019,Time-sensitive,Medium,屠可伟教授团队关于“GiLT: Augmenting Transformer Language Models with Dependency Graphs”的最新研究成果被录用在2026年的哪一个CCF-A类NLP国际顶级会议上？该会议将于2026年几月几日在哪里举行？,"该成果发表在第64届计算语言学协会年会（ACL 2026）上。会议将于2026年7月2日至7日在美国加利福尼亚州圣迭戈（San Diego, California, USA）举行。","屠可伟教授团队关于""GiLT: Augmenting Transformer Language Models with Dependency Graphs""的最新研究成果被录用在2026年的**第64届计算语言学协会年会（ACL 2026）**。该会议将于2026年**7月2日至7月7日**在**美国加利福尼亚州圣地亚哥（San Diego, California, USA）**举行 [2]。ACL是自然语言处理领域的顶级会议，属于CCF-A类会议 [4]。","屠可伟教授团队关于""GiLT: Augmenting Transformer Language Models with Dependency Graphs""的最新研究成果被录用在2026年的**第64届计算语言学协会年会（ACL 2026）**。该会议将于2026年**7月2日至7月7日**在**美国加利福尼亚州圣地亚哥（San Diego, California, USA）**举行 [2]。",1,1,0,correct,correct,answered,answered,loose atom judge matched 12/13 atoms,loose atom judge matched 12/13 atoms,,,,,1.0,1.0,1.0,1.0,0.0,0.0,11.211,17.677,https://faculty.sist.shanghaitech.edu.cn/faculty/tukw/,https://faculty.sist.shanghaitech.edu.cn/faculty/tukw/; https://sist.shanghaitech.edu.cn/sist_en/2018/0724/c7572a34469/page.htm,https://faculty.sist.shanghaitech.edu.cn/faculty/tukw/
+q020,Time-sensitive,Low,截至2025年09月，上海科技大学信息科学与技术学院官方统计的在校本科生和研究生总数，以及正式设立的课题组（Laboratories）数量各是多少？,截至2025年9月，信息学院共有1098名本科生、1548名研究生，以及83个课题组。,证据不足：当前检索到的官方来源不足以回答这个问题。,"截至2025年09月，根据上海科技大学信息科学与技术学院官方统计：
+
+*   **在校本科生总数**：1098人 [1]
+*   **在校研究生总数**：1548人 [1]
+*   **正式设立的课题组（Laboratories）数量**：83个 [1]
+*   **联合实验室数量**：4个 [1]",0,1,1,evidence_insufficient,incorrect,insufficient_evidence,answered,evidence insufficient answer,loose atom judge matched 2/4 atoms,,loose_correct,,答案给出1098本科生、1548研究生、83个课题组，内容与标准答案一致；额外联合实验室数量不影响。,0.0,0.0,0.0,0.0,0.0,0.0,8.611,16.175,https://sist.shanghaitech.edu.cn/; https://sist.shanghaitech.edu.cn/sist_en/,,https://sist.shanghaitech.edu.cn/_s43/main.psp
+q021,Factual,Medium,屠可伟教授与信息学院其他常任/特聘教授合著的自然语言处理（NLP）领域的中文教材名称是什么？合著者除了屠教授以外还包含哪几位老师？,中文教材名称为《动手学自然语言处理》(Hands-on Natural Language Processing)。合著者包括：屠可伟、王新宇、曲彦儒、俞勇。,证据不足：当前检索到的官方来源不足以回答这个问题。,证据不足：当前检索到的官方来源不足以回答这个问题。,0,0,0,evidence_insufficient,evidence_insufficient,insufficient_evidence,insufficient_evidence,evidence insufficient answer,evidence insufficient answer,,,,,0.0,0.0,0.0,0.0,0.0,0.0,16.678,24.672,https://faculty.sist.shanghaitech.edu.cn/faculty/tukw/,,
+q022,Factual,Low,2025年春季学期开设的研究生选修课程《大模型工程实践》（Hands-On Large Model Engineering）的官方课程代码是什么？这门课是由哪几位老师联合执教的？,课程代码是CS190C。该课程是由马月昕、许岚、林竹雨三位老师联合执教的。,证据不足：当前检索到的官方来源不足以回答这个问题。,证据不足：当前检索到的官方来源不足以回答这个问题。,0,0,0,evidence_insufficient,evidence_insufficient,insufficient_evidence,insufficient_evidence,evidence insufficient answer,evidence insufficient answer,,,,,0.0,0.0,0.0,0.0,0.0,0.0,10.713,24.003,https://faculty.sist.shanghaitech.edu.cn/office/Academics/Courses/SIST_2025-2026_Courses.htm,,
+q023,Factual,Low,上海科技大学信息学院与上海联影智能医疗科技有限公司设立的联合实验室英文全称是什么？,"英文全称是 ShanghaiTech University – Shanghai United Imaging Intelligence Healthcare Co., Ltd. Joint Laboratory。","上海科技大学信息学院与上海联影智能医疗科技有限公司设立的联合实验室英文全称为 **ShanghaiTech University-Shanghai United Imaging Intelligent Medical Technology Co., Ltd. Joint Laboratory** [4]。","上海科技大学信息学院与上海联影智能医疗科技有限公司设立的联合实验室英文全称为 **ShanghaiTech University-Shanghai United Imaging Intelligence Co., Ltd. Joint Laboratory** [3][4]。",0,1,1,incorrect,incorrect,answered,answered,loose atom judge matched 3/4 atoms,loose atom judge matched 3/4 atoms,partial_correct,loose_correct,"Gives a close English joint-lab name, but the official company wording is not exact.",英文全称基本命中联合实验室名称，仅漏掉Healthcare；按小缺词放宽算对。,0.0,0.0,0.0,0.0,0.0,0.0,6.823,13.991,https://sist.shanghaitech.edu.cn/sist_en/2019/1028/c3902a45902/page.htm; https://sist.shanghaitech.edu.cn/sist_en/2849/list.htm,https://sist.shanghaitech.edu.cn/2019/1028/c3509a45901/page.htm,https://sist.shanghaitech.edu.cn/2019/1028/c3509a45901/page.htm; https://sist.shanghaitech.edu.cn/_t335/2849/list.htm
+q024,Comparative,Low,依据排课与师资信息，信息学院开设的专业必修课《控制原理》（EE160）与选修课《强化学习》（SI252），各自负责教授的主讲常任教授分别是谁？,《控制原理》（EE160）的主讲常任教授是 Boris Houska；《强化学习》（SI252）的主讲常任教授是邵子瑜。,证据不足：当前检索到的官方来源不足以回答这个问题。,"根据提供的排课与师资信息，仅能确认选修课《强化学习》（SI252）的主讲常任教授，无法在现有来源中找到必修课《控制原理》（EE160）的主讲常任教授信息。
+
+1.  **关于《强化学习》（SI252）**：
+    根据课程排课表 [5]，课程代码为 **SI252.01** 的《强化学习》（Reinforcement Learning），其主讲常任教授为 **邵子瑜**（Shao Ziyu）。该课程安排在星期一 3-4 节，地点为教学中心 202，学分为 4 分。
+
+2.  **关于《控制原理》（EE160）**：
+    在提供的 2022 级和 2023 级本科生培养方案 [1][2] 以及 SIST 2016-2017、2017-2018 课程设置 [3][4] 中，**未包含**课程代码为 EE160 的《控制原理》的具体排课及师资信息。虽然培养方案提及了课程代码以 EE 开头的课程原则上为信息学院开设，但具体课程名称、代码及授课教师未在片段中列出。
+
+**结论：**
+*   **《强化学习》（SI252）** 主讲常任教授：**邵子瑜** [5]。
+*   **《控制原理》（EE160）** 主讲常任教授：**现有来源中无证据**（未包含该课程的具体师资信息）。",0,1,1,evidence_insufficient,correct,insufficient_evidence,answered,evidence insufficient answer,loose atom judge matched 6/7 atoms,,,,,0.0,0.0,0.0,0.0,0.0,0.0,23.747,32.281,https://sist.shanghaitech.edu.cn/wangyang4/main.htm; https://faculty.sist.shanghaitech.edu.cn/office/Academics/Courses/SIST_2022-2023_Courses.htm,,https://oaa.shanghaitech.edu.cn/_upload/article/files/27/7e/4528b0154360aea74f274af4f4de/06229f18-2fb4-4ccf-a9a7-f64b288d5b7d.pdf; https://faculty.sist.shanghaitech.edu.cn/office/Academics/Undergraduate/Degree%20Programmes/2022%20Bachelor%20Degree%20Programs%20in%20EE.htm; https://faculty.sist.shanghaitech.edu.cn/office/Academics/Undergraduate/Degree%20Programmes/2023%20Bachelor%20Degree%20Programs%20in%20EE.htm; https://faculty.sist.shanghaitech.edu.cn/office/Academics/Courses/SIST_2018-2019_Courses.htm; https://faculty.sist.shanghaitech.edu.cn/office/Academics/Courses/SIST_2016-2017_Courses.htm
+q025,Comparative,Medium,对比信息学院官方发布的规章制度，官方公告中试行的《信息科学与技术学院实验室安全管理办法（试行）》和《信息学院EHS委员会章程》，它们是在哪一年的同一天发布的？,这两份重要的管理规范文件都是在2025年4月9日同一天正式试行或发布的。,根据官方发布的规章制度，信息科学与技术学院实验室安全管理办法（试行）和信息学院EHS委员会章程均于2025年4月9日发布 [1][2][3][4][5]。,"根据提供的官方规章制度列表，信息科学与技术学院发布的《信息科学与技术学院实验室安全管理办法（试行）》和《信息学院EHS委员会章程》均于**2025年4月9日**发布。
+
+具体信息如下：
+*   **《信息科学与技术学院实验室安全管理办法（试行）》**：发布日期为 2025-04-09 [1][3]。
+*   **《信息学院EHS委员会章程》**：发布日期为 2025-04-09 [1][3]。
+
+这两份文件是在同一天（2025年4月9日）发布的。",1,1,0,correct,correct,answered,answered,loose atom judge matched 4/6 atoms,loose atom judge matched 5/6 atoms,,,,,1.0,1.0,1.0,1.0,0.0,0.0,6.7,19.705,https://sist.shanghaitech.edu.cn/gzzd/list.htm,https://sist.shanghaitech.edu.cn/_t335/gzzd/list.htm; https://sist.shanghaitech.edu.cn/gzzd/list.htm,https://sist.shanghaitech.edu.cn/_t335/gzzd/list.htm; https://sist.shanghaitech.edu.cn/_s43/gzzd/list.psp
+q026,Conditional,Medium,假设一名学生修读并通过了同时属于“专业方向必修”和“专业任选”两个模块的交叉核心课程，教务系统在最终结算上一层级的“本学科选修”总学分时，会采用什么样的自动去重规则？,教务系统在结算上层学分时会自动去重，该课程的学分最终仅会被计算 1 次，不会重复累加。,"根据上海科技大学计算机学院本科生培养方案（2020级至2025级），当同一门课程（如《计算机视觉》）同时出现在“专业方向必修”和“专业任选”模块中，且学生修读并通过时，教务系统会执行以下自动去重规则：
+
+1.  **模块内双重计分**：该课程的学分会在“专业方向必修”和“专业任选”两个模块中**同时计入学分**，以满足各自模块的课程门数与学分要求 [1][2][3][4][5]。
+2.  **层级总学分去重**：在计算上一层级的“本学科选修”模块总学分时，该课程的学分**仅会被计算一次**，不会重复累加 [1][2][3][4][5]。
+3.  **系统机制**：教务系统“计划完成情况”会同时检查每个层级、每个模块中的“课程门数要求”与“学分要求”，并在计算获得学分时进行**课程自动去重**，确保同一门课程在培养方案中不重复计算总学分 [1][2][3][4][5]。
+
+因此，虽然该课程帮助学生在两个下级模块中均完成了要求，但在汇总“本学科选修”总学分时，其学分贡献值只被计入一次。","根据提供的上海科技大学（SIST）本科生培养方案（2022级至2025级）及官方问答文档，当一名学生修读并通过了同时属于“专业方向必修”和“专业任选”两个模块的交叉核心课程（例如《计算机视觉》或《计算机视觉 I》）时，教务系统在最终结算上一层级的“本学科选修”总学分时，会采用以下自动去重规则：
+
+1.  **模块内重复计入**：该课程在“专业方向必修”和“专业任选”两个子模块中均会被视为已修读并通过，从而同时满足这两个模块各自的课程门数与学分要求 [1][2][3][4][5]。
+2.  **层级总学分去重**：在计算上一层级“本学科选修”模块的总学分时，系统会对课程进行**自动去重**。这意味着该课程的学分在“本学科选修”总和中**仅会被计算 1 次**，而不会因其在两个子模块中都被计入而重复累加 [1][2][3][4][5]。
+3.  **检查机制**：教务系统的“计划完成情况”会同时检查每个层级、每个模块中的课程门数与学分要求是否满足，并在计算获得学分时执行上述去重逻辑，确保同一门课程在培养方案中不重复计算学分 [2][3][4]。
+
+**结论**：系统会在“本学科选修”层级进行**课程自动去重**，确保交叉课程在该层级的总学分中**只计算一次**。",1,1,0,correct,correct,answered,answered,matched special fact,matched special fact,,,,,1.0,1.0,1.0,1.0,0.0,0.0,20.897,31.267,https://faculty.sist.shanghaitech.edu.cn/office/Academics/Undergraduate/Others/Degree_Program_Concentration_QA.pdf; https://faculty.sist.shanghaitech.edu.cn/office/Academics/Undergraduate/Degree%20Programmes/2023%20Bachelor%20Degree%20Programs%20in%20CS.htm,https://faculty.sist.shanghaitech.edu.cn/office/Academics/Undergraduate/Degree%20Programmes/2023%20Bachelor%20Degree%20Programs%20in%20CS.htm; https://faculty.sist.shanghaitech.edu.cn/office/Academics/Undergraduate/Degree%20Programmes/2020%20Bachelor%20Degree%20Programs%20in%20CS.html; https://faculty.sist.shanghaitech.edu.cn/office/Academics/Undergraduate/Degree%20Programmes/2022%20Bachelor%20Degree%20Programs%20in%20CS.htm; https://faculty.sist.shanghaitech.edu.cn/office/Academics/Undergraduate/Degree%20Programmes/2025%20Bachelor%20Degree%20Programs%20in%20CS.htm; https://faculty.sist.shanghaitech.edu.cn/office/Academics/Undergraduate/Degree%20Programmes/2021%20Bachelor%20Degree%20Programs%20in%20CS.htm,https://faculty.sist.shanghaitech.edu.cn/office/Academics/Undergraduate/Degree%20Programmes/2023%20Bachelor%20Degree%20Programs%20in%20CS.htm; https://faculty.sist.shanghaitech.edu.cn/office/Academics/Undergraduate/Degree%20Programmes/2025%20Bachelor%20Degree%20Programs%20in%20CS.htm; https://faculty.sist.shanghaitech.edu.cn/office/Academics/Undergraduate/Others/Degree_Program_Concentration_QA.pdf; https://faculty.sist.shanghaitech.edu.cn/office/Academics/Undergraduate/Degree%20Programmes/2024%20Bachelor%20Degree%20Programs%20in%20CS.htm; https://faculty.sist.shanghaitech.edu.cn/office/Academics/Undergraduate/Degree%20Programmes/2022%20Bachelor%20Degree%20Programs%20in%20CS.htm
+q027,Multi-hop,Medium,祝智峰老师与梁俊睿老师都曾执教过专业课《电路基础》（EE111）。请问在2025级电子信息工程专业（EE专业）本科培养方案中，这门课对应的“实验课”全称和课程代码分别是什么？占多少学分？,对应的实验课全称是《电路基础实验》，课程代码为 EE111L，占 1.0 学分。,证据不足：当前检索到的官方来源不足以回答这个问题。,"根据提供的来源，**无法回答**2025级电子信息工程专业（EE专业）本科培养方案中《电路基础》（EE111）对应的“实验课”全称、课程代码及学分。
+
+**原因如下：**
+1.  **课程代码不匹配**：提供的来源中，EE111对应的课程名称均为“板级电路设计实践”（Board-Level Circuit Design），而非“电路基础”。例如：
+    *   来源 [5] (2024-2025) 显示：`Board-Level Circuit Design; 板级电路设计实践; EE111...`
+    *   来源 [3] (2025-2026) 显示：`Board-Level Circuit Design; 板级电路设计实践; EE111...`
+2.  **缺乏实验课信息**：提供的文本片段中未包含任何关于EE111配套“实验课”（如“电路基础实验”）的名称、代码或学分信息。
+3.  **缺乏2025级培养方案详情**：虽然来源 [3] 是2025-2026学年的课程列表，但其中并未列出该课程对应的实验课详情；来源 [1] 是2021级培养方案，且文本中未具体列出EE111的实验课信息。
+
+因此，基于现有证据，无法提供该问题的答案。",0,0,0,evidence_insufficient,incorrect,insufficient_evidence,answered,evidence insufficient answer,loose atom judge missing required quantity atoms: 1,,incorrect,,答案明确无法回答，并把EE111误判为板级电路设计实践，未给出EE111L/1.0学分。,1.0,1.0,0.0,0.0,0.0,0.0,17.328,29.913,https://faculty.sist.shanghaitech.edu.cn/office/Academics/Courses/SIST_2022-2023_Courses.htm; https://faculty.sist.shanghaitech.edu.cn/office/Academics/Undergraduate/Degree%20Programmes/2025%20Bachelor%20Degree%20Programs%20in%20EE.htm,,https://faculty.sist.shanghaitech.edu.cn/office/Academics/Courses/SIST_2024-2025_Courses.htm; https://faculty.sist.shanghaitech.edu.cn/office/Academics/Courses/SIST_2025-2026_Courses.htm; https://faculty.sist.shanghaitech.edu.cn/office/Academics/Undergraduate/Degree%20Programmes/2021%20Bachelor%20Degree%20Programs%20in%20EE.htm
+q028,Multi-hop,High,接受过《“大学教授”VS“百万UP主”》专访的信息学院常任副教授傅旻帆，他本科毕业于上海交通大学密西根学院。请问他目前任职的上海科技大学信息学院中，负责研究生招生咨询的高老师官方办公室在几号楼的哪个房间？,负责研究生招生与推免咨询的高老师，官方办公室位于信息科学与技术学院 1号楼 1A207室。,提供的资料中未包含上海科技大学信息学院负责研究生招生咨询的高老师的官方办公室所在楼栋及房间号信息。[1][2][5],email: lizhch2022@shanghaitech.edu.cn [2].,0,0,0,incorrect,incorrect,answered,answered,loose atom judge matched 1/4 atoms,loose atom judge matched 0/4 atoms,wrong_insufficient,incorrect,Refuses the office answer despite expected-source citation.,答案只给出无关邮箱，未给出高老师办公室1A207。,1.0,1.0,1.0,0.0,0.0,0.0,7.828,19.528,https://sist.shanghaitech.edu.cn/2025/0504/c7339a1110662/page.htm; https://sist.shanghaitech.edu.cn/2025/0504/c2863a1110662/page.htm; https://sist.shanghaitech.edu.cn/2026/0325/c2858a1120188/page.htm,https://sist.shanghaitech.edu.cn/_t335/2026/0325/c2858a1120188/page.htm; https://sist.shanghaitech.edu.cn/2026/0325/c2858a1120188/page.htm,https://sist.shanghaitech.edu.cn/fumf/main.htm
+q029,Time-sensitive,Low,信息学院官网学生培养专栏中上线的“2025级硕士、博士培养方案”，在教务系统和网站上的官方具体发布日期是哪一天？,官方确切的发布上线日期是 2025年09月04日。,"根据信息科学与技术学院官网学生培养专栏显示，""2025级硕士、博士培养方案”的官方发布日期为2025年9月4日 [1][2][3][4][5]。","根据信息学院官网学生培养专栏及教务系统显示，""2025级硕士、博士培养方案”的官方发布日期为 **2025-09-04** [1][2][4]。",1,1,0,correct,correct,answered,answered,loose atom judge matched 4/5 atoms,loose atom judge matched 4/5 atoms,,,,,1.0,1.0,1.0,1.0,0.0,0.0,7.4,14.228,https://sist.shanghaitech.edu.cn/pyfa/list.htm; https://sist.shanghaitech.edu.cn/pyfa/list1.htm,https://sist.shanghaitech.edu.cn/pyfa/list1.htm; https://sist.shanghaitech.edu.cn/pyfa/list.htm; https://sist.shanghaitech.edu.cn/_t335/pyfa/list1.htm; https://sist.shanghaitech.edu.cn/_t335/pyfa/list.htm,https://sist.shanghaitech.edu.cn/pyfa/list1.htm; https://sist.shanghaitech.edu.cn/_t335/pyfa/list.htm; https://sist.shanghaitech.edu.cn/2025/0904/c10027a1114744/page.htm
+q030,Factual,Low,在2019年9月发布的官方采购公告中，信息科学与技术学院推荐成交的“磷烷气体供气设备采购”项目和“二氯二氢硅气体供气设备采购”项目的最终中标成交供应商是哪家公司？,两个项目的推荐成交单位均为：上海弗川自动化技术有限公司。,"根据2019年9月发布的官方采购公告，上海科技大学信息科学与技术学院推荐的“磷烷气体供气设备采购”项目的最终中标成交供应商是**上海弗川自动化技术有限公司**[1][2]。
+
+关于“二氯二氢硅气体供气设备采购”项目，提供的来源中未包含该项目的询价结果或中标公告信息，因此无法确定其最终中标成交供应商。",证据不足：当前检索到的官方来源不足以回答这个问题。,0,0,0,incorrect,evidence_insufficient,answered,insufficient_evidence,loose atom judge matched 1/2 atoms,evidence insufficient answer,partial_correct,,"Answers the phosphine project supplier as Shanghai Fuchuan Automation Technology Co., Ltd., but misses the dichlorosilane project.",,1.0,1.0,1.0,0.0,0.0,1.0,9.401,33.573,https://sist.shanghaitech.edu.cn/2019/0923/c5124a44920/page.htm; https://sist.shanghaitech.edu.cn/2019/0923/c5124a44919/page.htm,https://sist.shanghaitech.edu.cn/_t335/2019/0923/c5124a44920/page.htm,
+q031,Factual,Low,上海科技大学信息学院与北京旷视科技有限公司（Megvii）设立的联合实验室的英文官方全称是什么？,英文官方全称是 ShanghaiTech University- Megvii Technology Limited Joint Laboratory。,"提供的来源中未包含该联合实验室的英文官方全称。来源仅提供了其中文名称“上海科技大学 - 北京旷视科技有限公司联合实验室”[1][2][3]，以及合作双方（上海科技大学、北京旷视科技有限公司）的中文名称和英文简称（ShanghaiTech, Megvii/Face++），但未明确给出联合实验室本身的完整英文官方全称。","根据提供的官方来源，上海科技大学信息学院与北京旷视科技有限公司（Megvii）设立的联合实验室的英文官方全称在文中**未直接给出**。
+
+文中仅提供了该联合实验室的中文全称，即：**上海科技大学 - 北京旷视科技有限公司联合实验室** [1][2][3][5]。
+
+虽然文中提到了旷视科技的核心算法引擎名为 **MegBrain** [1]，以及旷视科技的品牌名 **Face++** [1]，但并未明确写出该联合实验室对应的完整英文官方名称（例如 ""ShanghaiTech-Megvii Joint Laboratory"" 等）。
+
+因此，基于现有资料，无法提供其确切的英文官方全称。",0,0,0,incorrect,incorrect,answered,answered,loose atom judge matched 2/4 atoms,loose atom judge matched 2/4 atoms,partial_correct,partial_correct,Identifies the Chinese joint-lab name but does not provide the requested English official full name.,答案给出中文联合实验室名称但未给出题目要求的英文官方全称；按英文全称缺失给半分。,0.0,0.0,0.0,0.0,0.0,0.0,9.293,19.895,https://sist.shanghaitech.edu.cn/sist_en/2019/0313/c3902a40644/page.htm,https://sist.shanghaitech.edu.cn/2018/0724/c2858a34421/page.htm; https://sist.shanghaitech.edu.cn/2019/0313/c3509a40642/page.htm,https://sist.shanghaitech.edu.cn/2018/0724/c2858a34421/page.htm; https://sist.shanghaitech.edu.cn/2019/0313/c3509a40642/page.htm; https://sist.shanghaitech.edu.cn/2849/list.htm; https://sist.shanghaitech.edu.cn/2019/1023/c2863a45841/page.htm
+q032,Comparative,Low,寇煦丰教授（Xufeng Kou）和周平强教授（Pingqiang Zhou）在信息科学与技术学院均担任副院长（Associate Dean）职务。请问他们两位老师在信息学院大楼（SIST Building）的官方办公室房间号分别是多少？,寇煦丰副院长的办公室在信息学院大楼 3-318 室；周平强副院长的办公室在信息学院大楼 1A-221 室。,"根据提供的官方信息，两位老师在信息科学与技术学院（SIST）大楼的办公室房间号如下：
+
+*   **周平强教授（Pingqiang Zhou）**：担任副院长（vice dean），其办公室位于 **Room 1A-219** [1][2][5]。
+*   **寇煦丰教授（Xufeng Kou）**：担任副院长（assistant dean），其办公室位于 **Room 3-318** [3][4]。","根据提供的官方来源，寇煦丰教授（Xufeng Kou）和周平强教授（Pingqiang Zhou）在信息科学与技术学院（SIST）的官方办公室房间号如下：
+
+*   **寇煦丰教授（Xufeng Kou）**：办公室位于 **Room 3-318, SIST Building** [2][3][5]。
+    *   *注：虽然来源 [5] 中曾出现 ""Room 3-316"" 和 ""Room 3-318"" 的文本片段，但明确标注其职务为 ""Professor, Associate Dean"" 且与 ""Xufeng Kou"" 直接关联的条目为 ""Room 3-318, SIST Building"" [5]。来源 [2] 和 [3] 也一致确认其办公室为 Room 3-318。*
+*   **周平强教授（Pingqiang Zhou）**：办公室位于 **Room 1A-221, SIST Building** [5]。
+    *   *注：来源 [1] 和 [4] 显示其邮箱和电话关联的地址为 ""Room 1A-219""，但来源 [5]（PMICC 教师列表）明确将 ""Professor, Associate Dean"" 的 ""Pingqiang Zhou"" 与 ""Room 1A-221"" 对应。鉴于 [5] 是专门列出教师职务与房间号的列表，该信息更为直接对应其副院长职务的办公地点。*
+
+**总结：**
+*   **Xufeng Kou**: Room 3-318
+*   **Pingqiang Zhou**: Room 1A-221",0,1,1,incorrect,incorrect,answered,answered,loose atom judge matched 1/5 atoms,loose atom judge matched 1/5 atoms,partial_correct,loose_correct,"Kou Xufeng room 3-318 is correct, but Zhou Pingqiang room is wrong.",答案给出寇煦丰3-318、周平强1A-221，与标准答案一致。,0.0,1.0,0.0,1.0,0.0,0.0,10.299,32.781,https://pmicc.sist.shanghaitech.edu.cn/faculty.html,https://sist.shanghaitech.edu.cn/zhoupq_en/main.htm; https://sist.shanghaitech.edu.cn/zhoupq_en/; https://sist.shanghaitech.edu.cn/kouxf_en/main.htm,https://sist.shanghaitech.edu.cn/kouxf_en/main.htm; https://sist.shanghaitech.edu.cn/kouxf_en/; https://pmicc.sist.shanghaitech.edu.cn/faculty.html; https://sist.shanghaitech.edu.cn/zhoupq_en/main.htm; https://sist.shanghaitech.edu.cn/zhoupq_en/
+q033,Comparative,Low,同样是信息学院的专业基础必修课《信号与系统》（课程代码：EE150），根据历年的排课开课记录，由周勇老师负责执教的学期和由廉黎祥老师负责执教的学期有什么明显的季节不同？,周勇老师负责执教的学期是春季学期（Spring）；而廉黎祥老师负责执教的学期则是秋季学期（Fall）。,"根据提供的来源，无法回答周勇老师和廉黎祥老师执教《信号与系统》（EE150）学期的季节不同，因为提供的资料中不存在廉黎祥老师负责执教《信号与系统》（EE150）的记录。
+
+具体证据如下：
+1.  **周勇老师的执教记录**：来源 [1] 和 [2] 显示，周勇老师负责执教 **EE150.01 信号与系统**，排课时间为 **星期二 1-2 [1-16]**（即第 1 周至第 16 周，通常对应春季学期）。
+2.  **廉黎祥老师的执教记录**：来源 [3] 显示，廉黎祥老师负责的课程是 **压缩感知**（Rm1B-110, 1-12 周），而非《信号与系统》。
+3.  **其他 EE150 执教老师**：来源 [1] 和 [2] 还提到了徐林老师负责 **EE150.02 信号与系统**，排课时间同样为 **星期二 1-2 [1-16]**。
+
+由于资料中未包含廉黎祥老师执教《信号与系统》的信息，因此无法比较两位老师执教该课程的季节差异。",证据不足：当前检索到的官方来源不足以回答这个问题。,0,0,0,incorrect,evidence_insufficient,answered,insufficient_evidence,loose atom judge matched 1/6 atoms,evidence insufficient answer,partial_correct,,"Gets Zhou Yong teaching EE150 in the spring record, but misses Lian Lixiang as the fall instructor.",,0.0,1.0,0.0,0.0,0.0,0.0,21.565,25.754,https://faculty.sist.shanghaitech.edu.cn/office/Academics/Courses/SIST_2022-2023_Courses.htm; https://faculty.sist.shanghaitech.edu.cn/office/Academics/Courses/SIST_2024-2025_Courses.htm,https://oaa.shanghaitech.edu.cn/_upload/article/files/27/7e/4528b0154360aea74f274af4f4de/06229f18-2fb4-4ccf-a9a7-f64b288d5b7d.pdf; https://faculty.sist.shanghaitech.edu.cn/office/Academics/graduate/Courses/Graduate_2021_Spring_class_schedule-CN.htm,
+q034,Conditional,Low,针对常任副教授傅旻帆的科研课题组，如果一名本科生或新入学研究生想在进组前按照傅老师“不设限”的自由理念提前进行基础专业自学，根据他的建议，他最应该去查阅并提前在线自学哪一门被专门录制成完整视频的核心选修课程？,最应该提前自学的是《电力电子》（Power Electronics）这门被傅老师专门录制成视频的专业课程。,"根据傅旻帆教授“不设限”的自由理念及教学实践，他最建议提前在线自学的核心选修课程是**《电力电子》**。
+
+为了减少每年对新生重复性的基础专业培训，傅旻帆于2020年萌生并实施了将这门面向本科生开设的专业选修课统一录制为视频的计划。他重构了课程知识体系，坚持亲手绘制原理图，确保内容清晰直观，并将全新课件上传至B站，旨在让学生提前学习，同时为研究生打下基础，实现“一次投入，长久复用”[1][2][3][5]。该课程被傅老师视为连接教学、科研与产业的枢纽，其视频上线后获得了极高的评价，被认为能将复杂问题讲得简单清楚，是进组前进行基础专业自学的首选资源[4]。","根据傅旻帆老师的建议，进组前最应该查阅并提前在线自学的核心选修课程是**《电力电子》**。
+
+傅旻帆老师为了减少新生重复性的基础专业培训，专门将这门面向本科生开设的专业选修课**统一录制成视频**上传至B站，旨在让学生提前学习，其内容同样能为研究生打下基础，实现“一次投入，长久复用”[1]。该课程由傅旻帆老师亲自重构知识体系并绘制原理图，以清晰直观的方式呈现，已被广泛传播并受到好评[2]。课程主要涵盖串联谐振变换器、LLC谐振变换器、ZVS/ZCS准谐振变换器等高级电能变换技术，是科研导向型的专业进阶课程[5]。",1,1,0,incorrect,correct,answered,answered,loose atom judge matched 2/3 atoms,loose atom judge matched 3/3 atoms,loose_correct,,Correctly answers Power Electronics / 电力电子 as the recorded self-study course.,,1.0,1.0,1.0,1.0,0.0,0.0,14.698,22.714,https://sist.shanghaitech.edu.cn/2026/0325/c2858a1120188/page.htm,https://sist.shanghaitech.edu.cn/2026/0325/c2858a1120188/page.htm; https://sist.shanghaitech.edu.cn/_t335/2026/0325/c2858a1120188/page.htm; https://sist.shanghaitech.edu.cn/2022/0326/c2858a438230/page.htm,https://sist.shanghaitech.edu.cn/_t335/2026/0325/c2858a1120188/page.htm; https://sist.shanghaitech.edu.cn/2022/0326/c2858a438230/page.htm; https://aepcl.sist.shanghaitech.edu.cn/
+q035,Conditional,Low,假设某个外部投标供应商对信息学院公开发布的“磷烷气体供气设备采购”询价结果存有异议，如果其需要按照规定在发布之日起三日内递交书面质疑材料，其应该把材料具体递交到华夏中路校区哪栋建筑的哪一个办公室？,应当以书面形式递交至：信息学院1号楼1B-206室（或B区206室）。,"根据提供的来源，关于异议递交的具体办公室信息如下：
+
+1.  **递交地点**：根据询价公告 [1]，报价文件（通常包含质疑材料）的递交地点为上海市浦东新区华夏中路393号信息学院**1号楼B区206室**。
+2.  **异议接收单位**：根据询价结果公告 [4]，投标人如对结果有异议，应向**上海科技大学信息学院**提出异议。
+3.  **地址冲突说明**：询价结果公告 [4] 和 [5] 中提及异议需向“上海科技大学信息学院（环科路; ）”提出，但括号内的具体地址信息在文本中显示不完整或被截断。然而，结合同一公告底部的学校地址（华夏中路393号）以及询价公告 [1] 中明确列出的具体办公室（1号楼B区206），这是唯一可确认的具体房间号。
+
+**结论**：
+供应商应将书面质疑材料递交至**华夏中路校区信息学院1号楼B区206室**（依据来源 [1] 的报价文件递交地点，该地点通常也是接收相关书面文件的指定位置）。
+
+*注：来源 [4] 和 [5] 中提到的“环科路”地址信息在提供的文本片段中不完整，无法确认具体的环科路地址对应的办公室，因此以来源 [1] 中明确给出的“华夏中路393号信息学院1号楼B区206”作为具体办公室答案。*","根据提供的来源 [4]，对于“磷烷气体供气设备采购”项目，投标人如对询价结果有异议，应将书面质疑材料递交至：
+
+**华夏中路校区信息学院 1 号楼 B 区 206 办公室**。
+
+具体地址信息如下：
+*   **建筑**：信息学院 1 号楼
+*   **区域**：B 区
+*   **办公室**：206
+
+来源依据：
+[4] 上海科技大学信息学院磷烷气体供气设备询价公告中提到：“报价文件递交地点 上海市浦东新区华夏中路 393 号信息学院 1 号楼 B 区 206""。虽然该公告主要说明报价文件递交地点，但在同一项目的询价结果公告 [1] 中，异议提出地址被描述为“上海科技大学信息学院（环科路...）”，而询价公告 [4] 提供了该学院具体的楼宇和房间号（1 号楼 B 区 206），且通常异议递交地点与项目相关的具体联络点一致。结合 [4] 中明确的“信息学院 1 号楼 B 区 206""这一具体办公地点，这是最精确的递交地址。
+
+注：来源 [1] 和 [3] 中关于异议递交地址的描述存在文本截断（显示为“环科路;”），未提供完整的楼宇和房间号，因此主要依据来源 [4] 中提供的完整地址信息。",1,1,0,correct,correct,answered,answered,matched special fact,matched special fact,,,,,1.0,1.0,1.0,1.0,0.0,0.0,22.419,29.766,https://sist.shanghaitech.edu.cn/2019/0923/c5124a44920/page.htm; https://sist.shanghaitech.edu.cn/2019/0911/c5124a44707/page.htm,https://sist.shanghaitech.edu.cn/2019/0911/c5124a44707/page.htm; https://sist.shanghaitech.edu.cn/_t335/2019/0923/c5124a44920/page.htm,https://sist.shanghaitech.edu.cn/2019/0911/c5124a44707/page.htm; https://sist.shanghaitech.edu.cn/_t335/2019/0923/c5124a44920/page.htm; https://sist.shanghaitech.edu.cn/_t335/2019/0923/c5124a44918/page.htm
+q036,Multi-hop,Medium,在信息学院官方网站专门发布的“毕业生故事”系列优秀学生专题报道中，有一篇名为《在不确定中生长，拥抱不确定性》的文章。请问这篇毕业生故事的主人公叫什么名字？他是在信息学院攻读什么学位的毕业生？,该毕业生故事的主人公是周守琛；他是计算机科学与技术专业2025届本科毕业生。,这篇名为《在不确定中生长，拥抱不确定性》的毕业生故事的主人公是**周守琛**[1]。他是在信息科学与技术学院（信息学院）攻读**计算机科学与技术专业**的**2025届本科毕业生**[1]。,这篇名为《在不确定中生长，拥抱不确定性》的毕业生故事的主人公是**周守琛**[1]。他是在信息科学与技术学院攻读**计算机科学与技术专业**的**2025届本科毕业生**[1]。,1,1,0,correct,correct,answered,answered,loose atom judge matched 4/5 atoms,loose atom judge matched 4/5 atoms,,,,,1.0,1.0,1.0,1.0,0.0,0.0,7.851,15.689,https://sist.shanghaitech.edu.cn/2025/0630/c5005a1112346/page.htm; https://sist.shanghaitech.edu.cn/_t335/2025/0630/c5005a1112346/page.htm; https://sist.shanghaitech.edu.cn/sist_en/2025/0630/c7744a1112346/page.htm,https://sist.shanghaitech.edu.cn/_t335/2025/0630/c5005a1112346/page.htm,https://sist.shanghaitech.edu.cn/_t335/2025/0630/c5005a1112346/page.htm
+q037,Multi-hop,Low,常任副教授傅旻帆当年的本科背景是毕业于上海交通大学密西根学院。请问，根据信息学院历年教务排课大表的公开记录，由傅旻帆老师负责授课的专业课程《电路基础》的官方标准课程代码是什么？,傅旻帆老师负责授课的《电路基础》标准课程代码是 EE111。,"根据提供的来源信息，无法找到由傅旻帆老师负责授课的专业课程《电路基础》的官方标准课程代码。
+
+虽然来源 [5] 提到了《电路基础》是《电力电子》课程的必修前置课程，且该课程由傅旻帆老师（邮箱 fumf@shanghaitech.edu.cn）所在的信息学院开设，但提供的文本中并未包含《电路基础》这门课程的具体官方标准课程代码。来源 [1] 至 [4] 仅确认了傅旻帆老师的本科毕业于上海交通大学密西根学院，未涉及其授课课程代码信息。
+
+证据不足。",证据不足：当前检索到的官方来源不足以回答这个问题。,0,0,0,incorrect,evidence_insufficient,answered,insufficient_evidence,loose atom judge matched 0/2 atoms,evidence insufficient answer,wrong_insufficient,,Refuses the course code; misses EE111.,,0.0,1.0,0.0,0.0,0.0,0.0,14.812,24.562,https://sist.shanghaitech.edu.cn/2026/0325/c2858a1120188/page.htm; https://faculty.sist.shanghaitech.edu.cn/office/Academics/Courses/SIST_2022-2023_Courses.htm,https://aepcl.sist.shanghaitech.edu.cn/; https://sist.shanghaitech.edu.cn/fumf/main.htm; https://sist.shanghaitech.edu.cn/fumf/,
+q038,Time-sensitive,Low,针对信息学院的研究生培养方案，官方系统记录里“2023级硕士、博士培养方案”和“2022级信息学院项目型硕士培养方案”，它们在教务系统和官方网站上的确切发布日期分别是哪一年的哪一天？,2023级硕博培养方案发布日期是2023年08月28日；2022级项目型硕士培养方案发布日期是2022年08月23日。,"根据官方系统记录，信息学院研究生培养方案的确切发布日期如下：
+
+*   **2023级硕士、博士培养方案**：发布日期为 **2023年8月28日** [1]。
+*   **2022级信息学院项目型硕士培养方案**：发布日期为 **2022年8月23日** [1]。","根据官方系统记录，相关信息学院研究生培养方案的确切发布日期如下：
+
+1.  **2023级硕士、博士培养方案**：发布日期为 **2023年8月28日** [1][3]。
+2.  **2022级信息学院项目型硕士培养方案**：发布日期为 **2022年8月23日** [1][2]。",1,1,0,correct,correct,answered,answered,loose atom judge matched 9/12 atoms,loose atom judge matched 9/12 atoms,,,,,1.0,1.0,1.0,1.0,0.0,0.0,9.58,17.016,https://sist.shanghaitech.edu.cn/pyfa/list.htm; https://sist.shanghaitech.edu.cn/pyfa/list1.htm,https://sist.shanghaitech.edu.cn/pyfa/list1.htm,https://sist.shanghaitech.edu.cn/pyfa/list1.htm; https://sist.shanghaitech.edu.cn/2023/0828/c10027a1080129/page.htm; https://sist.shanghaitech.edu.cn/_t335/pyfa/list.htm
+q039,Time-sensitive,Medium,在2023年期间，信息学院机电能源平台针对共享仪器设备面向在校师生发布技能培训通知。其中，在当年的 10 月 28 日和 11 月 04 日这两个特定日期举办的培训，其核心针对的共享仪器分别叫什么名字？,10月28日的技能培训针对的是“可变温磁光克尔成像系统”；11月04日的技能培训针对的是“低温磁光克尔成像”。,研究生招生介绍一览; Newsletter; 信息学院机电能源平台共享仪器技能培训; 发布时间：2023-03-15 [1].,"根据提供的来源，在2023年期间，信息学院机电能源平台发布的技能培训通知中，针对特定日期的共享仪器如下：
+
+1.  **10 月 28 日**：该日期的培训针对的共享仪器名为**可变温磁光克尔成像系统** [2]。
+2.  **11 月 04 日**：该日期的培训针对的共享仪器名为**低温磁光克尔成像** [2]。
+
+*注：虽然来源 [1] 详细列出了2023年3月至4月的培训日程，但来源 [2] 的“技能培训”列表明确记录了2022年10月27日发布的关于10月28日“可变温磁光克尔成像系统”的培训通知，以及2023年2月6日发布的关于11月04日“低温磁光克尔成像”的培训通知。*",0,1,1,incorrect,correct,answered,answered,loose atom judge matched 0/6 atoms,loose atom judge matched 6/6 atoms,wrong_irrelevant,,Returns unrelated training/news text.,,0.0,0.0,0.0,0.0,0.0,0.0,16.717,23.134,https://sist.shanghaitech.edu.cn/2023/0206/c5304a1074009/page.htm; https://sist.shanghaitech.edu.cn/2023/0206/c5304a1074008/page.htm,https://sist.shanghaitech.edu.cn/2023/0315/c5304a1076025/page.htm,https://sist.shanghaitech.edu.cn/jnpx/list2.htm; https://sist.shanghaitech.edu.cn/2023/0315/c5304a1076025/page.htm
+q040,Factual,Low,依据信息学院公布的官方统计数据，截至2025年09月，信息学院共有多少个课题组和多少个与工业界建立的联合实验室？,截至2025年09月，信息学院共有 83 个课题组和 4 个联合实验室。,证据不足：当前检索到的官方来源不足以回答这个问题。,证据不足：当前检索到的官方来源不足以回答这个问题。,0,0,0,evidence_insufficient,evidence_insufficient,insufficient_evidence,insufficient_evidence,evidence insufficient answer,evidence insufficient answer,,,,,0.0,0.0,0.0,0.0,0.0,0.0,17.998,24.691,https://sist.shanghaitech.edu.cn/,,
+q041,Factual,Low,上海科技大学信息科学与技术学院（SIST）成立于哪一年？它的创始院长是谁？,信息科学与技术学院成立于 2013 年，创始院长是王雪红女士。,上海科技大学信息科学与技术学院（SIST）成立于2013年，是上海科技大学首批成立的五个学院之一 [1][2][4]。该学院的创始院长是Cher Wang（王雪红）[1][2][4]。,上海科技大学信息科学与技术学院（SIST）成立于**2013年**，其创始院长是**Cher Wang**（王雪红）[2]。,1,1,0,incorrect,incorrect,answered,answered,loose atom judge matched 3/4 atoms,loose atom judge matched 3/4 atoms,loose_correct,loose_correct,Correctly gives 2013 and Cher Wang / Wang Xuehong.,答案给出2013年和Cher Wang/王雪红，与标准答案一致。,0.0,0.0,0.0,0.0,0.0,0.0,7.336,13.111,https://sist.shanghaitech.edu.cn/2723/list.htm,https://sist.shanghaitech.edu.cn/sist_en/2724/list.psp; https://sist.shanghaitech.edu.cn/sist_en/2724/list.htm,https://sist.shanghaitech.edu.cn/sist_en/2724/list.htm
+q042,Factual,Low,屠可伟教授（Kewei Tu）作为通讯作者指导的合作论文“GiLT: Augmenting Transformer Language Models with Dependency Graphs”被哪一个自然语言处理领域的国际顶级学术会议录用？该会议预计在2026年的什么时间、在哪个城市的哪个国家召开？,"该论文被计算语言学协会年会（ACL 2026）录用，会议预计于2026年7月2日至7日在美国加利福尼亚州圣地亚哥（San Diego, California, USA）召开。","屠可伟教授（Kewei Tu）作为通讯作者指导的合作论文""GiLT: Augmenting Transformer Language Models with Dependency Graphs""被**第64届计算语言学协会年会（ACL 2026）**录用。该会议预计于**2026年7月2日至7日**在**美国加利福尼亚州圣地亚哥（San Diego, California, USA）**召开 [1][2][3]。ACL是自然语言处理领域的顶级国际学术会议 [5]。","屠可伟教授（Kewei Tu）作为通讯作者指导的合作论文""GiLT: Augmenting Transformer Language Models with Dependency Graphs""被**第64届计算语言学协会年会（ACL 2026）**录用 [1][2]。该会议预计于**2026年7月2日至7日**在**美国加利福尼亚州圣地亚哥（San Diego, California, USA）**召开 [1][2]。ACL是自然语言处理领域的国际顶级学术会议 [4]。",1,1,0,correct,correct,answered,answered,loose atom judge matched 13/14 atoms,loose atom judge matched 13/14 atoms,,,,,1.0,1.0,1.0,1.0,0.0,0.0,11.181,18.473,https://faculty.sist.shanghaitech.edu.cn/faculty/tukw/,https://faculty.sist.shanghaitech.edu.cn/faculty/tukw/publications.html; https://faculty.sist.shanghaitech.edu.cn/faculty/tukw/; https://sist.shanghaitech.edu.cn/sist_en/2018/0724/c7572a34469/page.htm,https://faculty.sist.shanghaitech.edu.cn/faculty/tukw/publications.html; https://faculty.sist.shanghaitech.edu.cn/faculty/tukw/; https://sist.shanghaitech.edu.cn/sist_en/2025/0905/c7572a1114818/page.htm
+q043,Factual,Low,在信息学院举办的全栈团干成长计划中，有一场名为“Deep Dive·深潜意识”的学生活动。请问该活动在系统记录中的具体主题探讨内容是什么？,其具体的主题探讨内容是“一场关于Money与心的对话”。,"该活动名为“觉醒财富心智”，是一场OH卡探索沙龙，其具体主题探讨内容围绕“金钱与心”的关系展开，旨在通过潜意识投射工具层层剥开参与者关于金钱的心理迷雾。活动具体包含以下四个环节的探讨内容：
+
+1.  **金钱初印象**：通过“盲盒游戏”让参与者凭直觉造句（“金钱是……""或“金钱不是……""），精准狙击潜意识中对金钱最原始的渴望或恐惧 [1]。
+2.  **财富蓝图**：利用“明选”卡片对应“童年”与“成年”的金钱故事，探讨消费习惯是否由自己决定，并揭示成年后的财务焦虑往往是在不知不觉中重复童年时面对金钱的旧有模式 [1]。
+3.  **多维关系体检**：精选代表“父母”、“他人”及“自己”与金钱关系的三张卡片，提炼核心关键词，并通过分享故事时的“身体反应”打分，帮助参与者理解哪种金钱状态最让自己安全与舒适 [1]。
+4.  **重启设定**：在正念冥想中开启“丰盛之旅”，旨在重启关于金钱的心理设定 [1]。","在信息学院举办的全栈团干成长计划中，“Deep Dive·深潜意识”活动的具体主题探讨内容为“一场关于Money与心的对话”，其核心活动名为“觉醒财富心智”的OH卡探索沙龙。该活动通过以下四个环节展开深度探讨：
+
+1.  **开盲盒！你的“金钱初印象”**：通过盲盒游戏，让学生凭直觉造句（“金钱是......""或“金钱不是......""），以此精准狙击并揭示潜意识中对金钱最原始的渴望或恐惧 [1]。
+2.  **时光机！回溯“财富蓝图”**：利用“明选”卡片对应“童年”与“成年”的金钱故事，探讨消费习惯的成因，揭示成年后的财务焦虑往往是在不知不觉中重复童年时面对金钱的旧有模式 [1]。
+3.  **破局点！多维关系“体检”**：精选代表“父母”、“他人”及“自己”与金钱关系的卡片，提炼核心关键词，并通过分享故事时的“身体反应”打分，帮助参与者理解哪种金钱状态最让自己安全与舒适 [1]。
+4.  **丰盛之旅！在正念冥想中重启设定**：在正念冥想中重启关于金钱的心理设定，助力开启心灵之旅 [1]。",1,1,0,incorrect,incorrect,answered,answered,loose atom judge matched 0/3 atoms,loose atom judge matched 2/3 atoms,loose_correct,loose_correct,Correctly paraphrases the topic as the relationship/dialogue between money and the heart.,答案直接包含“一场关于Money与心的对话”，额外活动细节不影响。,0.0,0.0,0.0,0.0,0.0,0.0,18.644,26.875,https://sist.shanghaitech.edu.cn/,https://sist.shanghaitech.edu.cn/_t335/2026/0417/c2858a1120864/page.htm,https://sist.shanghaitech.edu.cn/2026/0417/c2858a1120864/page.htm
+q044,Factual,Low,信息科学与技术学院副院长王浩宇教授主要负责哪些研究方向？他的博士学位毕业于哪一所海外著名的高校？,王浩宇教授的研究方向包括电力电子、算力电源、电源芯片、电动汽车、光伏储能等；其博士毕业于美国马里兰大学。,"根据提供的来源，关于信息科学与技术学院王浩宇教授的研究方向和博士学位毕业院校的信息如下：
+
+1.  **研究方向**：王浩宇教授主要负责的研究方向是**算力电源** [1][2][3][4]。此外，在一份包含多位教授信息的列表中，也提到了与王浩宇相关的研究方向包括**功率管理电路、信息能量系统理论、自供能物联网、电力电子、机电一体化** [5]。
+2.  **博士学位毕业院校**：提供的来源中**未包含**王浩宇教授博士学位毕业于哪一所海外著名高校的具体信息。来源仅明确记载其本科教育背景为“上海大学本科” [1][2][3][4]，虽然来源 [5] 中提到了“斯康辛大学麦迪逊分校读博”，但该条目上下文主要关联其他教授（如刘宇等），并未明确指明该博士学历属于王浩宇教授 [5]。
+
+因此，关于其博士学位毕业院校的证据在现有来源中**不足**。","根据提供的来源，关于王浩宇教授的研究方向和博士学位毕业院校的信息如下：
+
+**1. 研究方向**
+根据来源 [2]，王浩宇教授的研究方向包括：
+*   功率管理电路
+*   信息能量系统理论
+*   自供能物联网
+*   电力电子
+*   机电一体化
+
+此外，来源 [1] 和 [3] 中提到的“算力电源”以及其专利列表（如 LLC 谐振变换器、电池均衡电路等）也印证了其在电力电子和电源管理领域的研究重点 [1][3]。
+
+**2. 博士学位毕业院校**
+提供的来源中**没有包含**王浩宇教授博士学位毕业于哪所海外高校的具体信息。
+*   来源 [5] 仅提到他本科就读于浙江大学 [5]。
+*   来源 [2] 虽然提到了“斯康辛大学麦迪逊分校读博”，但该文本片段上下文混乱，且未明确指明该博士经历属于王浩宇教授（该段落同时列出了多位教授的名字和不同的研究方向，存在信息混杂的可能性）[2]。
+
+因此，基于现有证据，无法确定王浩宇教授的博士学位毕业院校。",0,0,0,incorrect,incorrect,answered,answered,loose atom judge matched 3/7 atoms,loose atom judge matched 3/7 atoms,partial_correct,partial_correct,"Mentions some relevant research areas including computing power supply and power electronics, but misses University of Maryland and several required directions.",答案给出部分研究方向但未给出美国马里兰大学；按研究方向半命中给半分。,1.0,1.0,1.0,1.0,0.0,0.0,17.97,27.303,https://sist.shanghaitech.edu.cn/wanghy/,https://sist.shanghaitech.edu.cn/wanghy/list.htm; https://sist.shanghaitech.edu.cn/wanghy/; https://sist.shanghaitech.edu.cn/wanghy/main.htm; https://sist.shanghaitech.edu.cn/_upload/article/files/d0/82/218152ad4bd29c54d8a89d0e6be7/518b4d7b-b5e5-4d29-b564-be2ce3dfa79b.pdf,https://sist.shanghaitech.edu.cn/_upload/article/files/d0/82/218152ad4bd29c54d8a89d0e6be7/518b4d7b-b5e5-4d29-b564-be2ce3dfa79b.pdf; https://sist.shanghaitech.edu.cn/wanghy/list.htm; https://sist.shanghaitech.edu.cn/wanghy/main.htm; https://sist.shanghaitech.edu.cn/2017/0426/c2858a25120/page.htm
+q045,Factual,Low,根据信息学院本科生招生宣传和专业特色介绍资料，目前学院国家级一流本科专业建设点“计算机科学与技术”专业主要聚焦的六个学科方向分别是什么？,这六个学科方向分别是：人工智能、数据科学、计算机系统、信息安全、机器人、生物信息学。,"根据提供的资料，信息学院“计算机科学与技术”专业（国家级一流本科专业建设点）聚焦的学科方向主要体现为以下六个子方向（Concentration），这些方向对应于专业选修课分类图中的具体领域：
+
+1.  **计算机图形、视觉与成像 (CGVI)**：涵盖人工智能、计算机视觉、计算机图形学、优化与机器学习等核心课程，以及并行计算、生物信息学、医学影像学、SLAM、机器人、强化学习、深度学习等进阶内容 [4]。
+2.  **机器人与自动化 (Robotics and Automation)**：涵盖控制原理、优化与机器学习等核心课程，以及线性系统、嵌入式系统、数值最优化、机电一体化等进阶内容 [4]。
+3.  **软件与系统 (Software and System)**：涵盖操作系统、计算机网络、软件工程等核心课程，以及编译原理、数据库与数据挖掘、计算机体系结构、密码学、智能医疗仪器软件的设计与验证等进阶内容 [4]。
+4.  **数据科学 (Data Science)**：涵盖人工智能、数据库与数据挖掘、优化与机器学习等核心课程，以及数值最优化、数据科学与金融科技、数值分析、机器学习等进阶内容 [4]。
+5.  **人工智能 (Artificial Intelligence)**：作为多个子方向（CGVI、Robotics and Automation、Software and System、Data Science）的核心课程基础，是专业聚焦的重要前沿方向 [4]。
+6.  **电路与系统 (Circuit and System)**：虽然资料中未单独列出名为“电路与系统”的选修课分类行，但明确提到该专业以“人工智能、数据科学、微电子学与固体电子学、**电路与系统**""等前沿方向为抓手构建课程体系，且部分子方向（如Robotics and Automation）建议同时修读《信号与系统》和《电路基础》[1][4]。
+
+此外，资料还提到该专业构建了本硕博一体化课程体系，旨在培育具有过硬科研素质、一流实践能力、创新创业思维和国际竞争力的综合人才 [1]。",CS专业的学科方向是集成电路、信息与通信工程、电气工程、电磁波与光电子、医疗电子 2、专业特色：信息科学与技术学院电子科学与技术方向（EE方向）聚焦后摩尔时代芯片（含架构、电路与器件）、新能源和能效管理、智能医学信息处理等前沿研究领域。 [2],0,0,0,incorrect,incorrect,answered,answered,loose atom judge matched 4/7 atoms,loose atom judge matched 0/7 atoms,partial_correct,incorrect,"Partially overlaps with AI, data science, systems, and robotics, but misses information security and bioinformatics.",答案误答为EE相关方向，未给出CS六个方向。,1.0,0.0,0.0,0.0,1.0,0.0,28.504,20.996,https://sist.shanghaitech.edu.cn/2711/list.htm,https://faculty.sist.shanghaitech.edu.cn/office/Academics/Undergraduate/Course%20schedule/CS_sample_core_electives.htm; https://sist.shanghaitech.edu.cn/2022/0617/c2858a630806/page.htm,https://sist.shanghaitech.edu.cn/bkszs/list.htm
+q046,Comparative,Low,对比信息学院两位副院长何旭明（Xuming He）与屠可伟（Kewei Tu）的长聘教职工概况主页，他们各自在信息学院大楼（SIST Building）的官方办公室房间号分别是什么？,何旭明副院长的办公室房间号是 1A-221；屠可伟副院长的办公室房间号是 1A-304B。,证据不足：当前检索到的官方来源不足以回答这个问题。,"根据提供的来源信息，信息学院两位副院长在信息学院大楼（SIST Building）的官方办公室房间号如下：
+
+*   **何旭明（Xuming He）**：其官方办公室房间号为 **1A-221** [1][2]。
+    *   *注：来源 [4] 中提到的""Room 1A-304.D""关联的是何旭明（Xuming He）的课题组（Xuming He's Group），而非其个人办公室。*
+*   **屠可伟（Kewei Tu）**：提供的来源中**未包含**屠可伟在信息学院大楼的具体办公室房间号 [3]。",0,0,0,evidence_insufficient,incorrect,insufficient_evidence,answered,evidence insufficient answer,loose atom judge matched 2/7 atoms,,partial_correct,,答案答对何旭明1A-221，但未给出屠可伟1A-304B；两问中命中一问给半分。,0.0,1.0,0.0,1.0,0.0,0.0,23.93,19.6,https://sist.shanghaitech.edu.cn/hexm_en/main.htm; https://sist.shanghaitech.edu.cn/_t492/jzggk/list.psp,,https://sist.shanghaitech.edu.cn/hexm/list.htm; https://sist.shanghaitech.edu.cn/hexm_en/list.htm; https://cipes.sist.shanghaitech.edu.cn/; https://sist.shanghaitech.edu.cn/tukw/main.htm
+q047,Conditional,Low,假设一名学生在修读2025级本科生培养方案EE专业（电子信息工程专业），如果他希望在最终毕业结算时达到该大板块的学位学分授予标准，他在“专业课程”这一特定板块中，至少需要修满多少选修学分？,根据2025级EE专业本科生培养方案的要求，学生在专业课程板块中至少需要修满 27 学分的选修课程。,"根据提供的2025级本科生培养方案EE专业（电子信息工程专业）来源，在“专业课程”这一特定板块中，关于选修学分的具体数值要求如下：
+
+在“专业教育板块”下的“专业选修课程板块”，学生需要**至少三选二**（即从指定的课程组中至少选择两个方向），如果多选，多余学分将记在本学科选修中 [1]。
+
+然而，提供的来源文本中**未包含**该板块具体的“至少需要修满多少选修学分”的数值（例如具体的学分总数或每个方向的具体学分要求），仅说明了“至少三选二”的选择规则。要获取确切的学分数值，需查阅教务系统中的具体培养方案课程列表 [1]。
+
+因此，基于现有证据，无法给出具体的选修学分数值，只能确认选择规则为“至少三选二”。","根据提供的2025级本科生培养方案EE专业（电子信息工程专业）来源[1]，在“专业课程”这一特定板块中，学生需要满足以下要求：
+
+在“专业选修课程板块”中，学生**至少需要修满2门**课程（要求为“至少三选二”，即从指定的课程组中至少选择两门）。如果学生多选，多余的学分将记在“本学科选修”中，但学位授予标准明确要求的是完成“至少三选二”这一板块的最低课程数量要求。
+
+因此，为了达到该大板块的学位学分授予标准，在“专业课程”下的“专业选修课程板块”中，至少需要修满**2门**课程（具体学分需参照教务系统中的培养方案，但来源仅明确指出了“至少三选二”的课程数量要求）。
+
+**结论：**
+在“专业课程”板块的“专业选修课程板块”中，至少需要修满**2门**课程（满足“至少三选二”的要求）。",0,0,0,incorrect,incorrect,answered,answered,loose atom judge missing required quantity atoms: 1,loose atom judge missing required quantity atoms: 1,wrong_insufficient,incorrect,Refuses the required 27 elective credits.,题目问至少多少选修学分，答案答成至少2门，未给出27学分。,1.0,1.0,1.0,1.0,0.0,0.0,14.789,24.063,https://faculty.sist.shanghaitech.edu.cn/office/Academics/Undergraduate/Degree%20Programmes/2025%20Bachelor%20Degree%20Programs%20in%20EE.htm,https://faculty.sist.shanghaitech.edu.cn/office/Academics/Undergraduate/Degree%20Programmes/2025%20Bachelor%20Degree%20Programs%20in%20EE.htm,https://faculty.sist.shanghaitech.edu.cn/office/Academics/Undergraduate/Degree%20Programmes/2025%20Bachelor%20Degree%20Programs%20in%20EE.htm
+q048,Multi-hop,Medium,在副院长王浩宇教授课题组目前在读的在校博士生中，有一名博士生的核心研究方向非常明确，即“算力电源”。请问这名博士生叫什么名字？他来到上科大读博前的本科阶段毕业于国内哪所大学？,满足条件的博士生是李泽晖，他的核心研究方向为算力电源；根据其教育背景记录，他本科毕业于上海大学。,证据不足：当前检索到的官方来源不足以回答这个问题。,证据不足：当前检索到的官方来源不足以回答这个问题。,0,0,0,evidence_insufficient,evidence_insufficient,insufficient_evidence,insufficient_evidence,evidence insufficient answer,evidence insufficient answer,,,,,1.0,1.0,0.0,0.0,1.0,1.0,16.415,23.047,https://sist.shanghaitech.edu.cn/wanghy/,,
+q049,Time-sensitive,Low,根据信息学院学术研讨会（Seminars）的历史发布日程，华东师范大学的李晨辉学者受李权老师邀请，来到信息学院做关于《基于视觉感知的多模态艺术内容生成》的线下学术报告。请问这场讲座具体是在2026年的哪一天、上午的什么确切时间开始举办的？,该讲座的具体举办日期为 2026年4月27日，开始举办的确切时间是上午 11:00。,"根据提供的信息，华东师范大学李晨辉学者关于《基于视觉感知的多模态艺术内容生成》的线下学术报告于**2026年4月27日**上午**11:00**开始举办。
+
+具体信息如下：
+*   **日期**：2026年4月27日 [5]
+*   **开始时间**：上午 11:00 [5]
+*   **邀请人**：李权 [5]
+*   **地点**：信息学院 1A-200 [5]
+*   **演讲者**：李晨辉，华东师范大学 [5]","根据提供的信息，华东师范大学的李晨辉学者受李权老师邀请，在信息学院举办的关于《基于视觉感知的多模态艺术内容生成》的线下学术报告，具体安排如下：
+
+*   **日期**：2026年4月27日 [2]
+*   **开始时间**：上午 11:00 [2]
+
+该报告地点位于信息学院1A-200，演讲题目为“基于视觉感知的多模态艺术内容生成与审美评价研究” [2]。",1,1,0,correct,correct,answered,answered,loose atom judge matched 7/10 atoms,loose atom judge matched 7/10 atoms,,,,,1.0,1.0,1.0,1.0,0.0,0.0,13.08,19.45,https://sist.shanghaitech.edu.cn/sist_en/,https://sist.shanghaitech.edu.cn/sist_en/main.htm,https://sist.shanghaitech.edu.cn/sist_en/main.htm
+q050,Factual,Low,助理教授张芯韵博士是在哪一年的哪个月正式加入上海科技大学后摩尔中心的？根据系统记录，她的个人主页网址是什么？,张芯韵博士于2026年3月正式加入上海科技大学后摩尔中心。她的个人主页网址是 [https://yxgnahz.github.io/](https://yxgnahz.github.io/),根据提供的系统记录，助理教授张芯韵博士于**2026年3月**正式加入上海科技大学后摩尔中心。她的个人主页网址是 **https://yxgnahz.github.io/** [1]。,"根据提供的系统记录，助理教授张芯韵博士于**2026年3月**正式加入上海科技大学后摩尔中心（具体为后摩尔器件与系统集成中心，PMICC）[1][2][3][4]。
+
+关于她的个人主页网址，来源中明确列出的链接为：**https://yxgnahz.github.io/** [1][2]。
+
+*注：虽然部分新闻稿发布于2026年3月31日并提及她于2026年加入，但具体月份在多处文本中统一表述为3月。*",1,1,0,correct,correct,answered,answered,loose atom judge matched 4/4 atoms,loose atom judge matched 4/4 atoms,,,,,1.0,1.0,1.0,1.0,0.0,0.0,7.776,19.334,https://sist.shanghaitech.edu.cn/zxy1/main.htm; https://sist.shanghaitech.edu.cn/zxy1/; https://sist.shanghaitech.edu.cn/zxy1/list.htm,https://sist.shanghaitech.edu.cn/zxy1/list.htm,https://sist.shanghaitech.edu.cn/zxy1/list.htm; https://sist.shanghaitech.edu.cn/zxy1/; https://sist.shanghaitech.edu.cn/_t335/2858/list2.htm; https://sist.shanghaitech.edu.cn/_t335/2026/0331/c2858a1120392/page.htm
+q051,Factual,Low,常任副教授傅旻帆老师的高考毕业高中是哪所学校？他本科填报志愿时，勾选就读的是上海交通大学的哪个中外合办学院？,傅旻帆老师高考毕业于福建南平一中。他本科就读于上海交通大学的中外合办学院——密西根学院。,"根据提供的资料，常任副教授傅旻帆老师的高考毕业高中是**福建南平一中**，他本科填报志愿时勾选就读的是上海交通大学的**上海交大安泰经济与管理学院**（文中提及为“中外合办的”，结合上下文及傅旻帆教授的实际背景，此处指代的是上海交大安泰经济与管理学院的中外合作办学项目，即后来的上海交大安泰经济与管理学院，但资料中未明确写出“安泰”二字，仅提到“中外合办的”选项）。
+
+然而，根据提供的资料，傅旻帆老师本科填报志愿时勾选的是**中外合办的**学院，具体名称未在资料中明确给出，但资料提到该选项学费是普通专业的五倍。
+
+**修正：** 根据资料 [1]，傅旻帆老师高考毕业高中是**福建南平一中**，本科填报志愿时勾选的是**中外合办的**学院（资料未明确写出具体学院名称，但提到学费是普通专业的五倍）。
+
+**最终答案：**
+傅旻帆老师的高考毕业高中是**福建南平一中**[1]。他本科填报志愿时勾选就读的是上海交通大学的**中外合办的**学院（资料中未明确写出具体学院名称，仅提及该选项为“中外合办的”，且学费是普通专业的五倍）[1]。",常任副教授傅旻帆老师的高考毕业高中是**福建南平一中**[1][2][3]。他本科填报志愿时，勾选就读的是上海交通大学的**密西根学院**（中外合办）[1][3]。,0,1,1,incorrect,incorrect,answered,answered,loose atom judge matched 0/1 atoms,loose atom judge matched 0/1 atoms,partial_correct,loose_correct,"High school is correct, but Michigan College is missing and Antai is hallucinated.",答案给出福建南平一中和上海交通大学密西根学院，与标准答案一致。,1.0,1.0,1.0,1.0,0.0,0.0,21.852,16.108,https://sist.shanghaitech.edu.cn/2026/0325/c2858a1120188/page.htm,https://sist.shanghaitech.edu.cn/2026/0325/c2858a1120188/page.htm,https://sist.shanghaitech.edu.cn/2026/0325/c2858a1120188/page.htm; https://sist.shanghaitech.edu.cn/_t335/2858/list2.htm; https://sist.shanghaitech.edu.cn/2858/list3.htm
+q052,Factual,Low,根据信息学院“院务委员会”公开的各委员会架构设置，其中的“学术委员会”和“学位委员会”的委员会主任分别是由哪位教授担任的？,“学术委员会”的委员会主任是哈亚军教授；“学位委员会”的委员会主任是寇煦丰教授。,证据不足：当前检索到的官方来源不足以回答这个问题。,学术委员会主任是曹国华。 [2],0,0,0,evidence_insufficient,incorrect,insufficient_evidence,answered,evidence insufficient answer,loose atom judge matched 1/5 atoms,,incorrect,,答案把学术委员会主任答成曹国华，且未答学位委员会主任寇煦丰。,1.0,1.0,0.0,0.0,1.0,1.0,11.189,23.401,https://sist.shanghaitech.edu.cn/2725/list.htm,,https://bme.shanghaitech.edu.cn/ywwyh/list.htm
+q053,Factual,Low,在2026年4月16日下午举办的专业学术报告《增益型碳化硅传感器研发》中，受邀主讲人史欣老师来自哪一个科研机构？该场报告在学院大楼的哪一个房间进行？,主讲人史欣老师来自中国科学院高能物理研究所。该场报告在信息学院 3-301 房间进行。,"根据提供的来源，关于您询问的2026年4月16日下午举办的专业学术报告《增益型碳化硅传感器研发》的详细信息如下：
+
+1.  **主讲人史欣老师的科研机构**：史欣老师来自**中国科学院高能物理研究所**（Institute of High Energy Physics, Chinese Academy of Sciences）[1][3]。
+2.  **报告举办地点**：提供的来源中**未包含**该场报告在学院大楼具体房间号的信息 [1][2][3][4][5]。
+
+*注：虽然来源[3]、[4]、[5]中提及该报告发生在""February, 2026""（2026年2月），但来源[1]和[2]的发布时间为""2026-04-15""且内容涉及该报告，可能是同一事件的不同记录或时间表述差异，但关于具体房间号的证据在所有来源中均缺失。*","根据提供的来源信息，在2026年4月16日下午举办的专业学术报告《增益型碳化硅传感器研发》中：
+
+*   **受邀主讲人史欣老师来自的科研机构**：中国科学院高能物理研究所 [1][3]。
+*   **该场报告进行的房间**：信息学院 3-301 [3]。",0,1,1,incorrect,incorrect,answered,answered,loose atom judge matched 0/2 atoms,loose atom judge matched 0/2 atoms,partial_correct,loose_correct,"Institution is correct, but room 3-301 is missing.",答案给出中国科学院高能物理研究所和信息学院3-301，与标准答案一致。,1.0,1.0,1.0,1.0,0.0,0.0,16.945,16.864,https://sist.shanghaitech.edu.cn/sist_en/,https://sist.shanghaitech.edu.cn/sist_en/2026/0415/c11304a1120808/page.htm; https://ganology.sist.shanghaitech.edu.cn/news.html; https://ganology.sist.shanghaitech.edu.cn/,https://sist.shanghaitech.edu.cn/sist_en/2026/0415/c11304a1120808/page.htm; https://sist.shanghaitech.edu.cn/sist_en/main.htm
+q054,Factual,Medium,在信息学院官网的科学研究版块中，目前明确列出的5个与企业或机构建立的“联合实验室”（含微电子研究中心）官方全称分别是什么？,这5个联合实验室的官方全称分别是：上海科技大学-北京旷视科技有限公司联合实验室、上海科技大学微电子研究中心、上海科技大学-芒果TV联合实验室、上海科技大学-上海联影智能医疗科技有限公司联合实验室、上海科技大学-广东溢达纺织有限公司联合实验室。,"根据信息科学与技术学院官网“科学研究”版块中“联合实验室”页面的内容，目前明确列出的5个与企业或机构建立的“联合实验室”（含微电子研究中心）官方全称如下：
+
+1. 上海科技大学-北京旷视科技有限公司联合实验室 [1]
+2. 上海科技大学微电子研究中心 [1]
+3. 上海科技大学-芒果TV联合实验室 [1]
+4. 上海科技大学-上海联影智能医疗科技有限公司联合实验室 [1]
+5. 上海科技大学-广东溢达纺织有限公司联合实验室 [1]","根据提供的来源 [2]，在信息科学与技术学院官网的“科学研究”版块下的“联合实验室”页面中，明确列出的 5 个与企业或机构建立的联合实验室（含微电子研究中心）的官方全称如下：
+
+1. 上海科技大学 - 北京旷视科技有限公司联合实验室
+2. 上海科技大学微电子研究中心
+3. 上海科技大学 - 芒果 TV 联合实验室
+4. 上海科技大学 - 上海联影智能医疗科技有限公司联合实验室
+5. 上海科技大学 - 广东溢达纺织有限公司联合实验室 [2]",1,1,0,correct,correct,answered,answered,loose atom judge matched 6/6 atoms,loose atom judge matched 6/6 atoms,,,,,1.0,1.0,1.0,1.0,0.0,0.0,10.774,18.881,https://sist.shanghaitech.edu.cn/2849/list.htm,https://sist.shanghaitech.edu.cn/2849/list.htm,https://sist.shanghaitech.edu.cn/2849/list.htm
+q055,Factual,Low,李权老师的办公室和工作邮箱是什么？他的研究方向包括哪些？,李权老师的办公室是信息学院1A-404B，工作邮箱是 liquan@shanghaitech.edu.cn；研究方向包括大数据可视化及可视分析、数据科学、可解释性人工智能、数据故事、人机交互和计算社会科学。,"根据提供的官方来源，李权老师的办公室、工作邮箱及研究方向如下：
+
+*   **办公室**：信息学院 1A-404B [1]
+*   **工作邮箱**：liquan@shanghaitech.edu.cn [1]
+*   **研究方向**：
+    1.  大数据可视化及可视分析
+    2.  数据科学
+    3.  可解释性人工智能
+    4.  数据故事
+    5.  人机交互
+    6.  计算社会科学 [1]","根据提供的官方来源，李权老师的办公室、工作邮箱及研究方向如下：
+
+**办公室地址**：信息学院 1A-404B [2][3]
+**工作邮箱**：liquan@shanghaitech.edu.cn [2][3]
+
+**研究方向**：
+1.  **核心领域**：大数据可视化及可视分析、数据科学、可解释性人工智能、数据故事、人机交互、计算社会科学 [2][3]。
+2.  **具体应用与细分**：
+    *   构建以人为中心的、可解释的人工智能系统，融合交互式可视分析与自动机器学习技术，提升模型的可信性、公平性与鲁棒性 [5]。
+    *   人工智能驱动的可视化与创意设计自动化（包括视觉编码、数据叙事生成） [5]。
+    *   面向重大社会与科学问题的人机协同可视分析，支持数据驱动的决策与方案优化 [5]。
+    *   虚拟社区中的社交行为互动研究，特别是“非正式角色”的识别、成因及演变分析 [1]。
+    *   多模态语言学习、医学诊疗与虚实训练、大模型合作信任、社交媒体去偏见交互等前沿方向 [5]。",1,1,0,correct,correct,answered,answered,loose atom judge matched 11/11 atoms,loose atom judge matched 11/11 atoms,,,,,1.0,1.0,1.0,1.0,0.0,0.0,11.632,26.439,https://sist.shanghaitech.edu.cn/liquan/main.htm,https://sist.shanghaitech.edu.cn/liquan/main.htm,https://sist.shanghaitech.edu.cn/liquan/main.htm; https://sist.shanghaitech.edu.cn/liquan/list.htm; https://sist.shanghaitech.edu.cn/_t335/2026/0401/c2858a1120434/page.htm; https://sist.shanghaitech.edu.cn/2022/0429/c2858a516691/page.htm
+q056,Factual,Low,石野老师的办公室、邮箱和主要研究方向是什么？,石野老师的办公室是信息学院1A-404A室，邮箱是 shiye@shanghaitech.edu.cn；主要研究方向是具身智能、生成式模型、优化与控制和大模型。,"根据提供的来源，石野老师的相关信息如下：
+
+*   **办公室**：信息学院 1A-404A 室 [1]。
+*   **邮箱**：shiye@shanghaitech.edu.cn [1]。
+*   **主要研究方向**：具身智能、生成式模型、优化与控制、大模型 [1]。此外，在理论与算法方面具体涉及扩散模型理论和扩散强化学习 [3]。","根据提供的来源，石野老师（Ye Shi）的办公室、邮箱和主要研究方向如下：
+
+*   **办公室**：信息学院 1A-404A 室（地址：上海市浦东新区华夏中路 393 号，Building 1A 404.A）[1][2][4]。
+*   **邮箱**：shiye@shanghaitech.edu.cn [1][2][3][4]。
+*   **主要研究方向**：具身智能、生成式模型、优化与控制、大模型 [1][2]；此外还包括人工智能、机器学习、3D 视觉、智能能源（Smart Energy）和非凸优化 [4]。",1,1,0,correct,correct,answered,answered,loose atom judge matched 9/9 atoms,loose atom judge matched 9/9 atoms,,,,,1.0,1.0,1.0,1.0,0.0,0.0,10.102,20.223,https://sist.shanghaitech.edu.cn/shiye/main.htm; https://sist.shanghaitech.edu.cn/shiye/; https://sist.shanghaitech.edu.cn/shiye/list.htm,https://sist.shanghaitech.edu.cn/shiye/list.htm; https://sist.shanghaitech.edu.cn/shiye/main.htm,https://sist.shanghaitech.edu.cn/shiye/main.htm; https://sist.shanghaitech.edu.cn/shiye/list.htm; https://faculty.sist.shanghaitech.edu.cn/faculty/shiye/Index.html; https://sist.shanghaitech.edu.cn/_upload/article/files/d0/82/218152ad4bd29c54d8a89d0e6be7/ddce2ce5-e97b-4a78-8607-1504bbbfd125.pdf
+q057,Factual,Low,任侃老师的办公室和邮箱是什么？他的研究方向覆盖哪些领域？,任侃老师的办公室是信息学院1C-303A，邮箱是 renkan@shanghaitech.edu.cn；研究方向包括机器学习、大语言模型与AI智能体、多模态大模型和数据科学。,"根据提供的官方来源，任侃老师的办公室和邮箱信息如下：
+
+*   **办公室**：上海科技大学信息学院 1C-303A [1]
+*   **邮箱**：renkan@shanghaitech.edu.cn [1]
+
+他的研究方向覆盖以下领域：
+1.  **核心基础领域**：机器学习、强化学习、人工智能基础模型、生成式模型、多模态大模型、AI 智能体 (Agent) [1]。
+2.  **具体应用方向**：
+    *   面向多维时间序列大数据的机器学习 [5]。
+    *   基于脑机接口的智能人机交互 [5]。
+    *   基于大语言模型的数据科学自动化 [5]。
+    *   数据科学 [1]。
+3.  **应用领域**：医疗健康、推荐广告、金融、能源、环境等 [1][5]。","根据提供的资料，任侃老师的办公室和邮箱信息如下：
+
+*   **办公室**：上海科技大学信息学院 1C-303A [1]
+*   **邮箱**：renkan@shanghaitech.edu.cn [1]
+
+他的研究方向覆盖以下领域：
+1.  **机器学习与强化学习**：包括人工智能基础模型、生成式模型、多模态大模型与 AI 智能体 (Agent) [1]。
+2.  **具体应用方向**：
+    *   面向多维时间序列大数据的机器学习 [4]。
+    *   基于脑机接口的智能人机交互 [4]。
+    *   基于大语言模型的数据科学自动化 [4]。
+    *   数据科学智能体（Data Science Agents）的评估与基准 [5]。
+3.  **应用领域**：医疗健康、推荐广告、金融、能源、交通规划等 [1][4]。",1,1,0,correct,correct,answered,answered,loose atom judge matched 9/9 atoms,loose atom judge matched 9/9 atoms,,,,,1.0,1.0,1.0,1.0,0.0,0.0,16.427,23.57,https://sist.shanghaitech.edu.cn/rk/main.htm,https://sist.shanghaitech.edu.cn/rk/main.htm; https://sist.shanghaitech.edu.cn/2024/0301/c2858a1089322/page.htm,https://sist.shanghaitech.edu.cn/rk/main.htm; https://sist.shanghaitech.edu.cn/2024/0301/c2858a1089322/page.htm; https://sist.shanghaitech.edu.cn/2024/1021/c2858a1101929/page.htm
+q058,Factual,Low,马月昕老师的博士毕业院校、办公室、邮箱和研究方向分别是什么？,马月昕老师博士毕业于香港大学，办公室是信息学院1C-403E，邮箱是 mayuexin@shanghaitech.edu.cn；研究方向是计算机视觉、具身智能和自动驾驶。,"根据提供的来源，马月昕老师的相关信息如下：
+
+*   **博士毕业院校**：香港大学 [1]。
+*   **办公室**：信息学院 1C-403E [1]。
+*   **邮箱**：mayuexin@shanghaitech.edu.cn [1]。
+*   **研究方向**：三维视觉、具身智能、自动驾驶 [1]。","根据提供的来源，马月昕老师的相关信息如下：
+
+*   **博士毕业院校**：香港大学（2019年于计算机科学系获得博士学位）[1][4]。
+*   **办公室**：信息学院1C-403E [2][3]。
+*   **邮箱**：mayuexin@shanghaitech.edu.cn [2][3]。
+*   **研究方向**：三维视觉、具身智能、自动驾驶（部分来源补充为：机器人，尤其是三维场景理解、多模态感知、人机协作等）[1][2][3][4]。",1,1,0,correct,correct,answered,answered,loose atom judge matched 7/8 atoms,loose atom judge matched 7/8 atoms,,,,,1.0,1.0,1.0,1.0,0.0,0.0,9.747,19.638,https://sist.shanghaitech.edu.cn/mayuexin/main.htm; https://sist.shanghaitech.edu.cn/mayuexin/list.htm,https://sist.shanghaitech.edu.cn/mayuexin/list.htm,https://sist.shanghaitech.edu.cn/2024/0416/c2858a1093931/page.htm; https://sist.shanghaitech.edu.cn/2858/list30.htm; https://sist.shanghaitech.edu.cn/mayuexin/list.htm; https://sist.shanghaitech.edu.cn/mayuexin/main.htm
+q059,Factual,Medium,刘晓培老师博士毕业于哪所学校？他的办公室、邮箱和研究方向是什么？,刘晓培老师博士毕业于中国香港中文大学，办公室是信息学院2号楼202J室，邮箱是 liuxp@shanghaitech.edu.cn；研究方向包括计算机图形学、计算流体力学、机器学习、无人飞行器设计与自主导航和高性能并行计算。,"根据提供的官方来源，刘晓培老师的博士毕业院校、办公室、邮箱及研究方向如下：
+
+*   **博士毕业院校**：刘晓培博士于2010年在**中国香港中文大学**（计算机科学与工程系）获得博士学位 [1][2][3][4][5]。
+*   **办公室**：位于上海科技大学信息科学与技术学院2号楼**202J室**（或202.J室） [1][2][3][4][5]。
+*   **邮箱**：**liuxp@shanghaitech.edu.cn** [1][2][3][4][5]。
+*   **研究方向**：
+    *   主要涵盖**计算机图形学**、**计算流体动力学**（或高性能流体流动仿真）、**科学可视化**、**机器学习**、**无人飞行器设计与自主导航**（包括水下及水面机器人系统）、以及**基于GPU的高性能并行计算** [1][2][3][4]。
+    *   具体研究聚焦于**基于物理的仿真**，特别是将介观动力学方法与动态刚体及可变形固体进行耦合，开发降阶建模方法，并探索**sim2real**（仿真到现实）新范式以推进智能流体交互机器人系统的部署 [5]。","根据提供的官方来源，刘晓培老师的博士毕业院校、办公室、邮箱及研究方向如下：
+
+*   **博士毕业院校**：刘晓培博士于2010年在**中国香港中文大学**（计算机科学与工程系）获得博士学位 [1][2][3]。
+*   **办公室**：信息学院2号楼202J室（地址：中国上海浦东新区华夏中路393号上海科技大学信息科学与技术学院2号楼） [1][2][3]。
+*   **邮箱**：liuxp@shanghaitech.edu.cn [1][2][3]。
+*   **研究方向**：
+    *   主要涵盖：计算机图形学、计算流体动力学（计算流体力学）、科学可视化、机器学习、无人飞行器设计与自主导航、基于GPU的高性能并行计算 [1][2]。
+    *   具体聚焦领域：基于物理的仿真、机器人学与机器学习的交叉领域；高性能流体流动仿真的基础与应用（采用介观动力学方法，涉及与动态刚体及可变形固体的耦合及降阶建模）；水下及水面机器人系统中的决策难题；大规模并行计算技术以提升仿真效率；以及通过多尺度仿真到现实（sim2real）新范式推进智能流体交互机器人系统的现实部署 [3]。",1,1,0,correct,correct,answered,answered,loose atom judge matched 8/9 atoms,loose atom judge matched 9/9 atoms,,,,,1.0,1.0,1.0,1.0,0.0,0.0,20.165,27.046,https://sist.shanghaitech.edu.cn/liuxp/main.htm; https://sist.shanghaitech.edu.cn/liuxp/list.htm,https://sist.shanghaitech.edu.cn/liuxp/list.htm; https://sist.shanghaitech.edu.cn/liuxp/; https://sist.shanghaitech.edu.cn/liuxp/main.htm; https://faculty.sist.shanghaitech.edu.cn/faculty/liuxp/index_ch.htm,https://sist.shanghaitech.edu.cn/liuxp/main.htm; https://sist.shanghaitech.edu.cn/liuxp/list.htm; https://faculty.sist.shanghaitech.edu.cn/faculty/liuxp/index_ch.htm
+q060,Factual,Low,廖奇峰老师的电话、办公室、邮箱和研究方向是什么？,廖奇峰老师的电话是021-20685400，办公室是信息学院2-402D，邮箱是 liaoqf@shanghaitech.edu.cn；研究方向是科学计算、不确定性量化和计算与应用数学。,"根据提供的资料，廖奇峰老师的联系方式和研究方向如下：
+
+*   **电话**：021-20685400 [1]
+*   **办公室**：信息学院2-402D [1]
+*   **邮箱**：liaoqf@shanghaitech.edu.cn [1]
+*   **研究方向**：科学计算，不确定性量化，计算与应用数学 [1]","根据提供的来源，廖奇峰老师的联系方式和研究方向如下：
+
+*   **电话**：
+    *   办公室电话：021-20685400 [1]
+    *   移动电话：13917124435 [3]
+*   **办公室**：信息学院 2-402D [1]
+*   **邮箱**：liaoqf@shanghaitech.edu.cn [1]
+*   **研究方向**：科学计算，不确定性量化，计算与应用数学 [1]；部分资料中也提及“计算数学，应用数学” [3]。",1,1,0,correct,correct,answered,answered,loose atom judge matched 9/9 atoms,loose atom judge matched 9/9 atoms,,,,,1.0,1.0,1.0,1.0,0.0,0.0,10.319,19.852,https://sist.shanghaitech.edu.cn/liaoqf/main.htm; https://sist.shanghaitech.edu.cn/liaoqf/list.htm,https://sist.shanghaitech.edu.cn/liaoqf/list.htm,https://sist.shanghaitech.edu.cn/liaoqf/list.htm; https://sist.shanghaitech.edu.cn/_upload/article/files/9e/5c/2d39ea7f4f5d849a73a5fe17940f/9582647f-ca7d-4cb8-a79c-fd3b062c970b.docx
+q061,Factual,Medium,赵登吉老师的博士毕业院校、办公室、邮箱和研究方向是什么？,赵登吉老师博士毕业于澳大利亚西悉尼大学和法国图卢兹大学，办公室是信息学院1A-304E室，邮箱是 zhaodj@shanghaitech.edu.cn；研究方向包括人工智能、多智能体系统、算法博弈论、机制设计、在线合作博弈和AI Agents。,"根据提供的来源，关于赵登吉老师的信息如下：
+
+*   **博士毕业院校**：来源中未提及赵登吉老师的博士毕业院校。来源 [3] 仅提供了另一位教师（石野）的博士毕业院校为悉尼科技大学 [3]。
+*   **办公室**：信息学院 1A-304E 室 [1][2][4]。
+*   **邮箱**：zhaodj@shanghaitech.edu.cn [1][2][4]。
+*   **研究方向**：人工智能，多智能体系统，算法博弈论，机制设计，在线合作博弈，AI Agents [1][2][4]。具体研究重点是社交网络上的博弈，特别是基于社交网络的机制设计新研究 [1][2][4]。","根据提供的来源信息，赵登吉老师的博士毕业院校、办公室、邮箱和研究方向如下：
+
+*   **博士毕业院校**：澳洲西悉尼大学（2009年入学）和法国图卢兹大学（2012年入学），获得计算机双博士学位 [4]。
+*   **办公室**：信息学院1A-304E室 [1]。
+*   **邮箱**：zhaodj@shanghaitech.edu.cn [1]。
+*   **研究方向**：人工智能、多智能体系统、算法博弈论、机制设计、在线合作博弈、AI Agents，特别是社交网络上的博弈及基于社交网络的机制设计 [1]。",1,1,0,correct,correct,answered,answered,loose atom judge matched 10/12 atoms,loose atom judge matched 11/12 atoms,,,,,1.0,1.0,1.0,1.0,0.0,0.0,14.564,20.318,https://sist.shanghaitech.edu.cn/zhaodj/main.htm; https://sist.shanghaitech.edu.cn/zhaodj/list.htm,https://sist.shanghaitech.edu.cn/_upload/article/files/d0/82/218152ad4bd29c54d8a89d0e6be7/ddce2ce5-e97b-4a78-8607-1504bbbfd125.pdf; https://sist.shanghaitech.edu.cn/zhaodj/list.htm; https://sist.shanghaitech.edu.cn/zhaodj/; https://sist.shanghaitech.edu.cn/zhaodj/main.htm,https://sist.shanghaitech.edu.cn/_upload/article/files/d0/82/218152ad4bd29c54d8a89d0e6be7/576c71f4-32cb-4387-bb7c-e3e63eb4e54e.pdf; https://sist.shanghaitech.edu.cn/zhaodj/list.htm
+q062,Factual,Low,虞晶怡教授在上海科技大学担任什么职务？他的博士毕业院校和研究方向是什么？,虞晶怡教授担任上海科技大学副校长、讲席教授、博导，博士毕业于美国麻省理工学院；研究方向包括计算机视觉、计算机图形学、计算成像和摄影、医学图像处理和生物信息学。,"根据提供的官方来源，虞晶怡教授在上海科技大学担任**副校长**、**讲席教授**及**博士生导师**，同时兼任**智能感知与人机协同教育部重点实验室主任** [1][2][3][4]。
+
+他的博士毕业院校是**美国麻省理工学院（MIT）**，于2005年获得博士学位 [1][2][3][4]。
+
+他的主要研究方向包括**计算机视觉**、**计算成像**、**计算机图形学**、**医学图像处理**以及**生物信息学** [1][2][3][4]。","根据提供的官方来源，虞晶怡教授在上海科技大学担任**副校长**、**讲席教授**及**博士生导师**，同时兼任**智能感知与人机协同教育部重点实验室主任** [1][2]。
+
+他的博士毕业院校是**美国麻省理工学院（MIT）**，于2005年获得博士学位 [1][2]。
+
+他的主要研究方向包括：**计算机视觉**、**计算成像**、**计算机图形学**、**医学图像处理**以及**生物信息学** [1][2]。",1,1,0,correct,correct,answered,answered,loose atom judge matched 8/11 atoms,loose atom judge matched 8/11 atoms,,,,,1.0,1.0,1.0,1.0,0.0,0.0,11.316,17.766,https://sist.shanghaitech.edu.cn/yujingyi/main.htm,https://sist.shanghaitech.edu.cn/yujingyi/main.htm; https://sist.shanghaitech.edu.cn/yujingyi/list.htm; https://sist.shanghaitech.edu.cn/yujingyi/,https://sist.shanghaitech.edu.cn/yujingyi/main.htm; https://sist.shanghaitech.edu.cn/yujingyi/list.htm
+q063,Factual,Medium,上海科技大学智能医学信息研究中心的应用目标和主要研究领域是什么？,智能医学信息研究中心致力于智能信息技术在健康医疗产业的应用，目标是医疗的智能化、普及化、精准化；主要研究领域包括疾病机理、生物信号采集及处理、智能诊断、生理建模、疾病治疗方法、医疗安全，以及医疗人工智能、健康医疗大数据、智能医疗仪器和生物信息学等。,"上海科技大学智能医学信息研究中心（SMIRC）的应用目标是**致力于智能信息技术在健康医疗产业的应用**，具体以**医疗的智能化、普及化、精准化**为目标 [1][3]。
+
+其主要研究领域包括：
+1.  **基础理论与临床应用方向**：专注于疾病机理、生物信号采集及处理、智能诊断、生理建模、疾病治疗方法、医疗安全等领域 [1][3]。
+2.  **具体研究范畴**：包括多模态生物医学数据分析与处理、智能医疗仪器开发与验证、医疗人工智能、健康医疗大数据以及生物信息学等 [3][4]。
+3.  **招聘重点方向（反映研究前沿）**：健康医疗大数据、AI 助力药物研发、应用于生物医学的系统辨识和建模技术、医学人工智能、生物医学大语言模型 [3]。
+
+此外，中心还大力促进与医院、医疗相关院所和企业的深度合作，推动技术进步及技术转化 [3]。","上海科技大学智能医学信息研究中心（SMIRC）的应用目标是**致力于智能信息技术在健康医疗产业的应用**，具体以**医疗的智能化、普及化、精准化**为目标 [1][2][3][4][5]。
+
+其主要研究领域包括：
+1.  **基础理论与临床应用方向**：专注于生物信号采集及处理、生物信息大数据、疾病机理及治疗方法、医疗安全、智能诊断、生理建模等领域 [1][2][3][4][5]。
+2.  **具体研究范畴**：包括多模态生物医学数据分析与处理、智能医疗仪器开发与验证、医疗人工智能、健康医疗大数据以及生物信息学等 [1][2][3][4][5]。
+3.  **招聘重点方向（反映研究前沿）**：健康医疗大数据、AI 助力药物研发、应用于生物医学的系统辨识和建模技术、医学人工智能、生物医学大语言模型 [1][3][4]。
+4.  **实验室细分领域**：涵盖医学影像处理（如超声、MRI、光学成像）、医疗人工智能、健康医疗大数据、智能医疗仪器、生物信息学、生物医学信号、无损检测、电磁声学成像、科学人工智能、人机物三元融合、分子影像及生物光学等 [5]。",1,1,0,correct,correct,answered,answered,loose atom judge matched 15/16 atoms,loose atom judge matched 14/16 atoms,,,,,0.0,1.0,0.0,1.0,0.0,0.0,15.493,26.389,https://smirc.sist.shanghaitech.edu.cn/zh/,https://sist.shanghaitech.edu.cn/_t335/2024/1224/c9183a1104988/page.htm; https://sist.shanghaitech.edu.cn/2025/0707/c2858a1112537/page.htm; https://sist.shanghaitech.edu.cn/_t335/2022/0214/c2863a345236/page.htm,https://sist.shanghaitech.edu.cn/2025/0707/c2858a1112537/page.htm; https://sist.shanghaitech.edu.cn/_t335/2024/1224/c9183a1104988/page.htm; https://sist.shanghaitech.edu.cn/_t335/2022/0214/c2863a345236/page.htm; https://sist.shanghaitech.edu.cn/2023/0424/c2863a1077064/page.htm; https://smirc.sist.shanghaitech.edu.cn/zh/
+q064,Factual,Low,智能医学信息研究中心的生物医学信号处理与仪器实验室研究什么？课题组组长是谁？,生物医学信号处理与仪器实验室研究生物医学信号采集和处理，及其在神经肌肉康复和智能健康监控中的应用；课题组组长是徐林教授。,智能医学信息研究中心的生物医学信号处理与仪器实验室主要研究**生物医学信号采集和处理**，及其在**神经肌肉康复**和**智能健康监控**中的应用 [1]。该实验室课题组组长是**徐林**助理教授 [1]。,"根据提供的资料，智能医学信息研究中心的**生物医学信号处理与仪器实验室**（Biosignal and Medical Devices Laboratory）的研究方向及课题组组长信息如下：
+
+**1. 研究方向**
+该实验室的研究方向为**生物医学信号采集和处理**，及其在**神经肌肉康复**和**智能健康监控**中的应用 [1]。
+具体细分领域包括：
+*   生理信号采集与处理；
+*   自适应滤波；
+*   盲源信号分离；
+*   机器学习可穿戴医疗设备；
+*   神经肌肉康复工程；
+*   脑机接口智能健康监控 [2]。
+
+**2. 课题组组长**
+该实验室的课题组组长是**徐林**（助理教授）[1][2]。",1,1,0,correct,correct,answered,answered,loose atom judge matched 7/7 atoms,loose atom judge matched 7/7 atoms,,,,,1.0,1.0,1.0,1.0,0.0,0.0,7.149,20.561,https://smirc.sist.shanghaitech.edu.cn/zh/project/bspi/,https://smirc.sist.shanghaitech.edu.cn/zh/project/bspi/,https://smirc.sist.shanghaitech.edu.cn/zh/project/bspi/; https://smirc.sist.shanghaitech.edu.cn/zh/
+q065,Factual,Medium,精密传感与智能检测实验室的研究方向、招生名额、联系邮箱和课题组组长分别是什么？,精密传感与智能检测实验室的研究方向包括无损检测、电磁测量与成像、电磁场与电路系统建模等；课题组每年有2-3个硕士或博士名额，申请联系邮箱是 yechf@shanghaitech.edu.cn，课题组组长是叶朝锋教授。,email: 申请请联系yechf@shanghaitech.edu.cn [1].,研究方向是无损检测、电磁测量与成像、电磁场与电路系统建模；招生名额是2-3个硕士或博士名额；联系邮箱是申请请联系yechf@shanghaitech.edu.cn；组长是叶朝锋。 [1],0,1,1,incorrect,correct,answered,answered,loose atom judge matched 1/10 atoms,loose atom judge matched 8/10 atoms,partial_correct,,"Gives the contact email yechf@shanghaitech.edu.cn, but misses directions, quota, and PI.",,1.0,1.0,1.0,1.0,0.0,0.0,23.715,30.808,https://smirc.sist.shanghaitech.edu.cn/zh/project/psit/,https://smirc.sist.shanghaitech.edu.cn/zh/project/psit/,https://smirc.sist.shanghaitech.edu.cn/zh/project/psit/
+q066,Factual,Medium,信息学院科学研究栏目下的“研究中心”页面列出了哪些研究中心？,该页面列出的研究中心包括视觉与数据智能中心、智能网络中心、后摩尔器件与集成系统中心、智慧电气科学中心、自动化与机器人中心、智能医学信息研究中心和系统与安全中心。,"根据上海科技大学信息科学与技术学院“科学研究”栏目下的“研究中心”页面，该页面列出了以下七大研究中心：
+
+1. 视觉与数据智能中心 [2][3][4][5]
+2. 智能网络中心 [2][3][4][5]
+3. 后摩尔器件与集成系统中心 [2][3][4][5]
+4. 智慧电气科学中心 [2][3][4][5]
+5. 自动化与机器人中心 [2][3][4][5]
+6. 智能医学信息研究中心 [2][3][4][5]
+7. 系统与安全中心 [2][3][4][5]","根据提供的来源，信息学院“科学研究”栏目下的“研究中心”页面列出了以下七个研究中心：
+
+1. 视觉与数据智能中心 [1][2][3]
+2. 智能网络中心 [1][2][3]
+3. 后摩尔器件与集成系统中心 [1][2][3]
+4. 智慧电气科学中心 [1][2][3]
+5. 自动化与机器人中心 [1][2][3]
+6. 智能医学信息研究中心 [1][2][3]
+7. 系统与安全中心 [1][2][3]
+
+注：来源 [5] 中提到的“数据科学与机器智能研究中心”、“虚拟现实与视觉计算中心”、“网络科学中心”、“后摩尔时代器件与集成系统研究中心”、“先进电力与能源系统中心”、“自动化与机器人中心”和“计算机系统与安全中心”是2018级研招Q&A中提及的旧称或不同表述，而当前“研究中心”页面（来源 [1][2][3]）明确列出了上述七个中心。",1,1,0,correct,correct,answered,answered,loose atom judge matched 11/11 atoms,loose atom judge matched 11/11 atoms,,,,,1.0,1.0,1.0,1.0,0.0,0.0,12.643,23.918,https://sist.shanghaitech.edu.cn/2848/list.htm,https://sist.shanghaitech.edu.cn/_t335/2848/list.htm; https://sist.shanghaitech.edu.cn/_t335/2715/list.htm,https://sist.shanghaitech.edu.cn/2848/list.htm; https://sist.shanghaitech.edu.cn/_t335/2715/list.htm; https://sist.shanghaitech.edu.cn/2026/0506/c10969a1121576/page.htm; https://sist.shanghaitech.edu.cn/2017/0511/c7340a23942/page.htm
+q067,Factual,Low,根据2025级计算机科学与技术专业本科生培养方案，学生毕业至少需要修满多少总学分？其中专业课程板块的必修、选修和合计学分分别是多少？,毕业至少需要修满145学分；专业课程板块中必修20学分、选修39学分，合计59学分。,2025级计算机科学与技术专业中，专业课程板块至少需要选修39学分。 [1],"根据提供的来源，**无法回答**关于2025级计算机科学与技术专业本科生毕业所需总学分及专业课程板块（必修、选修、合计）的具体学分要求。
+
+原因如下：
+1.  **来源 [5]** 详细列出了2025级**硕博连读生和直博生**的学分要求（总学分不低于42学分，专业课不低于30学分等），但明确指出该方案不适用于本科生。
+2.  **来源 [3]** 和 **[4]** 仅列出了2025级本科生培养方案的**标题**（如""2025级本科生培养方案--计算机科学与技术专业”），并未包含具体的学分表格或文字描述。
+3.  **来源 [1]** 和 **[2]** 仅提供了2025级本科培养方案的**链接**，没有提供方案的具体内容文本。
+
+因此，现有证据不足以提供2025级本科生计算机科学与技术专业的具体学分数据。",0,0,0,incorrect,incorrect,answered,answered,loose atom judge missing required quantity atoms: 3,loose atom judge missing required quantity atoms: 4,partial_correct,incorrect,"Gives the 39 elective credits, but misses total 145, required 20, and total professional 59.",答案明确无法回答，未给出145、20、39、59学分。,1.0,0.0,1.0,0.0,0.0,0.0,13.68,23.325,https://faculty.sist.shanghaitech.edu.cn/office/Academics/Undergraduate/Degree%20Programmes/2025%20Bachelor%20Degree%20Programs%20in%20CS.htm,https://faculty.sist.shanghaitech.edu.cn/office/Academics/Undergraduate/Degree%20Programmes/2025%20Bachelor%20Degree%20Programs%20in%20CS.htm,https://faculty.sist.shanghaitech.edu.cn/office/Academics/Graduate/Degree%20Programs/2025-%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%A7%91%E5%AD%A6%E4%B8%8E%E6%8A%80%E6%9C%AF-%E7%A1%95%E5%8D%9A%E8%BF%9E%E8%AF%BB&%E7%9B%B4%E5%8D%9A.pdf; https://sist.shanghaitech.edu.cn/_t335/2833/list1.htm; https://sist.shanghaitech.edu.cn/2833/list.htm; https://oaa.shanghaitech.edu.cn/2025/0902/c4234a1114667/page.htm; https://oaa.shanghaitech.edu.cn/2025/0902/c4234a1114666/page.htm
+q068,Comparative,Medium,对比2025级普通CS专业和CS专业人工智能荣誉班本科培养方案，两者在自然科学通识板块和专业课程板块的总学分要求分别是多少？,普通CS专业要求自然科学通识32学分、专业课程59学分；人工智能荣誉班要求自然科学通识28学分、专业课程68学分。,"根据提供的2025级本科生培养方案，2025级普通CS专业与CS专业人工智能荣誉班在自然科学通识板块和专业课程板块的总学分要求对比如下：
+
+**1. 自然科学通识板块总学分：**
+*   **CS专业人工智能荣誉班**：要求修满 **28** 学分（其中必修12学分，选修16学分）[1]。
+*   **普通CS专业**：要求修满 **32** 学分（其中必修16学分，选修16学分）[2]。
+
+**2. 专业课程板块总学分：**
+*   **CS专业人工智能荣誉班**：要求修满 **68** 学分（其中必修42学分，选修26学分）[1]。
+*   **普通CS专业**：要求修满 **59** 学分（其中必修20学分，选修39学分）[2]。
+
+**总结：**
+相较于普通CS专业，CS专业人工智能荣誉班在自然科学通识板块减少了4学分，但在专业课程板块增加了9学分。",,1,0,-1,correct,manual_review,answered,,loose atom judge matched 4/4 atoms,run error,,,,,1.0,,1.0,,0.0,,17.836,27.497,https://faculty.sist.shanghaitech.edu.cn/office/Academics/Undergraduate/Degree%20Programmes/2025%20Bachelor%20Degree%20Programs%20in%20CS.htm; https://faculty.sist.shanghaitech.edu.cn/office/Academics/Undergraduate/Degree%20Programmes/2025%20Bachelor%20Degree%20Prorgams%20in%20CS%20(AI%20Honors%20Class).htm,https://faculty.sist.shanghaitech.edu.cn/office/Academics/Undergraduate/Degree%20Programmes/2025%20Bachelor%20Degree%20Prorgams%20in%20CS%20(AI%20Honors%20Class).htm; https://faculty.sist.shanghaitech.edu.cn/office/Academics/Undergraduate/Degree%20Programmes/2025%20Bachelor%20Degree%20Programs%20in%20CS.htm,
+q069,Conditional,Medium,2025级CS专业本科生在专业限选课程中，如果同时多修读了“电路基础加实验”和“信号与系统加实验”这组二选一课程，多出的学分会如何计入？同一规则还适用于哪一组二选一课程？,“电路基础加实验”和“信号与系统加实验”至少二选一；如果多选，多余学分记入本学科选修34学分中。同样的二选一规则也适用于“操作系统I”和“人工智能I”。,"根据提供的2020级计算机专业（CS）培养方案 [5]，在专业限选课程板块中，“电路基础加实验”（EE111+EE111L）和“信号与系统加实验”（EE150+EE150L）属于“至少二选一”的课程组。如果学生同时多修读了这两门课程，**多出的学分会记在本学科选修的31学分中**。
+
+同一规则同样适用于该板块中的另一组二选一课程：**“操作系统”（CS130）和“人工智能”（CS181）**。如果多选这两门课，多余学分也将记在本学科选修的31学分中 [5]。
+
+*注：2022级及2023级EE专业培养方案 [1][2][3] 中，对应课程组（电路基础、信号与系统）的规则为“至少三选二”，多余学分记在本学科选修的21学分中，但问题明确询问的是CS专业且涉及的具体课程组合（如“电路基础加实验”）主要出现在2020级CS方案中。*","根据 2025 级 CS 专业培养方案 [4]，在专业限选课程板块中，“电路基础加实验”（EE111+EE111L）和“信号与系统加实验”（EE150+EE150L）为二选一课程。如果学生同时多修读了这两门课程，多出的学分会记在**本学科选修**（34 学分）中。
+
+同一规则同样适用于**CS130**（操作系统 I）和**CS181**（人工智能 I）这组二选一课程，若多选，多余学分也将记在本学科选修的 34 学分中 [4]。",0,1,1,incorrect,correct,answered,answered,loose atom judge missing required quantity atoms: 1,loose atom judge matched 4/6 atoms,partial_correct,,"Captures the two-choice rule and the analogous OS/AI group, but uses stale 31-credit information instead of 2025/34 credits.",,0.0,1.0,0.0,1.0,0.0,0.0,19.021,21.538,https://faculty.sist.shanghaitech.edu.cn/office/Academics/Undergraduate/Degree%20Programmes/2025%20Bachelor%20Degree%20Programs%20in%20CS.htm,https://faculty.sist.shanghaitech.edu.cn/office/Academics/Undergraduate/Degree%20Programmes/2020%20Bachelor%20Degree%20Programs%20in%20CS.html; https://faculty.sist.shanghaitech.edu.cn/office/Academics/Undergraduate/Degree%20Programmes/2020%20Bachelor%20Degree%20Programs%20in%20EE.html; https://faculty.sist.shanghaitech.edu.cn/office/Academics/Undergraduate/Degree%20Programmes/2022%20Bachelor%20Degree%20Programs%20in%20EE.htm; https://faculty.sist.shanghaitech.edu.cn/office/Academics/Undergraduate/Degree%20Programmes/2023%20Bachelor%20Degree%20Programs%20in%20EE.htm,https://faculty.sist.shanghaitech.edu.cn/office/Academics/Undergraduate/Degree%20Programmes/2025%20Bachelor%20Degree%20Programs%20in%20CS.htm
+q070,Multi-hop,High,如果2025级CS本科生选择人工智能方向，方向必修课包含哪些课程？其中《深度学习》在2025-2026学年课程表中秋季和春季分别由谁授课？,人工智能方向必修课包含《人工智能I》《机器学习引论》《深度学习》。其中《深度学习》（CS280）在2025-2026学年秋季由许岚授课，春季由曹迎授课。,"根据提供的来源，**无法回答**关于2025级CS本科生选择人工智能方向的“方向必修课”具体包含哪些课程，以及《深度学习》在2025-2026学年秋、春两季的具体授课教师。
+
+原因如下：
+1.  **缺乏本科生方向必修课程列表**：提供的来源中，[1]和[3]仅包含""2025-2026学年春/秋学期课程推介”的标题，未列出具体课程列表或方向必修要求；[2]和[4]明确标注为""Graduate""（研究生）课程表，且年份分别为2023和2024，不适用于2025级本科生。
+2.  **缺乏2025-2026学年授课教师信息**：来源[2]和[4]中的《深度学习》（CS280）授课教师为曹迎，但这是2023和2024学年的数据，无法直接推断2025-2026学年的授课安排。来源[1]和[3]虽涉及2025-2026学年，但未提供具体的课程表或教师信息。
+
+因此，基于现有证据，无法提供该问题的确切答案。",2025-2026学年第一学期本科生课程总表 [4].,0,0,0,incorrect,incorrect,answered,answered,loose atom judge matched 2/6 atoms,loose atom judge matched 0/6 atoms,wrong_insufficient,incorrect,Refuses the 2025 CS AI direction and 2025-2026 Deep Learning instructor facts.,答案只有课程表标题，未给出AI方向必修课和CS280任课教师。,0.0,0.0,0.0,0.0,0.0,0.0,19.693,15.427,https://faculty.sist.shanghaitech.edu.cn/office/Academics/Undergraduate/Degree%20Programmes/2025%20Bachelor%20Degree%20Programs%20in%20CS.htm; https://faculty.sist.shanghaitech.edu.cn/office/Academics/Courses/SIST_2025-2026_Courses.htm,https://oaa.shanghaitech.edu.cn/2025/1224/c4228a1118327/page.htm; https://oaa.shanghaitech.edu.cn/2025/0630/c4228a1112342/page.htm; https://faculty.sist.shanghaitech.edu.cn/office/Academics/Graduate/Courses/Schedule_2023_Spring_Graduate_cn.htm; https://faculty.sist.shanghaitech.edu.cn/office/Academics/Graduate/Courses/Schedule_2024_Spring_Graduate_cn.htm,https://oaa.shanghaitech.edu.cn/2025/0922/c4227a1115392/page.htm
+q071,Factual,Low,根据2025级计算机科学与技术专业人工智能荣誉班培养方案，学生毕业至少需要多少总学分？自然科学通识、专业课程和任选课程分别要求多少学分？,人工智能荣誉班毕业至少需要145学分；自然科学通识28学分，专业课程68学分，任选课程4学分。,"根据2025级计算机科学与技术专业人工智能荣誉班培养方案，学生毕业至少需要修满**145**总学分。各类别的具体学分要求如下：
+
+*   **自然科学通识**：必修12学分，选修16学分，共计**28**学分 [1]。
+*   **专业课程**：必修42学分，选修26学分，共计**68**学分 [1]。
+*   **任选课程**：必修4学分，选修141学分（总学分145减去其他类别必修及选修学分），共计**141**学分（注：方案表格中“任选课程”行显示必修4学分，总学分145，故选修部分为141学分）[1]。
+
+**详细依据：**
+在“学位授予标准”表格中，人工智能荣誉班的学分分布为：
+*   人文社科通识：必修30，选修15，合计45。
+*   自然科学通识：必修12，选修16，合计28。
+*   专业课程：必修42，选修26，合计68。
+*   任选课程：必修4，合计145（即选修部分为145 - 45 - 28 - 68 = 4？此处需仔细核对表格逻辑）。
+
+**重新核对表格数据逻辑：**
+表格显示：
+类别 | 必修 | 选修 | 学分
+---|---|---|---
+人文社科通识 | 30 | 15 | 45
+自然科学通识 | 12 | 16 | 28
+专业课程 | 42 | 26 | 68
+任选课程 | 4 | 145 | (此处表格排版可能有误，通常“任选课程”的总学分应为剩余部分)
+
+让我们计算总和：45 (人文) + 28 (自然) + 68 (专业) = 141。
+总要求是145。
+因此，任选课程的总学分应为 145 - 141 = **4**学分。
+但是，表格中“任选课程”行的“学分”列写的是""145""，这通常是该行的总学分或者是排版错误将总学分填入了该行。
+再看“必修”列：30+12+42+4 = 88。
+再看“选修”列：15+16+26 = 57。
+88 + 57 = 145。
+所以，**任选课程**的构成是：必修4学分，选修0学分？或者表格中的""145""是指总学分，而任选课程的选修部分为0？
+不对，通常“任选课程”包含大量选修。
+让我们看表格原文结构：
+类别 | 必修 | 选修 | 学分
+人文社科通识 | 30 | 15 | 45
+自然科学通识 | 12 | 16 | 28
+专业课程 | 42 | 26 | 68
+任选课程 | 4 | 145 | (空或隐含)
+
+如果总学分是145。
+前三个类别的必修和 = 30+12+42 = 84。
+前三个类别的选修和 = 15+16+26 = 57。
+前三个类别总和 = 141。
+剩余给“任选课程”的总学分 = 145 - 141 = 4。
+表格中“任选课程”行的“必修”列是4。
+这意味着：任选课程总学分4，其中必修4，选修0。
+这与通常的“任选课程”概念（通常多为选修）略有出入，但必须严格依据提供的表格数据。
+表格中“任选课程”行的“学分”列写的是""145""，这极有可能是排版错误，将“总学分”这一列的标题或数值误填到了“任选课程”行，或者该列表示的是“累计至该行的总学分”？
+不，看第一行“人文社科通识”，学分列是45（30+15）。
+第二行“自然科学通识”，学分列是28（12+16）。
+第三行“专业课程”，学分列是68（42+26）。
+第四行“任选课程”，学分列是145。如果这是该行自身的总和，那么 4 + 145 = 149，超过了145。
+如果145是总学分，那么该行“学分”列不应再写145，除非它是表示“该类别及之前类别的",2025级计算机科学与技术专业人工智能荣誉班毕业至少需要修满145学分；自然科学通识28学分，专业课程68学分，任选课程4学分。 [1],1,1,0,correct,correct,answered,answered,loose atom judge matched 4/4 atoms,loose atom judge matched 4/4 atoms,,,,,1.0,1.0,1.0,1.0,0.0,0.0,61.998,29.751,https://faculty.sist.shanghaitech.edu.cn/office/Academics/Undergraduate/Degree%20Programmes/2025%20Bachelor%20Degree%20Prorgams%20in%20CS%20(AI%20Honors%20Class).htm,https://faculty.sist.shanghaitech.edu.cn/office/Academics/Undergraduate/Degree%20Programmes/2025%20Bachelor%20Degree%20Prorgams%20in%20CS%20(AI%20Honors%20Class).htm,https://faculty.sist.shanghaitech.edu.cn/office/Academics/Undergraduate/Degree%20Programmes/2025%20Bachelor%20Degree%20Prorgams%20in%20CS%20(AI%20Honors%20Class).htm
+q072,Comparative,Medium,在2025-2026学年信息学院课程表中，《深度学习》（CS280）和《机器学习》（CS282）的开课学期与任课教师有什么不同？,CS280《深度学习》秋季由许岚授课、春季由曹迎授课；CS282《机器学习》春季由王浩授课、秋季由任侃授课。两门课均为4学分。,证据不足：当前检索到的官方来源不足以回答这个问题。,上海科技大学2025-2026学年第1学期信息学院本科生课表：（教学中心102，1-16周）; 机器学习引论【赵子平】; （教学中心204，1-16周）; 电磁学课程设计【李娟】 [4].,0,0,0,evidence_insufficient,incorrect,insufficient_evidence,answered,evidence insufficient answer,loose atom judge missing required quantity atoms: 1,,incorrect,,答案未给出CS280/CS282开课学期和任课教师对比。,0.0,1.0,0.0,0.0,0.0,1.0,30.955,44.901,https://faculty.sist.shanghaitech.edu.cn/office/Academics/Courses/SIST_2025-2026_Courses.htm,,https://faculty.sist.shanghaitech.edu.cn/office/Academics/Undergraduate/Course%20schedule/2025-2026Fall_Semester_Schedule.htm
+q073,Multi-hop,Medium,2025级CS本科专业必修课中，与“计算机体系结构I”配套的课程设计代码是什么？理论课与课程设计合计多少学分，推荐在哪个学期修读？,配套课程设计是CS110P《计算机体系结构I课程设计》。CS110理论课4学分、CS110P课程设计2学分，合计6学分，均推荐在二（2）学期修读。,"根据提供的2025级CS专业培养方案，与“计算机体系结构I""（CS110）配套的课程设计代码是 **CS110P**（计算机体系结构I 课程设计）[4]。
+
+理论课与课程设计合计 **6** 学分（理论课CS110为4学分，课程设计CS110P为2学分）[4]。这两门课程均推荐在 **二（2）** 学期修读 [4]。","根据 2025 级 CS 专业培养方案 [2]：
+
+*   **配套课程设计代码**：与“计算机体系结构 I""（CS110）配套的课程设计代码是 **CS110P**（课程名称：计算机体系结构 I 课程设计）。
+*   **合计学分**：理论课（CS110）为 **4** 学分，课程设计（CS110P）为 **2** 学分，合计 **6** 学分。
+*   **推荐修读学期**：两门课程均推荐在 **二（2）** 学期修读。",1,1,0,correct,correct,answered,answered,loose atom judge matched 7/8 atoms,loose atom judge matched 7/8 atoms,,,,,1.0,1.0,1.0,1.0,0.0,0.0,10.695,20.178,https://faculty.sist.shanghaitech.edu.cn/office/Academics/Undergraduate/Degree%20Programmes/2025%20Bachelor%20Degree%20Programs%20in%20CS.htm,https://faculty.sist.shanghaitech.edu.cn/office/Academics/Undergraduate/Degree%20Programmes/2025%20Bachelor%20Degree%20Programs%20in%20CS.htm,https://faculty.sist.shanghaitech.edu.cn/office/Academics/Undergraduate/Degree%20Programmes/2025%20Bachelor%20Degree%20Programs%20in%20CS.htm
+q074,Factual,Low,根据2025级计算机科学与技术硕士培养方案，该硕士项目的三个主要学科方向是什么？总学分和课程学分最低要求分别是多少？,三个主要学科方向是计算机视觉与人工智能、数据科学与软件理论、智能网络与边缘计算。总学分不低于33学分，其中课程学分不低于32学分。,根据2025级计算机科学与技术硕士培养方案，该项目的三个主要学科方向是：计算机视觉与人工智能、数据科学与软件理论、智能网络与边缘计算 [1][2][3]。总学分最低要求为33个学分，其中课程学分最低要求为32学分 [1][2][3]。,"根据 2025 级计算机科学与技术硕士培养方案 [1]，该硕士项目的三个主要学科方向是：
+1. 计算机视觉与人工智能
+2. 数据科学与软件理论
+3. 智能网络与边缘计算
+
+学分要求如下：
+*   **总学分**：不低于 33 学分 [1]。
+*   **课程学分**：不低于 32 学分 [1]。",1,1,0,correct,correct,answered,answered,loose atom judge matched 9/9 atoms,loose atom judge matched 9/9 atoms,,,,,1.0,1.0,1.0,1.0,0.0,0.0,8.134,16.864,https://faculty.sist.shanghaitech.edu.cn/office/Academics/Graduate/Degree%20Programs/2025-%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%A7%91%E5%AD%A6%E4%B8%8E%E6%8A%80%E6%9C%AF-%E7%A1%95%E5%A3%AB.pdf,https://faculty.sist.shanghaitech.edu.cn/office/Academics/Graduate/Degree%20Programs/2025-%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%A7%91%E5%AD%A6%E4%B8%8E%E6%8A%80%E6%9C%AF-%E7%A1%95%E5%A3%AB.pdf; https://faculty.sist.shanghaitech.edu.cn/office/Academics/Graduate/Degree%20Programs/2025-%e8%ae%a1%e7%ae%97%e6%9c%ba%e7%a7%91%e5%ad%a6%e4%b8%8e%e6%8a%80%e6%9c%af-%e7%a1%95%e5%a3%ab.pdf,https://faculty.sist.shanghaitech.edu.cn/office/Academics/Graduate/Degree%20Programs/2025-%e8%ae%a1%e7%ae%97%e6%9c%ba%e7%a7%91%e5%ad%a6%e4%b8%8e%e6%8a%80%e6%9c%af-%e7%a1%95%e5%a3%ab.pdf
+q075,Conditional,Medium,2025级计算机科学与技术硕士生的专业课成绩如果没有达到B-，是否能计入专业课学分和门数？如果想把本科期间修读过的研究生课程申请认定，成绩和门数限制是什么？,除《研究生论文写作》外，专业课程成绩达到B-及以上才会计入专业课要求的课程学分和门数；未达到B-需要重修该课或修读其他课程达到B-及以上。本科期间研究生课程认定要求申请课程为3学分及以上研究生专业课、成绩至少B+，且认定课程不得超过2门。,"根据提供的 2025 级计算机科学与技术硕士研究生培养方案 [4][5]：
+
+1.  **关于专业课成绩未达到 B- 的情况：**
+    除《研究生论文写作》外，专业课程成绩必须达到 **B-及以上**，才会被计入专业课要求的课程学分和门数。如果未达到 B-，学生可以重修该门课程或者修读其他课程，使成绩达到 B-及以上 [4][5]。
+
+2.  **关于本科期间修读过的研究生课程申请认定的限制：**
+    对于从本校本科毕业继续攻读本校硕士学位的学生，申请认定本科期间修读过的研究生课程，需满足以下限制：
+    *   **课程性质与学分：** 申请课程必须为 **3 个学分及以上** 的研究生专业课 [4][5]。
+    *   **成绩要求：** 申请课程成绩至少为 **B+** [4][5]。
+    *   **门数限制：** 认定课程不得超过 **2 门** [4][5]。","根据 2025 级计算机科学与技术硕士培养方案 [1]：
+
+1.  **关于专业课成绩未达到 B- 的情况**：
+    除《研究生论文写作》外，专业课程成绩**未达到 B- 的课程不会被计入专业课要求的课程学分和门数**。如果未达到 B-，学生可以重修该门课程或者修读其他课程，使成绩达到 B- 及以上 [1]。
+
+2.  **关于本科研究生课程申请认定的限制**：
+    对于从本校本科毕业继续攻读本校硕士学位的学生，申请认定本科期间修读过的研究生课程，需满足以下条件：
+    *   **课程性质与学分**：申请课程必须为 3 个学分及以上的研究生专业课（或研究生专业核心课程）[1][3][4]。
+    *   **成绩要求**：申请课程成绩至少为 **B+** [1][3][4]。
+    *   **门数限制**：认定课程不得超过 **2 门** [1][3][4]。",1,1,0,correct,correct,answered,answered,loose atom judge matched 5/6 atoms,loose atom judge matched 5/6 atoms,,,,,1.0,1.0,1.0,1.0,0.0,0.0,17.541,24.9,https://faculty.sist.shanghaitech.edu.cn/office/Academics/Graduate/Degree%20Programs/2025-%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%A7%91%E5%AD%A6%E4%B8%8E%E6%8A%80%E6%9C%AF-%E7%A1%95%E5%A3%AB.pdf,https://faculty.sist.shanghaitech.edu.cn/office/Academics/Graduate/Degree%20Programs/2025-%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%A7%91%E5%AD%A6%E4%B8%8E%E6%8A%80%E6%9C%AF-%E7%A1%95%E5%A3%AB.pdf,https://faculty.sist.shanghaitech.edu.cn/office/Academics/Graduate/Degree%20Programs/2025-%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%A7%91%E5%AD%A6%E4%B8%8E%E6%8A%80%E6%9C%AF-%E7%A1%95%E5%A3%AB.pdf; https://faculty.sist.shanghaitech.edu.cn/office/Academics/Graduate/Degree%20Programs/2024-CS-Master.pdf; https://faculty.sist.shanghaitech.edu.cn/office/Academics/Graduate/Degree%20Programs/2020%E7%BA%A7%E9%A1%B9%E7%9B%AE%E5%9E%8B%E5%AD%A6%E6%9C%AF%E7%A1%95%E5%A3%AB%E5%9F%B9%E5%85%BB%E6%96%B9%E6%A1%88V9.pdf
+q076,Comparative,Medium,对比2025级计算机科学与技术硕士培养方案和硕博连读/直博培养方案，两类学生的基本学制、最长学制和总学分最低要求分别是多少？,计算机科学与技术硕士基本学制3年、最长学制4年、总学分不低于33学分；硕博连读生（含硕士阶段）和直博生基本学制5年、最长学制7年、总学分不低于42学分。,"根据提供的2025级计算机科学与技术硕士培养方案及硕博连读/直博培养方案，两类学生的学制和学分要求对比如下：
+
+**1. 硕士研究生（2025级）**
+*   **基本学制**：3年 [5]
+*   **最长学制**：4年 [5]
+*   **总学分最低要求**：33学分（其中课程学分不低于32学分，公共课不低于8学分，专业课不低于24学分） [5]
+
+**2. 硕博连读生（含硕士阶段）和直博生**
+*   **基本学制**：5年 [1][2][3][4]
+*   **最长学制**：7年 [1][2][3][4]
+*   **总学分最低要求**：42学分（其中课程学分不低于40学分，公共课不低于10学分，专业课不低于30学分） [1][2][3][4]",2025级硕士研究生基本学制3年、最长学制4年、总学分不低于33学分；2025级硕博连读生（含硕士阶段）和直博生基本学制5年、最长学制7年、总学分不低于42学分。 [3][1],1,1,0,correct,correct,answered,answered,loose atom judge matched 6/6 atoms,loose atom judge matched 6/6 atoms,,,,,1.0,1.0,1.0,1.0,0.0,0.0,16.821,43.551,https://faculty.sist.shanghaitech.edu.cn/office/Academics/Graduate/Degree%20Programs/2025-%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%A7%91%E5%AD%A6%E4%B8%8E%E6%8A%80%E6%9C%AF-%E7%A1%95%E5%A3%AB.pdf; https://faculty.sist.shanghaitech.edu.cn/office/Academics/Graduate/Degree%20Programs/2025-%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%A7%91%E5%AD%A6%E4%B8%8E%E6%8A%80%E6%9C%AF-%E7%A1%95%E5%8D%9A%E8%BF%9E%E8%AF%BB&%E7%9B%B4%E5%8D%9A.pdf,https://faculty.sist.shanghaitech.edu.cn/office/Academics/Graduate/Degree%20Programs/2025-%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%A7%91%E5%AD%A6%E4%B8%8E%E6%8A%80%E6%9C%AF-%E7%A1%95%E5%A3%AB.pdf; https://faculty.sist.shanghaitech.edu.cn/office/Academics/Graduate/Degree%20Programs/2025-%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%A7%91%E5%AD%A6%E4%B8%8E%E6%8A%80%E6%9C%AF-%E7%A1%95%E5%8D%9A%E8%BF%9E%E8%AF%BB&%E7%9B%B4%E5%8D%9A.pdf; https://faculty.sist.shanghaitech.edu.cn/office/Academics/Graduate/Degree%20Programs/2022-CS-Doctor.pdf; https://faculty.sist.shanghaitech.edu.cn/office/Academics/Graduate/Degree%20Programs/2024-CS-Doctor.pdf; https://faculty.sist.shanghaitech.edu.cn/office/Academics/Graduate/Degree%20Programs/2023-CS-Doctor.pdf,https://faculty.sist.shanghaitech.edu.cn/office/Academics/Graduate/Degree%20Programs/2025-%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%A7%91%E5%AD%A6%E4%B8%8E%E6%8A%80%E6%9C%AF-%E7%A1%95%E5%A3%AB.pdf; https://faculty.sist.shanghaitech.edu.cn/office/Academics/Graduate/Degree%20Programs/2025-%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%A7%91%E5%AD%A6%E4%B8%8E%E6%8A%80%E6%9C%AF-%E7%A1%95%E5%8D%9A%E8%BF%9E%E8%AF%BB&%E7%9B%B4%E5%8D%9A.pdf
+q077,Factual,Low,根据2025级电子信息专业学位硕士培养方案，课程学习原则上应在多久内完成？选课登记表需要由谁确认？总学分和课程学分最低要求分别是多少？,课程学习原则上在1年内完成；学生需在选课结束前提交由双导师确认的学期选课登记表。专业学位硕士研究生总学分不低于33学分，其中课程学分不低于32学分。,"根据提供的2025级电子信息专业学位硕士培养方案（来源 [2]），回答如下：
+
+1.  **课程学习完成时限**：课程学习原则上应在 **1 年** 内完成 [2]。
+2.  **选课登记表确认人**：学生在选课结束前需要提交一份由 **导师** 确认的学期选课登记表 [2]。
+3.  **学分要求**：
+    *   **总学分**：专业学位普通招考博士总学分不低于 **15** 个学分（注：提供的2025级方案文档中仅列出了博士的学分要求，未列出硕士的具体总学分数值，但列出了课程学分要求）[2]。
+    *   **课程学分**：其中课程学分不低于 **14** 学分 [2]。
+
+*注：提供的2025级方案文档（[2]）中关于“电子信息专业学位普通招考博士”的学分要求明确列出了总学分15、课程学分14。虽然文档标题包含“博士”，但结合上下文“专业学位普通招考”及2024/2023级硕士方案（[4][5]）中硕士总学分33、课程学分32的对比，2025级文档中关于“总学分不低于15""和“课程学分不低于14""的表述在原文中明确对应的是“专业学位普通招考博士”这一类别。若需确认2025级**硕士**的具体总学分数值，当前提供的2025级文档片段中未直接显示硕士的总学分要求，仅显示了博士的要求。*
+
+**修正与澄清**：
+重新仔细核对来源 [2] 的文本结构：
+文本中写道：“专业学位普通招考博士总学分不低于 15 个学分，其中课程学分不低于 14 学分。”
+紧接着列出了“电子信息专业学位普通招考博士课程学分汇总表”。
+随后列出了“（一）公共课≥6 学分”和“（二）专业课程≥8 学分”，6+8=14，符合课程学分要求。
+**关键发现**：提供的2025级文档（[2]）中，关于“总学分”和“课程学分”的具体数值（15和14）以及详细的课程分类（公共课6、专业课8）在文本中明确标注为 **“专业学位普通招考博士”** 的要求。
+然而，用户询问的是 **“电子信息专业学位硕士”**。
+在来源 [2] 中，**并未找到** 针对“电子信息专业学位硕士”的总学分和课程学分的具体数值表格或文字描述（文档后半部分突然截断或仅展示了博士部分，或者该文档片段主要展示了博士部分）。
+对比来源 [4] 和 [5]（2023/2024级硕士方案），硕士的总学分是33，课程学分是32。
+**但是**，作为RAG系统，我必须严格依据提供的2025级文档（[2]）回答。在文档 [2] 中，关于“总学分”和“课程学分”的段落明确写着“专业学位普通招考博士总学分不低于 15 个学分，其中课程学分不低于 14 学分”。
+如果文档 [2] 中确实没有硕士的学分数据，而用户问的是硕士，根据指令""If the sources do not contain enough evidence, say that the evidence is insufficient.""。
+
+**再次检查文档 [2] 的完整性**：
+文档 [2] 文本显示：
+""...专业学位普通招考博士总学分不低于 15 个学分，其中课程学分不低于 14 学分。具体要求如下：电子信息专业学位普通招考博士课程学分汇总表...""
+随后列出了表格。
+**结论**：提供的2025级文档片段中，**仅包含**“专业学位普通招考博士”的学分要求（总15，课程14），**未包含**“电子信息专业学位硕士”的总学分和课程学分具体要求。
+
+因此，对于硕士的总学分和课程学分，依据提供的2025级来源，证据不足。
+
+**最终回答构建**：
+1.  **完成时间**：1年 [2]。
+2.  **确认人**：导师 [2]。
+3.  **学分**：
+    *   总学分：提供的2025级方案文档中仅列出了“专业学位普通招考博士”的总学分要求（不低于15学分），未明确列出“电子信息专业学位硕士”的总学分要求 [2]。
+    *   课程学分：提供的2025级方案文档中仅列出了“专业学位普通招考博士”的课程学分要求（不低于14学分），未明确列出“电子信息专业学位硕士”的课程学分要求 [2]。
+
+*",证据不足：当前检索到的官方来源不足以回答这个问题。,0,0,0,incorrect,evidence_insufficient,answered,insufficient_evidence,loose atom judge matched 3/4 atoms,evidence insufficient answer,partial_correct,,"Gets the 1-year course-study rule, but misses dual-advisor confirmation and gives doctoral 15/14 instead of master's 33/32.",,0.0,0.0,0.0,0.0,0.0,0.0,63.02,32.079,https://faculty.sist.shanghaitech.edu.cn/office/Academics/Graduate/Degree%20Programs/2025-%E7%94%B5%E5%AD%90%E4%BF%A1%E6%81%AF-%E7%A1%95%E5%A3%AB.pdf,https://faculty.sist.shanghaitech.edu.cn/office/Academics/Graduate/Degree%20Programs/2025-%E7%94%B5%E5%AD%90%E4%BF%A1%E6%81%AF-%E6%99%AE%E5%8D%9A.pdf; https://faculty.sist.shanghaitech.edu.cn/office/Academics/Graduate/Degree%20Programs/2023-%E7%94%B5%E5%AD%90%E4%BF%A1%E6%81%AF-%E4%B8%93%E4%B8%9A%E5%AD%A6%E4%BD%8D%E7%A1%95%E5%A3%AB%EF%BC%88%E5%8F%91%E5%B8%83%E7%89%88%EF%BC%89.pdf; https://faculty.sist.shanghaitech.edu.cn/office/Academics/Graduate/Degree%20Programs/2024-%E7%94%B5%E5%AD%90%E4%BF%A1%E6%81%AF-%E7%A1%95%E5%A3%AB%EF%BC%88%E5%8F%91%E5%B8%83%E7%89%88%EF%BC%89.pdf,
+q078,Multi-hop,High,如果一名学生进入2025级电子信息工程博士培养改革专项直博研究生（企业联培），培养方案对修业年限、总学分、课程学分和专业实践中的课程实践学分有什么要求？,该项目为全日制，基本修业年限5年，最长不超过7年；总学分不低于42学分，其中课程学分不低于40学分；专业实践采用课程实践和项目研究形式的分段实践相结合，其中课程实践不少于8学分。,"根据提供的2025级电子信息工程博士培养改革专项直博研究生（企业联培）培养方案，相关要求如下：
+
+1.  **修业年限**：基本修业年限为5年，最长修业年限不超过7年，采取全日制学习方式 [5]。
+2.  **总学分**：专业学位硕博连读/直博研究生总学分不低于42个学分 [4]。
+3.  **课程学分**：总学分中，课程学分不低于40学分 [4]。
+4.  **专业实践中的课程实践学分**：提供的来源中未包含关于“专业实践中的课程实践学分”的具体最低要求或数值 [4]。",证据不足：当前检索到的官方来源不足以回答这个问题。,0,0,0,incorrect,evidence_insufficient,answered,insufficient_evidence,loose atom judge missing required quantity atoms: 1,evidence insufficient answer,partial_correct,,"Gets 5/7 years and 42/40 credits, but misses the course-practice minimum of 8 credits.",,1.0,1.0,1.0,0.0,0.0,1.0,13.323,33.236,https://faculty.sist.shanghaitech.edu.cn/office/Academics/Graduate/Degree%20Programs/2025-%E7%94%B5%E5%AD%90%E4%BF%A1%E6%81%AF-%E6%94%B9%E9%9D%A9%E4%B8%93%E9%A1%B9-%E4%BC%81%E4%B8%9A%E8%81%94%E5%9F%B9.pdf,https://faculty.sist.shanghaitech.edu.cn/office/Academics/Graduate/Degree%20Programs/2025-%E7%94%B5%E5%AD%90%E4%BF%A1%E6%81%AF-%E7%A1%95%E5%8D%9A.pdf; https://faculty.sist.shanghaitech.edu.cn/office/Academics/Graduate/Degree%20Programs/2025-%E7%94%B5%E5%AD%90%E4%BF%A1%E6%81%AF-%E6%94%B9%E9%9D%A9%E4%B8%93%E9%A1%B9-%E4%BC%81%E4%B8%9A%E8%81%94%E5%9F%B9.pdf,
+q079,Time-sensitive,Medium,根据信息学院官网在2026年5月6日发布的学术报告《正甫芯片：超导、声子和光子混合集成》，报告人是谁、来自哪所单位，报告时间和地点分别是什么？,报告人是中国科学技术大学的邹长铃；报告时间是2026年5月7日下午15:00，地点是信息学院1A200。,"根据信息学院官网在2026年5月6日发布的学术报告《正甫芯片：超导、声子和光子混合集成》，相关信息如下：
+
+*   **报告人**：邹长铃 [1]
+*   **来自单位**：中国科学技术大学 [1]
+*   **报告时间**：2026年5月7日，下午15:00 [1]
+*   **报告地点**：信息学院 1A200 [1]","根据信息学院官网在2026年5月6日发布的学术报告《正甫芯片：超导、声子和光子混合集成》，相关信息如下：
+
+*   **报告人**：邹长铃
+*   **来自单位**：中国科学技术大学
+*   **报告时间**：2026年5月7日，下午15:00
+*   **报告地点**：信息学院 1A200
+
+[1]",1,1,0,correct,correct,answered,answered,loose atom judge matched 12/13 atoms,loose atom judge matched 12/13 atoms,,,,,1.0,1.0,1.0,1.0,0.0,0.0,10.815,18.049,https://sist.shanghaitech.edu.cn/sist_en/2026/0506/c11304a1121578/page.htm,https://sist.shanghaitech.edu.cn/sist_en/2026/0506/c11304a1121578/page.htm,https://sist.shanghaitech.edu.cn/sist_en/2026/0506/c11304a1121578/page.htm
+q080,Time-sensitive,Medium,根据信息学院官网在2026年4月24日发布的《面向分布式系统的可观测性技术研究》报告通知，该报告的演讲者、所在单位、邀请人、时间和地点是什么？,演讲者是北京理工大学（珠海）的申乔木，邀请人是李权；报告时间为2026年4月28日上午10:15，地点为创管学院106。,"根据信息学院官网在2026年4月24日发布的《面向分布式系统的可观测性技术研究》报告通知，该报告的相关信息如下：
+
+*   **演讲者**：申乔木 [1]
+*   **所在单位**：北京理工大学（珠海） [1]
+*   **邀请人**：李权 [1]
+*   **时间**：2026年4月28日，上午10:15 [1]
+*   **地点**：创管学院106 [1]","根据信息学院官网在2026年4月24日发布的《面向分布式系统的可观测性技术研究》报告通知，该报告的相关信息如下：
+
+*   **演讲者**：申乔木
+*   **所在单位**：北京理工大学（珠海）
+*   **邀请人**：李权
+*   **时间**：2026年4月28日，上午10:15
+*   **地点**：创管学院106
+
+[1]",1,1,0,correct,correct,answered,answered,loose atom judge matched 12/13 atoms,loose atom judge matched 12/13 atoms,,,,,1.0,1.0,1.0,1.0,0.0,0.0,11.188,18.064,https://sist.shanghaitech.edu.cn/sist_en/2026/0424/c11304a1121066/page.htm,https://sist.shanghaitech.edu.cn/sist_en/2026/0424/c11304a1121066/page.htm,https://sist.shanghaitech.edu.cn/sist_en/2026/0424/c11304a1121066/page.htm
+q081,Factual,Medium,在信息学院2026年4月28日新闻《上科大学子斩获Kaggle国际AI赛事全球总冠军》中，DataTech社团主导的队伍参加的是哪项挑战赛？这项比赛共有多少支队伍、多少名开发者参与，并累计提交了多少份方案？,他们参加的是Kaggle的“Deep Past Challenge（深邃历史挑战赛）”；比赛共有2673支队伍、3311名开发者参与，累计提交方案6.8万份。,在信息学院2026年4月28日新闻《上科大学子斩获Kaggle国际AI赛事全球总冠军》中，DataTech社团主导的队伍参加的是**Deep Past Challenge（深邃历史挑战赛）**。这项比赛共有**2673**支队伍、**3311**名开发者参与，并累计提交了**6.8万**份方案[1][2][3][4][5]。,在信息学院2026年4月28日新闻《上科大学子斩获Kaggle国际AI赛事全球总冠军》中，DataTech社团主导的队伍参加的是**Deep Past Challenge（深邃历史挑战赛）**。这项比赛共有**2673**支队伍参与，**3311**名开发者参与，累计提交了**6.8万**份方案[1][2][5]。,1,1,0,correct,correct,answered,answered,loose atom judge matched 6/8 atoms,loose atom judge matched 6/8 atoms,,,,,1.0,1.0,1.0,1.0,0.0,0.0,9.977,17.454,https://sist.shanghaitech.edu.cn/2026/0428/c2858a1121165/page.htm; https://klip-humaco.sist.shanghaitech.edu.cn/2026/0429/c14913a1121469/page.htm,https://sist.shanghaitech.edu.cn/2026/0428/c2858a1121165/page.htm; https://sist.shanghaitech.edu.cn/_t335/2026/0428/c2858a1121165/page.htm; https://klip-humaco.sist.shanghaitech.edu.cn/2026/0429/c14913a1121469/page.htm,https://sist.shanghaitech.edu.cn/2026/0428/c2858a1121165/page.htm; https://klip-humaco.sist.shanghaitech.edu.cn/2026/0429/c14913a1121469/page.htm; https://sist.shanghaitech.edu.cn/_t335/2858/list.htm
+q082,Time-sensitive,Medium,根据信息学院新闻列表中2026年4月30日的“美发神器”新闻，小红书黑客松巅峰赛是哪一天落幕的？上科大哪些社团成员凭借什么作品，在什么赛道获得了什么奖项？,2026小红书黑客松巅峰赛于4月10日落幕；来自上海科技大学GeekPie与DataTech科技社团的学生和团队成员凭借作品“ChicChic——当理发遇上Token上限”，在软件赛道荣获一等奖。,"根据提供的新闻信息，2026小红书黑客松巅峰赛于**4月10日**圆满落幕 [1][5]。
+
+上海科技大学**GeekPie与DataTech科技社团**的成员凭借作品""**ChicChic——当理发遇上Token上限**""，在**软件赛道**中荣获**一等奖** [1][5]。","根据提供的信息，2026年4月30日发布的“美发神器”新闻中提到的“2026小红书黑客松巅峰赛”于**4月10日**落幕。
+
+在该赛事中，上海科技大学的**GeekPie**与**DataTech**科技社团成员凭借作品""**ChicChic——当理发遇上Token上限**""，在**软件赛道**中荣获**一等奖** [2][3]。",1,1,0,correct,correct,answered,answered,loose atom judge matched 11/13 atoms,loose atom judge matched 11/13 atoms,,,,,1.0,1.0,1.0,0.0,0.0,1.0,9.22,17.261,https://sist.shanghaitech.edu.cn/2858/list1.htm; https://sist.shanghaitech.edu.cn/_t335/2858/list1.htm,https://sist.shanghaitech.edu.cn/_t335/2858/list1.htm; https://sist.shanghaitech.edu.cn/2026/0430/c2858a1121503/page.htm,https://sist.shanghaitech.edu.cn/2026/0430/c2858a1121503/page.htm; https://sist.shanghaitech.edu.cn/2858/list2.htm
+q083,Time-sensitive,Medium,根据信息学院2026年4月13日发布的SensUs 2025出国小结，上海科技大学MakeSense团队成员在什么时间、前往哪里参加了什么比赛，并取得了哪两项成绩？,2025年8月24日至31日，MakeSense团队成员赴荷兰埃因霍温参加SensUs 2025国际大学生生物传感器设计大赛；团队获得检测精度奖全球冠军和创新奖全球亚军。,根据信息学院2026年4月13日发布的SensUs 2025出国小结，上海科技大学MakeSense团队成员于2025年8月24日至31日前往荷兰埃因霍温参加了SensUs 2025国际大学生生物传感器设计大赛，并取得了检测精度奖全球冠军与创新奖全球亚军两项成绩[1][2][3][4]。,根据信息科学与技术学院于2026年4月13日发布的《上海科技大学赴荷兰参加 SensUs 2025 国际大学生生物传感器大赛出国小结》[1]，上海科技大学 MakeSense 团队成员在**2025年8月24日至31日**，前往**荷兰埃因霍温**参加了**SensUs 2025 国际大学生生物传感器设计大赛**。在该比赛中，团队取得了**检测精度奖全球冠军**与**创新奖全球亚军**两项成绩 [1]。,1,1,0,correct,correct,answered,answered,loose atom judge matched 13/16 atoms,loose atom judge matched 14/16 atoms,,,,,1.0,1.0,1.0,1.0,0.0,0.0,9.436,17.832,https://sist.shanghaitech.edu.cn/2026/0413/c2864a1120665/page.htm,https://sist.shanghaitech.edu.cn/sist_en/2026/0413/c7572a1120665/page.htm; https://sist.shanghaitech.edu.cn/_t335/2026/0413/c2864a1120665/page.htm; https://sist.shanghaitech.edu.cn/2026/0413/c2864a1120665/page.htm,https://sist.shanghaitech.edu.cn/_t335/2026/0413/c2864a1120665/page.htm
+q084,Time-sensitive,Medium,根据信息学院2026年4月13日发布的ICCV 2025参会小结，师玉娇课题组童少文何时何地参加了哪场会议？他展示的研究框架叫什么，采用了什么学习模式？,童少文于2025年10月18日至24日在美国夏威夷参加ICCV 2025；展示的框架名为GeoDistill，是几何引导弱监督自蒸馏框架，采用教师-学生学习模式。,根据信息科学与技术学院于2026年4月13日发布的ICCV 2025参会小结，师玉娇课题组硕士研究生童少文于**2025年10月18日至24日**在美国**夏威夷**参加了**2025年国际计算机视觉大会（ICCV 2025）** [1][2][3][4]。他展示的研究框架名为**GeoDistill**（几何引导弱监督自蒸馏框架），该框架采用了新颖的**教师 - 学生（Teacher-Student）学习模式** [1][2][3][4]。,根据信息学院2026年4月13日发布的ICCV 2025参会小结，师玉娇课题组硕士研究生童少文于2025年10月18日至24日在美国夏威夷参加了ICCV 2025会议 [1]。他展示的研究框架名为**GeoDistill**，该框架采用了**几何引导弱监督自蒸馏**（teacher-student）的学习模式 [1]。,1,1,0,correct,correct,answered,answered,loose atom judge matched 11/16 atoms,loose atom judge matched 12/16 atoms,,,,,1.0,1.0,1.0,1.0,0.0,0.0,12.004,17.639,https://sist.shanghaitech.edu.cn/2026/0413/c2864a1120666/page.htm; https://sist.shanghaitech.edu.cn/sist_en/2026/0413/c7572a1120666/page.htm,https://sist.shanghaitech.edu.cn/sist_en/2026/0413/c7572a1120666/page.htm; https://sist.shanghaitech.edu.cn/_t335/2026/0413/c2864a1120666/page.htm; https://sist.shanghaitech.edu.cn/2026/0413/c2864a1120666/page.htm,https://sist.shanghaitech.edu.cn/sist_en/2026/0413/c7572a1120666/page.htm
+q085,Time-sensitive,Medium,根据信息学院2026年4月13日发布的张玉瑶课题组AAAI2026参会小结，田烜宇在什么时间前往哪里参加了哪届AAAI会议？本次出访旨在展示哪个领域的研究成果？,田烜宇于2026年1月21日至26日前往新加坡参加第40届AAAI人工智能大会；本次出访旨在展示课题组在医学影像重建领域的最新研究成果。,根据信息科学与技术学院2026年4月13日发布的张玉瑶课题组田烜宇（博）参加AAAI2026会议的小结，田烜宇于**2026年1月21日至26日**前往**新加坡**参加了**第40届AAAI人工智能大会**（The 40th AAAI Conference on Artificial Intelligence）。本次出访旨在展示课题组在**医学影像重建**领域的最新研究成果，并与国际同行深入交流物理驱动深度学习方法的发展趋势[1][2][3][4]。,根据张玉瑶课题组2026年4月13日发布的参会小结，田烜宇于**2026年1月21日至26日**前往**新加坡**参加了**第40届AAAI人工智能大会**（The 40th AAAI Conference on Artificial Intelligence）。本次出访旨在展示课题组在**医学影像重建**领域的最新研究成果，并与国际同行深入交流物理驱动深度学习方法的发展趋势[1]。,1,1,0,correct,incorrect,answered,answered,loose atom judge matched 11/14 atoms,loose atom judge matched 9/14 atoms,,loose_correct,,答案给出2026年1月21日至26日、新加坡、第40届AAAI、医学影像重建，与标准答案一致。,1.0,1.0,1.0,1.0,0.0,0.0,11.248,17.478,https://sist.shanghaitech.edu.cn/sist_en/2026/0413/c7572a1120671/page.htm; https://sist.shanghaitech.edu.cn/2026/0413/c2864a1120671/page.htm,https://sist.shanghaitech.edu.cn/sist_en/2026/0413/c7572a1120671/page.htm; https://sist.shanghaitech.edu.cn/_t335/2026/0413/c2864a1120671/page.htm; https://sist.shanghaitech.edu.cn/2026/0413/c2864a1120671/page.htm,https://sist.shanghaitech.edu.cn/_t335/2026/0413/c2864a1120671/page.htm
+q086,Factual,Medium,在2026年4月2日发布的“上海创芯学院&上海科技大学2026年联合招生简介”中，上海创芯学院由哪三所高校共同参与创建？本次联合招生毕业授予哪个专业学位？,上海创芯学院由上海科技大学、上海交通大学和复旦大学共同参与创建；本次联合招生毕业授予上海科技大学电子信息（0854）专业学位。,根据2026年4月2日发布的“上海创芯学院&上海科技大学2026年联合招生简介”，上海创芯学院由**上海科技大学**、**上海交通大学**和**复旦大学**三所高校共同参与创建 [1]。本次联合招生毕业授予**上海科技大学电子信息（0854）专业学位** [1]。,根据2026年4月2日发布的“上海创芯学院&上海科技大学2026年联合招生简介”，上海创芯学院由**上海科技大学**、**上海交通大学**和**复旦大学**三所高校共同参与创建 [1]。本次联合招生毕业授予**上海科技大学电子信息（0854）专业学位** [1]。,1,1,0,correct,correct,answered,answered,loose atom judge matched 6/9 atoms,loose atom judge matched 6/9 atoms,,,,,1.0,1.0,1.0,1.0,0.0,0.0,8.854,16.251,https://sist.shanghaitech.edu.cn/2026/0402/c2858a1120477/page.htm; https://sist.shanghaitech.edu.cn/2026/0402/c2863a1120477/page.htm,https://sist.shanghaitech.edu.cn/2026/0402/c2858a1120477/page.htm,https://sist.shanghaitech.edu.cn/2026/0402/c2858a1120477/page.htm
+q087,Time-sensitive,Medium,根据2026年3月27日发布的《上海科技大学信息科学与技术学院 2026年硕士招生调剂公告》，计算机科学与技术02-中科院联培院所招生、电子科学与技术、信息与通信工程、电子信息四个调剂专业的总分分数线分别是多少？单科线是否相同？,计算机科学与技术02-中科院联培院所招生、电子科学与技术、信息与通信工程的总分线均为320，电子信息的总分线为300；四个专业的单科线相同，满分100分科目为35，满分大于100分科目为53。,"根据2026年3月27日发布的《上海科技大学信息科学与技术学院 2026年硕士招生调剂公告》[3][4]，各调剂专业的分数线如下：
+
+*   **计算机科学与技术（02-中科院联培院所招生）**：总分 **320** 分，单科（满分=100分）不低于 **35** 分，单科（满分>100分）不低于 **53** 分。
+*   **电子科学与技术**：总分 **320** 分，单科（满分=100分）不低于 **35** 分，单科（满分>100分）不低于 **53** 分。
+*   **信息与通信工程**：总分 **320** 分，单科（满分=100分）不低于 **35** 分，单科（满分>100分）不低于 **53** 分。
+*   **电子信息**：总分 **300** 分，单科（满分=100分）不低于 **35** 分，单科（满分>100分）不低于 **53** 分。
+
+**单科线是否相同：**
+**是**，这四个专业的单科分数线完全相同。单科（满分=100分）均为 **35** 分，单科（满分>100分）均为 **53** 分 [3][4]。","根据2026年3月27日发布的《上海科技大学信息科学与技术学院 2026年硕士招生调剂公告》[1]，2026年调剂专业的分数线如下：
+
+1.  **计算机科学与技术（02-中科院联培院所招生）**：
+    *   总分：**320**分
+    *   单科（满分=100分）：**35**分
+    *   单科（满分>100分）：**53**分
+
+2.  **电子科学与技术**：
+    *   总分：**320**分
+    *   单科（满分=100分）：**35**分
+    *   单科（满分>100分）：**53**分
+
+3.  **信息与通信工程**：
+    *   总分：**320**分
+    *   单科（满分=100分）：**35**分
+    *   单科（满分>100分）：**53**分
+
+4.  **电子信息**：
+    *   总分：**300**分
+    *   单科（满分=100分）：**35**分
+    *   单科（满分>100分）：**53**分
+
+**单科线是否相同？**
+**是**，这四个专业的单科分数线完全相同。
+*   单科（满分=100分）均为 **35** 分。
+*   单科（满分>100分）均为 **53** 分。
+
+尽管“电子信息”专业的总分要求（300分）低于其他三个专业（320分），但其单科成绩要求与其他三个专业保持一致 [1]。",1,1,0,correct,correct,answered,answered,loose atom judge matched 12/12 atoms,loose atom judge matched 12/12 atoms,,,,,1.0,1.0,1.0,1.0,0.0,0.0,22.966,35.557,https://sist.shanghaitech.edu.cn/2026/0327/c7339a1120270/page.htm,https://sist.shanghaitech.edu.cn/2026/0327/c7339a1120270/page.htm; https://sist.shanghaitech.edu.cn/2026/0327/c2863a1120270/page.htm,https://sist.shanghaitech.edu.cn/2026/0327/c7339a1120270/page.htm
+q088,Factual,Medium,根据《上海科技大学信息科学与技术学院2026年招收硕士研究生复试工作规程》，复试包括哪两个部分？复试成绩满分和合格线分别是多少？总成绩如何计算？,复试包括综合素质考核和专业面试两部分；复试成绩满分100分，60分及以上为合格；总成绩=50*初试成绩/初试满分+50*复试成绩/复试满分。,"根据《上海科技大学信息科学与技术学院 2026 年招收硕士研究生复试工作规程》[3][4][5]，复试包括**综合素质考核**和**专业面试**两部分。
+
+1.  **复试组成部分**：
+    *   **综合素质考核**：本环节以在线测试的方式进行，考察内容为非专业知识 [3][4][5]。
+    *   **专业面试**：本环节主要考察考生掌握专业知识的广度、深度与对知识灵活运用的程度（包括对所报考学科前沿知识和研究动态的了解情况）、分析与解决问题的能力、应变反应能力、英文听说能力等。专业面试全程录音录像 [3][4][5]。
+
+2.  **复试成绩满分和合格线**：
+    *   虽然提供的文本片段中多次出现“分及以上为合格”和“分，计算方法：总成绩”的表述，但具体的**满分数值**（如 100 分）和**具体的合格分数线数值**（如 60 分）在提供的文本片段中被截断，未显示完整数字 [3][4][5]。
+    *   已知规则为：复试成绩和总成绩中任何一项不合格者不予录取 [3][4][5]。
+
+3.  **总成绩计算**：
+    *   提供的文本片段中仅提及“计算方法：总成绩”，但**未包含具体的计算公式**（例如初试成绩与复试成绩的权重比例）[3][4][5]。
+
+**结论**：
+复试包括**综合素质考核**和**专业面试**两部分。关于复试成绩的**满分**、**具体合格线数值**以及**总成绩的具体计算公式**，提供的来源文本中相关数字和公式部分缺失，无法给出确切数值。",证据不足：当前检索到的官方来源不足以回答这个问题。,1,0,-1,correct,evidence_insufficient,answered,insufficient_evidence,loose atom judge matched 5/6 atoms,evidence insufficient answer,,,,,1.0,1.0,1.0,0.0,0.0,1.0,25.026,32.991,https://sist.shanghaitech.edu.cn/2026/0316/c7339a1119896/page.htm; https://sist.shanghaitech.edu.cn/_t335/2026/0316/c7339a1119896/page.htm,https://sist.shanghaitech.edu.cn/_t335/2026/0316/c7339a1119896/page.htm; https://sist.shanghaitech.edu.cn/2026/0316/c7339a1119896/page.htm,
+q089,Time-sensitive,High,根据2026年4月15日发布的“通计划”第二轮报名通知，2026年该专项通过哪些方式招生？网上报名时间是哪一段？申请报名时应选择哪个学院和哪个专项？,2026年“通计划”联合培养博士生专项计划拟通过直博、硕博连读和申请-考核制方式招生；网上报名时间为2026年4月15日至2026年4月29日（含）；报名时选择“信息科学与技术学院”和“2026年通计划博士专项”。,"根据2026年4月15日发布的“通计划”第二轮报名通知，2026年该专项的招生方式、报名时间及申请选择如下：
+
+1.  **招生方式**：
+    该专项通过**网上报名**与**提交电子版材料**相结合的方式招生。考生需先通过上海科技大学研究生招生报名系统注册并登录报名，网上报名成功后，须于2026年4月29日前将报考材料电子版以PDF形式发送至北京通用人工智能研究院邮箱（tongprogram@bigai.ai）[1]。招生审核分为申请材料审核和综合考核两个阶段，其中申请材料审核由上海科技大学通计划专项分会与北京通用人工智能研究院共同审核 [1]。
+
+2.  **网上报名时间**：
+    网上报名时间为**2026年4月15日至2026年4月29日（含）** [1]。
+
+3.  **申请报名选择**：
+    *   **学院**：应选择**信息科学与技术学院** [1]。
+    *   **专项**：应选择**2026年通计划博士专项** [1]。","根据提供的2026年4月15日发布的“通计划”第二轮报名通知，相关信息如下：
+
+1.  **招生方式**：
+    考生需通过**上海科技大学研究生招生报名系统**进行网上报名，并在网上报名成功后，将电子版申请材料以**PDF形式发送至北京通用人工智能研究院邮箱**（tongprogram@bigai.ai）[1]。
+
+2.  **网上报名时间**：
+    **2026年4月15日—2026年4月29日（含）** [1]。
+
+3.  **申请报名选择**：
+    *   **学院**：选择“**信息科学与技术学院**” [1]。
+    *   **专项**：选择“**2026年通计划博士专项**” [1]。",1,1,0,correct,correct,answered,answered,loose atom judge matched 10/15 atoms,loose atom judge matched 11/15 atoms,,,,,1.0,1.0,1.0,1.0,0.0,0.0,18.732,21.811,https://sist.shanghaitech.edu.cn/2026/0415/c2826a1120785/page.htm; https://sist.shanghaitech.edu.cn/2026/0415/c2863a1120785/page.htm,https://sist.shanghaitech.edu.cn/_t335/2026/0415/c2826a1120785/page.htm,https://sist.shanghaitech.edu.cn/_t335/2026/0415/c2826a1120785/page.htm
+q090,Time-sensitive,Medium,根据信息学院博士研究生招生列表页，在2026年4月22日、4月15日和3月17日分别列出的三条2026年博士招生相关公告标题是什么？,2026年4月22日是“上海创芯学院&上海科技大学2026年电子信息工程博士招生简介”；2026年4月15日是“上海科技大学-北京通用人工智能研究院2026年联合培养博士生专项计划（“通计划”）-第二轮报名”；2026年3月17日是“上海科技大学信息科学与技术学院2026年全日制工程类专业学位博士报名通知（第二轮）”。,证据不足：当前检索到的官方来源不足以回答这个问题。,"根据信息学院博士研究生招生列表页（来源 [3]），在指定日期列出的三条2026年博士招生相关公告标题如下：
+
+*   **2026年4月22日**：上海创芯学院&上海科技大学2026年电子信息工程博士招生简介 [3]
+*   **2026年4月15日**：上海科技大学-北京通用人工智能研究院2026年联合培养博士生专项计划（“通计划”）-第二轮报名 [3]
+*   **2026年3月17日**：上海科技大学信息科学与技术学院2026年全日制工程类专业学位博士报名通知（第二轮） [3]",0,1,1,evidence_insufficient,correct,insufficient_evidence,answered,evidence insufficient answer,loose atom judge matched 9/11 atoms,,,,,0.0,1.0,0.0,1.0,0.0,0.0,27.731,20.282,https://sist.shanghaitech.edu.cn/2826/list.htm; https://sist.shanghaitech.edu.cn/2826/list1.htm; https://sist.shanghaitech.edu.cn/_t335/2826/list.htm,,https://sist.shanghaitech.edu.cn/_t335/2826/list1.htm
+q091,Factual,Low,智能感知与人机协同教育部重点实验室的共享仪器设备页面列出的联系地址、联系电话和电子邮箱分别是什么？,联系地址是上海市浦东新区华夏中路393号信息学院1B-206室，联系电话是021-20685748，电子邮箱是stu_keylab.sist@shanghaitech.edu.cn。,"根据提供的共享仪器设备页面信息，智能感知与人机协同教育部重点实验室的联系信息如下：
+
+*   **联系地址**：上海市浦东新区华夏中路393号信息学院1B-206室 [1]
+*   **联系电话**：021-20685748 [1]
+*   **电子邮箱**：stu_keylab.sist@shanghaitech.edu.cn [1]","根据提供的来源，智能感知与人机协同教育部重点实验室的共享仪器设备页面列出的联系信息如下：
+
+*   **联系地址**：上海市浦东新区华夏中路393号信息学院1B-206室 [1]
+*   **联系电话**：021-20685748 [1]
+*   **电子邮箱**：stu_keylab.sist@shanghaitech.edu.cn [1]",1,1,0,correct,correct,answered,answered,matched special fact,matched special fact,,,,,1.0,1.0,1.0,1.0,0.0,0.0,9.446,16.95,https://klip-humaco.sist.shanghaitech.edu.cn/gxyqsb/list.htm,https://klip-humaco.sist.shanghaitech.edu.cn/gxyqsb/list.htm,https://klip-humaco.sist.shanghaitech.edu.cn/gxyqsb/list.htm
+q092,Factual,Low,GaNology Lab 的 facilities 页面列出了哪些主要实验设备？请至少列举其中6项。,页面列出的设备包括 Semiconductor Analyzer、Microelectronic Measurement System、Low Temperature Measurement System、DLTS、Power Device Measurement System、Load-Pull System、Impedance Analyzer 和 OTF-1200X开启式管式炉。,"根据提供的来源，GaNology Lab 的 facilities 页面列出的主要实验设备包括以下项目（列举超过6项）：
+
+1. OTF-1200X 开启式管式炉 [1]
+2. Load-Pull System [1]
+3. Impedance Analyzer [1]
+4. Semiconductor Analyzer [1]
+5. Microelectronic Measurement System [1]
+6. Low Temperature Measurement System [1]
+7. Power Device Measurement System [1]","根据提供的来源 [1]，GaNology Lab 的 facilities 页面列出的主要实验设备包括以下项目（列举超过6项）：
+
+1.  OTF-1200X 开启式管式炉
+2.  Load-Pull System
+3.  Impedance Analyzer
+4.  Semiconductor Analyzer
+5.  Microelectronic Measurement System
+6.  Low Temperature Measurement System
+7.  Power Device Measurement System
+
+这些设备名称直接来源于文档中的标签序列 [1]。",1,1,0,correct,correct,answered,answered,loose atom judge matched 7/8 atoms,loose atom judge matched 7/8 atoms,,,,,1.0,1.0,1.0,1.0,0.0,0.0,10.22,16.728,https://ganology.sist.shanghaitech.edu.cn/facility.html,https://ganology.sist.shanghaitech.edu.cn/facility.html,https://ganology.sist.shanghaitech.edu.cn/facility.html
+q093,Factual,Low,智能医学信息研究中心的生物医学信号处理与仪器实验室主要研究什么方向？该实验室负责人是谁？,该实验室研究生物医学信号采集和处理，以及其在神经肌肉康复和智能健康监控中的应用；负责人是徐林助理教授。,智能医学信息研究中心的生物医学信号处理与仪器实验室主要研究**生物医学信号采集和处理**，及其在**神经肌肉康复**和**智能健康监控**中的应用 [1][3]。该实验室的负责人（课题组组长）是**徐林**助理教授 [1][3][5]。,"根据提供的来源，智能医学信息研究中心的**生物医学信号处理与仪器实验室**主要研究方向及负责人如下：
+
+**主要研究方向：**
+该实验室的研究方向为**生物医学信号采集和处理**，及其在**神经肌肉康复**和**智能健康监控**中的应用 [1]。具体细分领域包括：
+*   生理信号采集与处理；
+*   自适应滤波；
+*   盲源信号分离；
+*   机器学习可穿戴医疗设备；
+*   神经肌肉康复工程；
+*   脑机接口智能健康监控 [2]。
+
+**实验室负责人：**
+该实验室的负责人（课题组组长）是**徐林**教授（助理教授）[1][2]。",1,1,0,correct,correct,answered,answered,all required facts matched,all required facts matched,,,,,1.0,1.0,1.0,1.0,0.0,0.0,7.699,20.299,https://smirc.sist.shanghaitech.edu.cn/zh/project/bspi/,https://smirc.sist.shanghaitech.edu.cn/zh/project/bspi/; https://smirc.sist.shanghaitech.edu.cn/zh/tag/biosignal/; https://smirc.sist.shanghaitech.edu.cn/zh/tag/medicaldevices/,https://smirc.sist.shanghaitech.edu.cn/zh/project/bspi/; https://smirc.sist.shanghaitech.edu.cn/zh/
+q094,Conditional,Medium,如果供应商想参与上海科技大学磷烷气体供气设备询价，需要满足哪些报价供应商要求？报名资料应发送给哪位联系人，报价截止时间和递交地点是什么？,供应商需能独立承担民事责任，具有能从事该项目范围内的企业法人营业执照、税务登记证、组织机构代码证复印件，且本项目不允许联合体报价；报名资料发送给刘老师，电话021-20685370，邮箱liutt1@shanghaitech.edu.cn；报价截止时间为2019年9月19日9:30，递交地点为上海市浦东新区华夏中路393号信息学院1号楼B区206。,"根据上海科技大学信息学院发布的《磷烷气体供气设备询价公告》[3]，供应商参与该询价需满足以下要求及流程：
+
+**1. 报价供应商要求**
+*   **民事责任与资质**：供应商须能独立承担民事责任，并具有能从事该项目范围内的企业法人营业执照、税务登记证、组织机构代码证复印件 [3]。
+*   **联合体限制**：本项目不允许联合体报价 [3]。
+
+**2. 报名资料发送联系人**
+*   **联系人**：刘老师 [3]。
+*   **联系方式**：
+    *   电话：021-20685370 [3]
+    *   邮箱：liutt1@shanghaitech.edu.cn [3]
+*   **报名方式**：请将所需报名资料复印件加盖公章扫描后发至联系人邮箱领取需求文件，需求文件需以电子版形式回复至报名邮箱 [3]。
+
+**3. 报价截止时间**
+*   **时间**：2019年9月19日9:30时（北京时间） [3]。
+
+**4. 报价文件递交地点**
+*   **地址**：上海市浦东新区华夏中路393号信息学院1号楼B区206 [3]。","根据提供的来源 [1] 和 [3]，供应商参与上海科技大学磷烷气体供气设备询价需满足以下要求及流程：
+
+**1. 报价供应商要求：**
+*   **民事责任能力**：供应商须能独立承担民事责任 [1][3]。
+*   **资质文件**：具有能从事该项目范围内的企业法人营业执照、税务登记证、组织机构代码证复印件 [1][3]。
+*   **联合体限制**：本项目不允许联合体报价 [1][3]。
+
+**2. 报名资料发送联系人：**
+*   **联系人**：刘老师 [3]。
+*   **邮箱**：liutt1@shanghaitech.edu.cn [1][3]。
+*   **电话**：021-20685370 [1][3]。
+*   **操作方式**：请将所需报名资料复印件加盖公章扫描后发至联系人邮箱领取本次询价的需求文件，需求文件以电子版的形式回复至报名的邮箱 [1][3]。
+
+**3. 报价截止时间：**
+*   **时间**：2019年9月19日9:30时（北京时间） [3]。
+
+**4. 报价文件递交地点：**
+*   **地址**：上海市浦东新区华夏中路393号信息学院1号楼B区206 [3]。",1,1,0,correct,correct,answered,answered,matched special fact,matched special fact,,,,,1.0,1.0,1.0,1.0,0.0,0.0,19.737,28.531,https://sist.shanghaitech.edu.cn/2019/0911/c5124a44707/page.htm,https://sist.shanghaitech.edu.cn/2019/0911/c5124a44707/page.htm,https://sist.shanghaitech.edu.cn/_t335/2019/0911/c5124a44707/page.htm; https://sist.shanghaitech.edu.cn/2019/0911/c5124a44706/page.htm
+q095,Time-sensitive,Medium,根据2025年6月6日发布的移动机器人TurtleBot4技能培训通知，培训时间、地点、人数上限、理论主讲人和咨询联系方式分别是什么？,培训时间为2025年7月6日至7月11日，地点在信息学院3号楼201室，人数不超过36人；理论部分由Sören Schwertfeger教授主讲；咨询老师为王老师，电话021-20685706，邮箱wangyl3@shanghaitech.edu.cn。,"根据2025年6月6日发布的《移动机器人TurtleBot4技能培训》通知，相关具体事项如下：
+
+*   **培训时间**：2025年7月6日至7月11日 [1][4]。
+*   **培训地点**：通知中未明确提及具体的物理地点（如实验室名称或楼栋），仅提到“真机操作期间须遵守实验室规章制度” [1]。
+*   **人数上限**：由于设备有限，人数不超过36人（先到先得） [1]。
+*   **理论主讲人**：Sören Schwertfeger教授 [1][4]。
+*   **咨询联系方式**：电话 021-20685706，邮箱 wangyl3@shanghaitech.edu.cn [1]。","根据提供的2025年6月6日发布的《移动机器人TurtleBot4技能培训》通知及后续报道，相关具体信息如下：
+
+*   **培训时间**：2025年7月6日至7月11日 [1][2][3]。
+*   **培训地点**：通知原文中未明确提及具体的物理地点（如实验室名称或楼栋），仅指出实操期间须遵守实验室规章制度 [1]。
+*   **人数上限**：通知明确说明“由于设备有限，人数不超过36人，先到先得” [1]。（注：后续报道提到实际吸引了24位同学参加 [2][3]）。
+*   **理论主讲人**：
+    *   自动化与机器人中心主任 **Sören Schwertfeger** 教授讲授移动机器人基础、ROS2、自主导航及算法等基础理论知识 [1][2][3]。
+    *   智能网络中心主任 **邵子瑜** 教授讲述了具身智能的快速发展和机遇 [1][2][3]。
+    *   通知原文提及“教授主讲”，具体指代上述两位教授 [1]。
+*   **咨询联系方式**：
+    *   电话：021-20685706 [1]。
+    *   邮箱：wangyl3@shanghaitech.edu.cn [1]。",1,1,0,correct,correct,answered,answered,loose atom judge matched 12/15 atoms,loose atom judge matched 12/15 atoms,,,,,1.0,1.0,1.0,1.0,0.0,0.0,14.994,28.444,https://sist.shanghaitech.edu.cn/2025/0606/c5304a1111570/page.htm,https://sist.shanghaitech.edu.cn/_t335/2025/0606/c5304a1111570/page.htm; https://sist.shanghaitech.edu.cn/2025/0724/c2858a1113094/page.htm,https://sist.shanghaitech.edu.cn/_t335/2025/0606/c5304a1111570/page.htm; https://sist.shanghaitech.edu.cn/2858/list13.htm; https://sist.shanghaitech.edu.cn/2025/0724/c2858a1113094/page.htm
+q096,Time-sensitive,Medium,根据2025年9月15日发布的机械加工间技能培训通知，UG三维模型设计培训安排在哪些日期？如有疑问应联系谁、邮箱是什么？,UG三维模型设计培训安排在9月25日、10月16日、10月30日、11月13日、11月27日的13:00-15:00；如有疑问应联系培训组织者吕坤勇老师，邮箱lvky@shanghaitech.edu.cn。,"根据2025年9月15日发布的机械加工间技能培训通知，UG三维模型设计培训的具体安排及联系方式如下：
+
+**培训日期**
+UG三维模型设计培训安排在以下日期：9月25日、10月16日、10月30日、11月13日、11月27日 [1]。
+
+**培训详情**
+*   **时间**：13:00-15:00 [1]。
+*   **内容**：三维模型设计（包含10套图纸及自主设计），每次培训完成2套图纸 [1]。
+
+**联系方式**
+如有疑问，请联系培训组织者吕坤勇老师，邮箱为：lvky@shanghaitech.edu.cn [1]。","根据2025年9月15日发布的机械加工间技能培训通知，UG三维模型设计培训的具体安排如下：
+
+*   **培训日期**：9月25日、10月16日、10月30日、11月13日、11月27日 [2]。
+*   **培训时间**：13:00-15:00 [2]。
+*   **培训内容**：三维模型设计（共10套图纸+自主设计，每次2套图纸） [2]。
+
+如有疑问，请联系培训组织者**吕坤勇老师**，邮箱为：**lvky@shanghaitech.edu.cn** [2]。",1,1,0,correct,correct,answered,answered,loose atom judge matched 17/17 atoms,loose atom judge matched 17/17 atoms,,,,,1.0,1.0,1.0,1.0,0.0,0.0,14.308,20.495,https://sist.shanghaitech.edu.cn/2025/0915/c5304a1115123/page.htm,https://sist.shanghaitech.edu.cn/_t335/2025/0915/c5304a1115123/page.htm,https://sist.shanghaitech.edu.cn/_t335/2025/0915/c5304a1115123/page.htm
+q097,Comparative,Medium,在2026年“通计划”联合培养博士生专项计划通知中，北京通用人工智能研究院和上海科技大学信息学院的联系咨询方式分别是什么？,北京通用人工智能研究院的座机是010-85413687（周一至周五9:00-18:00），邮箱是tongprogram@bigai.ai；上海科技大学信息科学与技术学院联系人为高老师，电话021-20684866，邮箱admission.sist@shanghaitech.edu.cn。,"根据2026年“通计划”联合培养博士生专项计划通知中的联系咨询方式：
+
+*   **北京通用人工智能研究院**：
+    *   座机：010-85413687 [3][4][5]
+    *   邮箱：tongprogram@bigai.ai [3][4][5]
+*   **上海科技大学信息学院**（信息科学与技术学院）：
+    *   座机：021-20684866 [3][4][5]
+    *   邮箱：admission.sist@shanghaitech.edu.cn [3][4][5]","根据提供的2026年“通计划”相关通知及招生简章信息，北京通用人工智能研究院和上海科技大学信息学院的联系咨询方式如下：
+
+**北京通用人工智能研究院：**
+*   **座机：** 010-85413687 [2]
+*   **邮箱：** tongprogram@bigai.ai [2]
+
+**上海科技大学信息科学与技术学院：**
+*   **座机：** 021-20684866 [2]
+*   **邮箱：** admission.sist@shanghaitech.edu.cn [2]",1,1,0,correct,correct,answered,answered,loose atom judge matched 8/9 atoms,loose atom judge matched 8/9 atoms,,,,,1.0,1.0,1.0,1.0,0.0,0.0,12.617,19.377,https://sist.shanghaitech.edu.cn/2026/0415/c2863a1120785/page.htm,https://sist.shanghaitech.edu.cn/_t335/2026/0415/c2826a1120785/page.htm; https://sist.shanghaitech.edu.cn/_t335/2026/0415/c2863a1120785/page.htm,https://sist.shanghaitech.edu.cn/_t335/2026/0415/c2826a1120785/page.htm
+q098,Time-sensitive,Medium,根据宾大－上科大2019年暑期夏令营通知，夏令营举办时间、预计招生规模和训练营授课形式是什么？,夏令营举办时间为2019年8月19日至2019年8月23日，预计招收约150人；训练营为期5天，以现场授课、小组讨论、小组作业、项目展示为主要内容。,"根据宾大－上科大2019年暑期夏令营通知，相关信息如下：
+
+*   **举办时间**：2019年8月19日 - 2019年8月23日 [3]。
+*   **预计招生规模**：预计招收约营员150人 [3]。
+*   **授课形式**：夏令营将由一周的线上先修课程、一周的线下训练营和后续线上导师持续指导环节组成。训练营期间提供为期5天的课程，以现场授课、小组讨论、小组作业、项目展示为主要内容，还有商业导师现场解析AI的商业化和产业化发展 [3]。","根据宾大－上科大2019年暑期夏令营通知，相关信息如下：
+
+*   **举办时间**：2019年8月19日至2019年8月23日 [1]。
+*   **预计招生规模**：预计招收约营员150人 [1]。
+*   **授课形式**：夏令营由一周的线上先修课程、一周的线下训练营和后续线上导师持续指导环节组成。训练营期间提供为期5天的课程，以现场授课、小组讨论、小组作业、项目展示为主要内容，并包含商业导师现场解析AI的商业化和产业化发展 [1]。",1,1,0,correct,correct,answered,answered,loose atom judge matched 13/14 atoms,loose atom judge matched 13/14 atoms,,,,,1.0,1.0,1.0,1.0,0.0,0.0,12.465,19.247,https://sist.shanghaitech.edu.cn/sqxm/list.htm,https://sist.shanghaitech.edu.cn/_t335/sqxm/list.htm,https://sist.shanghaitech.edu.cn/_t335/sqxm/list.htm
+q099,Factual,Low,信息学院科学研究版块的“研究中心”页面列出了哪些研究中心？,页面列出的研究中心包括视觉与数据智能中心、智能网络中心、后摩尔器件与集成系统中心、智慧电气科学中心、自动化与机器人中心、智能医学信息研究中心、系统与安全中心。,"根据提供的来源，上海科技大学信息学院科学研究版块“研究中心”页面列出的七大研究中心如下：
+
+1. 视觉与数据智能中心 [3][4][5]
+2. 智能网络中心 [3][4][5]
+3. 后摩尔器件与集成系统中心 [3][4][5]
+4. 智慧电气科学中心 [3][4][5]
+5. 自动化与机器人中心 [3][4][5]
+6. 智能医学信息研究中心 [3][4][5]
+7. 系统与安全中心 [3][4][5]","根据上海科技大学信息学院“科学研究”版块下的“研究中心”页面（[3][5]）及相关资料，该页面列出的七大研究中心如下：
+
+1. 视觉与数据智能中心
+2. 智能网络中心
+3. 后摩尔器件与集成系统中心
+4. 智慧电气科学中心
+5. 自动化与机器人中心
+6. 智能医学信息研究中心
+7. 系统与安全中心
+
+[1][3][4][5]",1,1,0,correct,correct,answered,answered,all required facts matched,all required facts matched,,,,,1.0,1.0,1.0,1.0,0.0,0.0,11.455,16.839,https://sist.shanghaitech.edu.cn/2848/list.htm; https://sist.shanghaitech.edu.cn/2026/0506/c10969a1121576/page.htm,https://sist.shanghaitech.edu.cn/_t335/2848/list.htm; https://sist.shanghaitech.edu.cn/_t335/2715/list.htm,https://sist.shanghaitech.edu.cn/_t335/2848/list.htm; https://sist.shanghaitech.edu.cn/2715/list.htm; https://sist.shanghaitech.edu.cn/2026/0506/c10969a1121576/page.htm; https://sist.shanghaitech.edu.cn/2022/0214/c2863a345236/page.htm
+q100,Comparative,Medium,根据信息学院“院务委员会”页面，院务委员会和师资招聘委员会的主任、副主任及委员人数分别是什么？,院务委员会主任为虞晶怡，委员人数20人；师资招聘委员会主任为虞晶怡，副主任为哈亚军，委员人数10人。,"根据信息学院“院务委员会”页面信息，院务委员会和师资招聘委员会的人员构成如下：
+
+**院务委员会**
+*   **主任**：虞晶怡 [1]
+*   **副主任**：无（页面显示为空） [1]
+*   **委员人数**：20 人 [1]
+
+**师资招聘委员会**
+*   **主任**：虞晶怡 [1]
+*   **副主任**：哈亚军 [1]
+*   **委员人数**：10 人 [1]","根据提供的信息学院“院务委员会”页面（来源 [1]），院务委员会和师资招聘委员会的人员构成如下：
+
+**1. 院务委员会**
+*   **主任**：虞晶怡
+*   **副主任**：20 人（页面显示“副主任”对应人数为 20，未列出具体名单）
+*   **委员人数**：页面未直接列出“委员”的具体人数，仅列出了“委员人数”一栏对应的职责描述，但根据表格结构，该委员会下未像其他委员会那样明确列出委员名单及具体人数数值（注：表格中“院务委员会”行下，“副主任”列显示为""20""，“委员人数”列空白或无具体数字，而“职责”列为“学院决策机构”）。
+    *   *修正解读*：重新审视表格结构，表头为“委员会”、“主任”、“副主任”、“委员人数”、“职责”。
+    *   行数据：院务委员会 | 虞晶怡 | 20 | (空白) | 学院决策机构。
+    *   这意味着：主任是虞晶怡，副主任人数是 20 人，委员人数在提供的文本片段中未显示具体数字（或该字段为空）。
+
+**2. 师资招聘委员会**
+*   **主任**：虞晶怡
+*   **副主任**：哈亚军
+*   **委员人数**：10 人
+*   **职责**：学院教授推荐、招聘及考核
+
+**详细数据对照表（基于来源 [1]）：**
+
+| 委员会名称 | 主任 | 副主任 | 委员人数 | 职责 |
+| :--- | :--- | :--- | :--- | :--- |
+| **院务委员会** | 虞晶怡 | 20 人 | (未提供具体数字) | 学院决策机构 |
+| **师资招聘委员会** | 虞晶怡 | 哈亚军 | 10 人 | 学院教授推荐、招聘及考核 |
+
+*注：来源 [1] 中“院务委员会”行的“委员人数”列在提供的文本中未显示具体数值，仅显示了“副主任”列的数值为 20。*",1,1,0,correct,correct,answered,answered,loose atom judge matched 6/6 atoms,loose atom judge matched 6/6 atoms,,,,,1.0,1.0,1.0,1.0,0.0,0.0,11.672,39.51,https://sist.shanghaitech.edu.cn/2725/list.htm,https://sist.shanghaitech.edu.cn/_t335/2725/list.htm,https://sist.shanghaitech.edu.cn/_t335/2725/list.htm

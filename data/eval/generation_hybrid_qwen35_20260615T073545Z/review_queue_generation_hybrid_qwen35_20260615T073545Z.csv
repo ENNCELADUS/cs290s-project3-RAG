@@ -1,2 +1,0 @@
-id,mode,query,gt_answer,answer,judge_reason,observed_source_urls
-q068,hybrid,对比2025级普通CS专业和CS专业人工智能荣誉班本科培养方案，两者在自然科学通识板块和专业课程板块的总学分要求分别是多少？,普通CS专业要求自然科学通识32学分、专业课程59学分；人工智能荣誉班要求自然科学通识28学分、专业课程68学分。,,run error,[]
