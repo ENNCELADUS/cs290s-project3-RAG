@@ -108,6 +108,56 @@ def test_lab_question_falls_back_to_all_required_slots_when_model_only_answers_e
     assert "[1]" in result.answer
 
 
+def test_psit_lab_profile_question_falls_back_to_all_required_slots_from_prose_context(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    model_path = tmp_path / "qwen-local"
+    model_path.mkdir()
+    _patch_generation_sequence(
+        monkeypatch,
+        [
+            "联系邮箱是申请请联系yechf@shanghaitech.edu.cn。 [1]",
+            '{"status":"answered","answer":"联系邮箱是申请请联系yechf@shanghaitech.edu.cn。 [1]"}',
+        ],
+    )
+    retriever = _StaticHybridRetriever(
+        [
+            _context(
+                rank=1,
+                title="精密传感与智能检测实验室 | 智能医学信息研究中心",
+                url="https://smirc.sist.shanghaitech.edu.cn/zh/project/psit/",
+                text=(
+                    "精密传感与智能检测实验室 | 智能医学信息研究中心\n\n"
+                    "精密传感与智能检测实验室\n\n"
+                    "PSIT课题组的研究方向包括无损检测、电磁测量与成像、电磁场与电路系统建模等。"
+                    "课题组每年有2-3个硕士或博士名额，如果你对科研有浓厚的兴趣，欢迎加入我们，"
+                    "同时，也欢迎本科生和访问生的加入，申请请联系yechf@shanghaitech.edu.cn。\n\n"
+                    "NondestructiveTesting\nMedicalDevices\n\n"
+                    "叶朝锋\n副教授\n\n"
+                    "叶朝锋教授是上海科技大学精密传感与智能实验室课题组组长"
+                ),
+            )
+        ]
+    )
+    answerer = RagAnswerer(retriever, model_path=model_path, device="cpu")  # type: ignore[arg-type]
+
+    result = answerer.answer(
+        "精密传感与智能检测实验室的研究方向、招生名额、联系邮箱和课题组组长分别是什么？",
+        mode="hybrid",
+        top_k=1,
+    )
+
+    assert result.status == "answered"
+    assert result.generation_path == "extractive_fallback"
+    assert "无损检测" in result.answer
+    assert "电磁测量与成像" in result.answer
+    assert "电磁场与电路系统建模" in result.answer
+    assert "2-3个硕士或博士名额" in result.answer
+    assert "yechf@shanghaitech.edu.cn" in result.answer
+    assert "叶朝锋" in result.answer
+    assert "[1]" in result.answer
+
+
 def test_procurement_question_falls_back_to_each_requested_project_supplier(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -149,6 +199,84 @@ def test_procurement_question_falls_back_to_each_requested_project_supplier(
     assert "上海乙科技有限公司" in result.answer
     assert "[1]" in result.answer
     assert "[2]" in result.answer
+
+
+def test_procurement_result_question_assembles_each_requested_supplier_without_objection_boilerplate(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    model_path = tmp_path / "qwen-local"
+    model_path.mkdir()
+    _patch_generation_sequence(
+        monkeypatch,
+        [
+            (
+                "上海科技大学二氯二氢硅气体供气设备采购 项目编号： 询价日期： 2019 年 9 月 19 日 "
+                "推荐成交单位：上海弗川自动化技术有限公司 投标人如对询价结果有异议，请于本公告发布之日起"
+                "三日内以书面形式向上海科技大学信息学院提出异议，公示期满无质疑，不再另行公告询价结果。 [1]"
+            ),
+            (
+                '{"status":"answered","answer":"上海科技大学二氯二氢硅气体供气设备采购 项目编号： '
+                "询价日期： 2019 年 9 月 19 日 推荐成交单位：上海弗川自动化技术有限公司 "
+                "投标人如对询价结果有异议，请于本公告发布之日起三日内以书面形式向上海科技大学信息学院"
+                '提出异议，公示期满无质疑，不再另行公告询价结果。 [1]"}'
+            ),
+        ],
+    )
+    retriever = _StaticHybridRetriever(
+        [
+            _context(
+                rank=1,
+                title="上海科技大学信息学院二氯二氢硅气体供气设备采购询价结果公告",
+                url="https://sist.shanghaitech.edu.cn/2019/0923/c5124a44919/page.htm",
+                text=(
+                    "上海科技大学信息学院二氯二氢硅气体供气设备采购询价结果公告\n\n"
+                    "发布时间：2019-09-23\n"
+                    "项目名称：\n上海科技大学二氯二氢硅气体供气设备采购\n\n"
+                    "项目编号：\n\n"
+                    "询价日期：\n2019\n年\n9\n月\n19\n日\n\n"
+                    "推荐成交单位：上海弗川自动化技术有限公司\n\n"
+                    "投标人如对询价结果有异议，请于本公告发布之日起三日内以书面形式向"
+                    "上海科技大学信息学院（环科路199号信息学院1号楼1B-206）提出异议，"
+                    "公示期满无质疑，不再另行公告询价结果。"
+                ),
+            ),
+            _context(
+                rank=2,
+                title="上海科技大学信息学院磷烷气体供气设备采购询价结果公告",
+                url="https://sist.shanghaitech.edu.cn/_t335/2019/0923/c5124a44920/page.htm",
+                text=(
+                    "上海科技大学信息学院磷烷气体供气设备采购询价结果公告\n\n"
+                    "发布时间：2019-09-23\n"
+                    "项目名称：\n上海科技大学磷烷气体供气设备采购\n\n"
+                    "项目编号：\n\n"
+                    "询价日期：\n2019\n年\n9\n月\n19\n日\n\n"
+                    "推荐成交单位：上海弗川自动化技术有限公司\n\n"
+                    "投标人如对询价结果有异议，请于本公告发布之日起三日内以书面形式向"
+                    "上海科技大学信息学院（环科路199号信息学院1号楼1B-206）提出异议，"
+                    "公示期满无质疑，不再另行公告询价结果。"
+                ),
+            ),
+        ]
+    )
+    answerer = RagAnswerer(retriever, model_path=model_path, device="cpu")  # type: ignore[arg-type]
+
+    result = answerer.answer(
+        "在2019年9月发布的官方采购公告中，信息科学与技术学院推荐成交的"
+        "“磷烷气体供气设备采购”项目和“二氯二氢硅气体供气设备采购”项目的最终中标成交供应商是哪家公司？",
+        mode="hybrid",
+        top_k=2,
+    )
+
+    assert retriever.calls[0][1] == "hybrid"
+    assert result.status == "answered"
+    assert result.generation_path == "extractive_fallback"
+    assert "磷烷气体供气设备采购" in result.answer
+    assert "二氯二氢硅气体供气设备采购" in result.answer
+    assert result.answer.count("上海弗川自动化技术有限公司") >= 2
+    assert "[1]" in result.answer
+    assert "[2]" in result.answer
+    assert "投标人如" not in result.answer
+    assert "公示期满" not in result.answer
 
 
 def _patch_generation_sequence(monkeypatch: pytest.MonkeyPatch, generated_texts: list[str]) -> None:

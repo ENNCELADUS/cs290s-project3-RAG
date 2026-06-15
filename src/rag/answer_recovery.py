@@ -4,7 +4,7 @@ import json
 import re
 from typing import Any
 
-from .answer_slots import extract_required_slot_answer, required_slot_rejection_reason
+from .answer_slots import extract_required_slot_answer, required_slot_rejection_reason, required_slot_values
 from .answer_terms import (
     _context_score_text,
     _date_markers,
@@ -26,6 +26,7 @@ from .answer_types import (
     ExtractiveCandidate,
     RagAnswerResult,
 )
+from .graduate_credits import extract_graduate_credit_answer, graduate_credit_rejection_reason
 from .retrieve import ContextItem
 
 VALID_CITATION_RE = re.compile(r"\[(\d+)\]")
@@ -124,6 +125,9 @@ def _requested_source_fact_rejection_reason(query: str, answer: str, contexts: l
     required_slot_rejection = required_slot_rejection_reason(query, answer, contexts)
     if required_slot_rejection is not None:
         return required_slot_rejection
+    graduate_credit_rejection = graduate_credit_rejection_reason(query, answer, contexts)
+    if graduate_credit_rejection is not None:
+        return graduate_credit_rejection
     cited_ids = {int(match.group(1)) for match in VALID_CITATION_RE.finditer(answer)}
     cited_text = "\n".join(_context_score_text(context) for context in contexts if context.rank in cited_ids)
     if _query_requires_professional_elective_credits(query):
@@ -159,7 +163,91 @@ def _requested_source_fact_rejection_reason(query: str, answer: str, contexts: l
         and not _has_location_evidence(answer)
     ):
         return "missing_requested_location_fact"
+    multi_slot_rejection = _multi_field_answer_quality_rejection_reason(query, answer, contexts)
+    if multi_slot_rejection is not None:
+        return multi_slot_rejection
     return None
+
+
+def _multi_field_answer_quality_rejection_reason(
+    query: str,
+    answer: str,
+    contexts: list[ContextItem],
+) -> str | None:
+    profile_rejection = _multi_field_profile_rejection_reason(query, answer)
+    if profile_rejection is not None:
+        return profile_rejection
+    procurement_rejection = _multi_project_supplier_rejection_reason(query, answer, contexts)
+    if procurement_rejection is not None:
+        return procurement_rejection
+    return None
+
+
+def _multi_field_profile_rejection_reason(query: str, answer: str) -> str | None:
+    requested_slots = set(_requested_faculty_profile_slot_names(query))
+    if len(requested_slots) < 2:
+        return None
+    covered_slots = _covered_faculty_profile_slot_names(answer)
+    if requested_slots <= covered_slots:
+        return None
+    return "incomplete_requested_profile_slots"
+
+
+def _covered_faculty_profile_slot_names(answer: str) -> set[str]:
+    lowered = answer.lower()
+    covered: set[str] = set()
+    if re.search(r"[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}", answer):
+        covered.add("email")
+    if (
+        "办公室" in answer
+        or "office" in lowered
+        or re.search(r"\b(?:Room|Rm\.?)\s+[A-Za-z0-9][A-Za-z0-9.-]{1,20}\b", answer, flags=re.IGNORECASE)
+        or re.search(r"\b(?:SIST|Building)\s+[A-Za-z0-9][A-Za-z0-9.-]{1,20}\b", answer, flags=re.IGNORECASE)
+    ):
+        covered.add("office")
+    if "博士" in answer or "phd" in lowered:
+        covered.add("phd_school")
+    if "研究方向" in answer or "research direction" in lowered or "research interests" in lowered:
+        covered.add("direction")
+    return covered
+
+
+def _multi_project_supplier_rejection_reason(
+    query: str,
+    answer: str,
+    contexts: list[ContextItem],
+) -> str | None:
+    if not _query_wants_multiple_procurement_suppliers(query):
+        return None
+    if any(marker in answer for marker in ("异议", "质疑材料", "递交地址", "书面形式")):
+        return "procurement_boilerplate_fallback"
+
+    supplier_slots = [
+        slot for slot in required_slot_values(query, contexts) if slot.name.startswith("procurement_supplier:")
+    ]
+    if len(supplier_slots) >= 2:
+        normalized_answer = re.sub(r"\s+", "", answer)
+        for slot in supplier_slots:
+            if re.sub(r"\s+", "", slot.value) not in normalized_answer:
+                return "incomplete_procurement_supplier_slots"
+        return None
+    if _procurement_project_supplier_pair_count(answer) >= 2:
+        return None
+    return "incomplete_procurement_supplier_slots"
+
+
+def _query_wants_multiple_procurement_suppliers(query: str) -> bool:
+    return "供应商" in query and "采购" in query and any(term in query for term in ("分别", "两个", "和", "及"))
+
+
+def _procurement_project_supplier_pair_count(text: str) -> int:
+    pairs = re.findall(
+        r"[\u4e00-\u9fffA-Za-z0-9（）()·\-]{2,80}?采购项目"
+        r"[^。；;\n]{0,32}?"
+        r"[\u4e00-\u9fffA-Za-z0-9（）()·\-]{2,50}?(?:有限公司|公司|研究所|大学|中心)",
+        text,
+    )
+    return len(pairs)
 
 
 def _query_requires_phone_fact(query: str) -> bool:
@@ -274,7 +362,20 @@ def _query_requests_degree_total_credit(query: str) -> bool:
         return True
     if "总学分" not in query:
         return False
+    if re.search(r"(?:人文社科|自然科学|专业课程)[^？?。]*总学分", query) and not re.search(
+        r"总学分[、,，和及]",
+        query,
+    ):
+        return False
     if "板块" in query:
+        return False
+    return True
+
+
+def _query_requests_total_and_free_choice_only(query: str) -> bool:
+    if not _query_requests_degree_total_credit(query):
+        return False
+    if any(term in query for term in ("人文社科", "自然科学", "专业课程", "必修")):
         return False
     return True
 
@@ -295,7 +396,7 @@ def _requested_labeled_credit_rejection_reason(query: str, answer: str, cited_te
 
 def _labeled_credit_values(text: str, label: str) -> set[str]:
     values: set[str] = set()
-    for match in re.finditer(rf"{label}[^。；;，,\n]{{0,24}}?(\d+(?:\.\d+)?)\s*学分", text):
+    for match in re.finditer(rf"{label}[^。；;，,\n]{{0,24}}?(\d+(?:\.\d+)?)\s*(?:个)?\s*学分", text):
         values.add(_clean_number(match.group(1)))
     return values
 
@@ -560,6 +661,9 @@ def _extract_answer_from_contexts(query: str, contexts: list[ContextItem]) -> Ex
     committee_answer = _extract_committee_row_answer(query, contexts)
     if committee_answer is not None:
         return committee_answer
+    graduate_credit_answer = extract_graduate_credit_answer(query, contexts)
+    if graduate_credit_answer is not None:
+        return graduate_credit_answer
     degree_summary_answer = _extract_degree_plan_summary_answer(query, contexts)
     if degree_summary_answer is not None:
         return degree_summary_answer
@@ -1089,7 +1193,7 @@ def _extract_degree_plan_summary_answer(query: str, contexts: list[ContextItem])
         free = summary.get("任选课程", (None, None, None))[2]
         natural = summary.get("自然科学通识", (None, None, None))[2]
         professional = summary.get("专业课程", (None, None, None))
-        if total and free and "任选" in query and not _query_wants_multiple_facts(query):
+        if total and free and "任选" in query and _query_requests_total_and_free_choice_only(query):
             return ExtractiveAnswer(
                 f"{label}毕业至少需要修满{total}学分，任选课程占{free}学分。 [{context.rank}]",
                 context.rank,

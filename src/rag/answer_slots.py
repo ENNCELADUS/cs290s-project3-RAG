@@ -21,6 +21,8 @@ def required_slot_rejection_reason(query: str, answer: str, contexts: list[Conte
         return None
     normalized_answer = _normalize_answer_text(answer)
     for slot in slot_values:
+        if slot.name.startswith("procurement_supplier:") and not _procurement_project_present(slot.label, answer):
+            return f"missing_required_slot:{slot.name}"
         if _normalize_answer_text(slot.value) not in normalized_answer:
             return f"missing_required_slot:{slot.name}"
     return None
@@ -94,15 +96,13 @@ def _requested_slot_names(query: str) -> list[str]:
 
 def _slot_value(slot_name: str, text: str) -> str | None:
     if slot_name == "research_directions":
-        return _field_after_label(text, "研究方向")
+        return _research_directions_value(text)
     if slot_name == "quota":
         return _quota_value(text)
     if slot_name == "email":
         return _first_match(r"[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}", text)
     if slot_name == "group_leader":
-        return _field_after_first_label(text, ("组长", "负责人", "课题组负责人", "PI")) or _first_match(
-            r"由\s*([\u4e00-\u9fff]{2,4})课题组负责", text
-        )
+        return _group_leader_value(text)
     return None
 
 
@@ -137,15 +137,34 @@ def _field_after_label(text: str, label: str) -> str | None:
     return value or None
 
 
+def _research_directions_value(text: str) -> str | None:
+    labeled = _field_after_label(text, "研究方向")
+    if labeled is not None:
+        return labeled
+    match = re.search(r"研究方向包括\s*[:：]?\s*(?P<value>.*?)(?:等)?(?=[。；;\n]|$)", text)
+    if match is None:
+        return None
+    value = match.group("value").strip(" ，,。；;")
+    return value or None
+
+
 def _quota_value(text: str) -> str | None:
     match = re.search(
-        r"(?:拟招收|招收|招生名额[:：]?)\s*"
+        r"(?:拟招收|招收|招生名额[:：]?|(?:课题组)?每年有)\s*"
         r"(?P<value>\d+\s*[-－—]\s*\d+\s*个?[^。；;，,\n]{0,20}?名额|\d+\s*个?[^。；;，,\n]{0,20}?名额)",
         text,
     )
     if match is None:
         return _field_after_first_label(text, ("招生名额", "名额"))
     return re.sub(r"\s+", "", match.group("value")).strip(" ，,。；;")
+
+
+def _group_leader_value(text: str) -> str | None:
+    return (
+        _first_match(r"([\u4e00-\u9fff]{2,4})教授是[^。；;\n]{0,80}课题组组长", text)
+        or _first_match(r"由\s*([\u4e00-\u9fff]{2,4})课题组负责", text)
+        or _field_after_first_label(text, ("组长", "课题组负责人", "负责人", "PI"))
+    )
 
 
 def _first_match(pattern: str, text: str) -> str | None:
@@ -162,8 +181,8 @@ def _query_wants_procurement_suppliers(query: str) -> bool:
 
 
 def _procurement_supplier_values(context: ContextItem, text: str) -> list[RequiredSlotValue]:
-    project = _field_after_label(text, "项目名称") or _project_name_from_title(context.title)
-    supplier = _field_after_first_label(text, ("成交供应商", "中标供应商", "成交单位", "中选供应商"))
+    project = _procurement_project_name(text) or _project_name_from_title(context.title)
+    supplier = _procurement_supplier(text)
     if project is None or supplier is None:
         return []
     return [
@@ -174,6 +193,74 @@ def _procurement_supplier_values(context: ContextItem, text: str) -> list[Requir
             source_rank=context.rank,
         )
     ]
+
+
+def _procurement_project_name(text: str) -> str | None:
+    return _procurement_field_after_first_label(
+        text,
+        ("项目名称",),
+        (
+            "项目编号",
+            "询价日期",
+            "推荐成交单位",
+            "推荐成交供应商",
+            "成交供应商",
+            "中标供应商",
+            "成交单位",
+            "中选供应商",
+            "项目单位",
+            "报价供应商要求",
+        ),
+    )
+
+
+def _procurement_supplier(text: str) -> str | None:
+    return _procurement_field_after_first_label(
+        text,
+        ("推荐成交单位", "推荐成交供应商", "成交供应商", "中标供应商", "成交单位", "中选供应商"),
+        (
+            "投标人如",
+            "供应商如",
+            "报价单位如",
+            "在此",
+            "Copyright",
+            "项目名称",
+            "项目编号",
+            "询价日期",
+        ),
+    )
+
+
+def _procurement_field_after_first_label(
+    text: str, labels: tuple[str, ...], terminators: tuple[str, ...]
+) -> str | None:
+    for label in labels:
+        value = _procurement_field_after_label(text, label, terminators)
+        if value is not None:
+            return value
+    return None
+
+
+def _procurement_field_after_label(text: str, label: str, terminators: tuple[str, ...]) -> str | None:
+    terminal_pattern = "|".join(re.escape(term) for term in terminators)
+    match = re.search(
+        rf"{re.escape(label)}[:：]?\s*(?P<value>.*?)"
+        rf"(?=\s*(?:{terminal_pattern})[:：]?|[。；;\n]|$)",
+        text,
+    )
+    if match is None:
+        return None
+    value = match.group("value").strip(" ，,。；;")
+    return value or None
+
+
+def _procurement_project_present(label: str, answer: str) -> bool:
+    project = label.removesuffix("供应商")
+    normalized_answer = _normalize_answer_text(answer)
+    normalized_project = _normalize_answer_text(project)
+    return (
+        normalized_project in normalized_answer or normalized_project.removeprefix("上海科技大学") in normalized_answer
+    )
 
 
 def _project_name_from_title(title: str | None) -> str | None:

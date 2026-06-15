@@ -152,6 +152,112 @@ def test_hybrid_rejects_cs_credit_answer_missing_requested_total(
     )
 
 
+def test_hybrid_recovers_ee_degree_total_and_free_choice_credits_from_flat_table(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    context = _context(
+        rank=1,
+        title="2025级本科生培养方案EE专业",
+        url="https://example.edu/ee/2025-degree",
+        text=(
+            "2025 级本科生培养方案 电子信息工程专业。"
+            "学分： 修满至少 145 学分 的总学分数，具体要求如下。 "
+            "类别 必修 选修 学分 人文社科通识 30 15 45 "
+            "自然科学通识 16 16 32 专业课程 32 27 59 任选课程 9 145。"
+        ),
+    )
+    model_path = tmp_path / "qwen-local"
+    model_path.mkdir()
+    tokenizer = FakeChatTokenizer("材料中具体数字缺失，无法回答。 [1]")
+
+    def fake_load_model(self: RagAnswerer) -> tuple[FakeChatTokenizer, FakeModel]:
+        return tokenizer, FakeModel()
+
+    monkeypatch.setattr(RagAnswerer, "_load_model", fake_load_model)
+    answerer = RagAnswerer(StaticHybridRetriever([context]), model_path=model_path, device="cpu")  # type: ignore[arg-type]
+
+    result = answerer.answer(
+        "2025级EE本科培养方案总学分和任选课程分别是多少学分？",
+        mode="hybrid",
+        top_k=1,
+    )
+
+    assert result.status == "answered"
+    assert result.generation_path == "extractive_fallback"
+    assert result.generation_rejection_reason == "missing_requested_credit_fields"
+    assert result.answer == "2025级电子信息工程专业毕业至少需要修满145学分，任选课程占9学分。 [1]"
+
+
+def test_hybrid_recovers_ee_general_education_totals_from_flat_table(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    context = _context(
+        rank=1,
+        title="2025级本科生培养方案EE专业",
+        url="https://example.edu/ee/2025-degree",
+        text=(
+            "2025 级本科生培养方案 电子信息工程专业。"
+            "学分： 修满至少 145 学分 的总学分数，具体要求如下。 "
+            "类别 必修 选修 学分 人文社科通识 30 15 45 "
+            "自然科学通识 16 16 32 专业课程 32 27 59 任选课程 9 145。"
+        ),
+    )
+    model_path = tmp_path / "qwen-local"
+    model_path.mkdir()
+    tokenizer = FakeChatTokenizer("材料中没有提及具体数字，无法回答。 [1]")
+
+    def fake_load_model(self: RagAnswerer) -> tuple[FakeChatTokenizer, FakeModel]:
+        return tokenizer, FakeModel()
+
+    monkeypatch.setattr(RagAnswerer, "_load_model", fake_load_model)
+    answerer = RagAnswerer(StaticHybridRetriever([context]), model_path=model_path, device="cpu")  # type: ignore[arg-type]
+
+    result = answerer.answer(
+        "2025级EE本科培养方案中，人文社科通识和自然科学通识总学分分别是多少？",
+        mode="hybrid",
+        top_k=1,
+    )
+
+    assert result.status == "answered"
+    assert result.generation_path == "extractive_fallback"
+    assert result.answer == "2025级电子信息工程专业中，人文社科通识板块要求45学分，自然科学通识板块要求32学分。 [1]"
+
+
+def test_hybrid_recovers_ee_professional_elective_minimum_from_flat_table(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    context = _context(
+        rank=1,
+        title="2025级本科生培养方案EE专业",
+        url="https://example.edu/ee/2025-degree",
+        text=(
+            "2025 级本科生培养方案 电子信息工程专业。"
+            "学分： 修满至少 145 学分 的总学分数，具体要求如下。 "
+            "类别 必修 选修 学分 人文社科通识 30 15 45 "
+            "自然科学通识 16 16 32 专业课程 32 27 59 任选课程 9 145。"
+        ),
+    )
+    model_path = tmp_path / "qwen-local"
+    model_path.mkdir()
+    tokenizer = FakeChatTokenizer("材料中具体数字缺失，无法回答。 [1]")
+
+    def fake_load_model(self: RagAnswerer) -> tuple[FakeChatTokenizer, FakeModel]:
+        return tokenizer, FakeModel()
+
+    monkeypatch.setattr(RagAnswerer, "_load_model", fake_load_model)
+    answerer = RagAnswerer(StaticHybridRetriever([context]), model_path=model_path, device="cpu")  # type: ignore[arg-type]
+
+    result = answerer.answer(
+        "2025级EE本科培养方案中，专业课程板块最低选修多少学分？",
+        mode="hybrid",
+        top_k=1,
+    )
+
+    assert result.status == "answered"
+    assert result.generation_path == "extractive_fallback"
+    assert result.answer == "2025级电子信息工程专业中，专业课程板块至少需要选修27学分。 [1]"
+
+
 def test_hybrid_rejects_doctoral_credit_answer_missing_course_practice(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -189,7 +295,7 @@ def test_hybrid_rejects_doctoral_credit_answer_missing_course_practice(
     assert "40学分" in result.answer
     assert "课程实践" in result.answer
     assert "8学分" in result.answer
-    assert result.answer.endswith("[1].")
+    assert result.answer.endswith("[1]")
 
 
 def _context(*, rank: int, title: str, url: str, text: str) -> ContextItem:
