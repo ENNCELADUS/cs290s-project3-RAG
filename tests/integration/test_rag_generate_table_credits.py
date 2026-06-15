@@ -118,6 +118,72 @@ def test_hybrid_prompt_preserves_flat_degree_table_bindings_for_ee_general_educa
     assert "自然科学通识 - 学分 - 32" in user_message
 
 
+def test_hybrid_prompt_preserves_generic_markdown_table_bindings(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    context = _context(
+        rank=1,
+        title="教师获奖列表",
+        url="https://example.edu/faculty/awards",
+        text=(
+            "官方教师获奖信息。\n"
+            "| 奖项 | 年份 | 结果 |\n"
+            "| --- | --- | --- |\n"
+            "| ACL 2023 | 2023 | 杰出论文奖 |\n"
+            "| SemEval 2022 | 2022 | 最佳系统论文奖 |"
+        ),
+    )
+    model_path = tmp_path / "qwen-local"
+    model_path.mkdir()
+    tokenizer = FakeChatTokenizer("ACL 2023 的结果是杰出论文奖。 [1]")
+
+    def fake_load_model(self: RagAnswerer) -> tuple[FakeChatTokenizer, FakeModel]:
+        return tokenizer, FakeModel()
+
+    monkeypatch.setattr(RagAnswerer, "_load_model", fake_load_model)
+    answerer = RagAnswerer(StaticHybridRetriever([context]), model_path=model_path, device="cpu")  # type: ignore[arg-type]
+
+    result = answerer.answer("ACL 2023 的结果是什么？", mode="hybrid", top_k=1)
+
+    assert result.status == "answered"
+    assert tokenizer.chat_template_kwargs is not None
+    user_message = tokenizer.chat_template_kwargs["messages"][1]["content"]  # type: ignore[index]
+    assert "ACL 2023 - 结果 - 杰出论文奖" in user_message
+    assert "SemEval 2022 - 结果 - 最佳系统论文奖" in user_message
+
+
+def test_hybrid_source_derived_fallback_answers_generic_markdown_table_cell(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    context = _context(
+        rank=1,
+        title="教师获奖列表",
+        url="https://example.edu/faculty/awards",
+        text=(
+            "官方教师获奖信息。\n"
+            "| 奖项 | 年份 | 结果 |\n"
+            "| --- | --- | --- |\n"
+            "| ACL 2023 | 2023 | 杰出论文奖 |\n"
+            "| SemEval 2022 | 2022 | 最佳系统论文奖 |"
+        ),
+    )
+    model_path = tmp_path / "qwen-local"
+    model_path.mkdir()
+    tokenizer = FakeChatTokenizer('{"status": "insufficient_evidence", "answer": ""}')
+
+    def fake_load_model(self: RagAnswerer) -> tuple[FakeChatTokenizer, FakeModel]:
+        return tokenizer, FakeModel()
+
+    monkeypatch.setattr(RagAnswerer, "_load_model", fake_load_model)
+    answerer = RagAnswerer(StaticHybridRetriever([context]), model_path=model_path, device="cpu")  # type: ignore[arg-type]
+
+    result = answerer.answer("ACL 2023 的结果是什么？", mode="hybrid", top_k=1)
+
+    assert result.status == "answered"
+    assert result.generation_path == "extractive_fallback"
+    assert result.answer == "ACL 2023 的结果是杰出论文奖。 [1]"
+
+
 def test_hybrid_rejects_cs_credit_answer_missing_requested_total(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:

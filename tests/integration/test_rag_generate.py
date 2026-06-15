@@ -1927,6 +1927,255 @@ def test_source_derived_fallback_uses_profile_where_identifying_anchors_cooccur(
     assert "lianlx@shanghaitech.edu.cn" not in result.answer
 
 
+def test_source_derived_fallback_treats_profile_descriptors_as_identifying_anchors(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    query, contexts = _artifact_query_and_contexts("q018")
+    model_path = tmp_path / "qwen-local"
+    model_path.mkdir()
+    _patch_generation_sequence(
+        monkeypatch,
+        [
+            "证据不足：当前检索到的官方来源不足以回答这个问题。",
+            '{"status": "insufficient_evidence", "answer": ""}',
+        ],
+    )
+    answerer = RagAnswerer(StaticContextRetriever(contexts), model_path=model_path, device="cpu")  # type: ignore[arg-type]
+
+    result = answerer.answer(query, mode="dense", top_k=5)
+
+    assert result.status == "answered"
+    assert result.generation_path == "extractive_fallback"
+    assert result.fallback_source_rank == 1
+    assert result.answer == "该教师的办公室是3-210，邮箱是zhangxy12@shanghaitech.edu.cn。 [1]."
+    assert "lianlx@shanghaitech.edu.cn" not in result.answer
+
+
+def test_q002_artifact_model_refusal_recovers_office_email_from_top_context(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    query, contexts = _artifact_query_and_contexts("q002")
+    model_path = tmp_path / "qwen-local"
+    model_path.mkdir()
+    _patch_generation_sequence(
+        monkeypatch,
+        [
+            "证据不足：当前检索到的官方来源不足以回答这个问题。",
+            '{"status": "insufficient_evidence", "answer": ""}',
+        ],
+    )
+    answerer = RagAnswerer(StaticContextRetriever(contexts), model_path=model_path, device="cpu")  # type: ignore[arg-type]
+
+    result = answerer.answer(query, mode="dense", top_k=5)
+
+    assert result.status == "answered"
+    assert result.generation_path == "extractive_fallback"
+    assert result.fallback_source_rank == 1
+    assert result.answer == "王浩宇的办公室是信息学院3-530，邮箱是wanghy@shanghaitech.edu.cn。 [1]."
+
+
+def test_source_derived_fallback_answers_requested_professor_direction_and_phd_school(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    contexts = [
+        _context(
+            rank=1,
+            title="中文信息",
+            url="https://sist.shanghaitech.edu.cn/wanghy/list.htm",
+            text=(
+                "王浩宇 副院长，正教授，博导。"
+                "博士毕业院校： 美国马里兰大学。"
+                "办公室： 信息学院3-530。"
+                "邮箱： wanghy@shanghaitech.edu.cn。"
+                "研究方向： 电力电子，算力电源，电源芯片，电动汽车，光伏储能。"
+            ),
+        )
+    ]
+    model_path = tmp_path / "qwen-local"
+    model_path.mkdir()
+    _patch_generation_sequence(
+        monkeypatch,
+        [
+            "证据不足：当前检索到的官方来源不足以回答这个问题。",
+            '{"status": "insufficient_evidence", "answer": ""}',
+        ],
+    )
+    answerer = RagAnswerer(StaticContextRetriever(contexts), model_path=model_path, device="cpu")  # type: ignore[arg-type]
+
+    result = answerer.answer(
+        "信息科学与技术学院副院长王浩宇教授主要负责哪些研究方向？他的博士学位毕业于哪一所海外著名的高校？",
+        mode="dense",
+        top_k=1,
+    )
+
+    assert result.status == "answered"
+    assert result.generation_path == "extractive_fallback"
+    assert result.answer == (
+        "王浩宇的博士毕业学校是美国马里兰大学，研究方向是电力电子，算力电源，电源芯片，电动汽车，光伏储能。 [1]"
+    )
+
+
+def test_source_derived_fallback_compares_two_professor_office_rooms(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    contexts = [
+        _context(
+            rank=1,
+            title="英文信息",
+            url="https://sist.shanghaitech.edu.cn/hexm_en/list.htm",
+            text=(
+                "Xuming He. Vice Dean, Associate Professor. "
+                "Office: 1A-221, SIST Building. E-mail: hexm@shanghaitech.edu.cn."
+            ),
+        ),
+        _context(
+            rank=2,
+            title="中文信息",
+            url="https://sist.shanghaitech.edu.cn/tukw/main.htm",
+            text=(
+                "屠可伟 副院长、正教授、博导。"
+                "电话：021-20685089。"
+                "办公室： 1A-304B。"
+                "邮箱： tukw@shanghaitech.edu.cn。"
+            ),
+        ),
+    ]
+    model_path = tmp_path / "qwen-local"
+    model_path.mkdir()
+    _patch_generation_sequence(
+        monkeypatch,
+        [
+            "何旭明的办公室是1A-221；屠可伟的办公室未包含在来源中。 [1]",
+            '{"status": "insufficient_evidence", "answer": ""}',
+        ],
+    )
+    answerer = RagAnswerer(StaticContextRetriever(contexts), model_path=model_path, device="cpu")  # type: ignore[arg-type]
+
+    result = answerer.answer(
+        "对比信息学院两位副院长何旭明（Xuming He）与屠可伟（Kewei Tu）的长聘教职工概况主页，"
+        "他们各自在信息学院大楼（SIST Building）的官方办公室房间号分别是什么？",
+        mode="dense",
+        top_k=2,
+    )
+
+    assert result.status == "answered"
+    assert result.generation_path == "extractive_fallback"
+    assert result.answer == "何旭明的办公室房间号是1A-221；屠可伟的办公室房间号是1A-304B。 [1][2]"
+
+
+def test_source_derived_fallback_uses_retest_formula_from_same_document_sibling_chunk(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    contexts = [
+        _context(
+            rank=1,
+            title="上海科技大学信息科学与技术学院2026年招收硕士研究生复试工作规程",
+            url="https://sist.shanghaitech.edu.cn/_t335/2026/0316/c7339a1119896/page.htm",
+            text="上海科技大学信息科学与技术学院2026年招收硕士研究生复试工作规程。首页 导航 复试分数线。",
+        )
+    ]
+    sibling_chunks = [
+        {
+            "chunk_id": 2,
+            "document_id": 1,
+            "url": contexts[0].url,
+            "text": (
+                "五、复试工作细则 复试包括综合素质考核和专业面试两部分。"
+                "复试成绩满分 100 分， 60 分及以上为合格。"
+                "六、录取原则 总成绩满分 100 分，计算方法："
+                "总成绩 =50* 初试成绩 / 初试满分 +50* 复试成绩 / 复试满分。"
+            ),
+        }
+    ]
+    model_path = tmp_path / "qwen-local"
+    model_path.mkdir()
+    _patch_generation_sequence(
+        monkeypatch,
+        [
+            "复试包括综合素质考核和专业面试，但来源中未明确列出复试满分和总成绩公式。 [1]",
+            '{"status": "insufficient_evidence", "answer": ""}',
+        ],
+    )
+    answerer = RagAnswerer(
+        StaticContextRetrieverWithSiblingChunks(contexts, sibling_chunks),
+        model_path=model_path,
+        device="cpu",
+    )  # type: ignore[arg-type]
+
+    result = answerer.answer(
+        "根据《上海科技大学信息科学与技术学院2026年招收硕士研究生复试工作规程》，"
+        "复试包括哪两个部分？复试成绩满分和合格线分别是多少？总成绩如何计算？",
+        mode="dense",
+        top_k=1,
+    )
+
+    assert result.status == "answered"
+    assert result.generation_path == "extractive_fallback"
+    assert result.answer == (
+        "2026年复试包括综合素质考核和专业面试；复试成绩满分为100分，60分为合格；"
+        "考生总成绩=50*初试成绩/初试满分+50*复试成绩/复试满分。 [1]"
+    )
+
+
+def test_source_derived_fallback_binds_starred_uc_berkeley_course_from_sibling_chunks(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    contexts = [
+        _context(
+            rank=1,
+            title="2025级本科生培养方案EE专业",
+            url="https://faculty.sist.shanghaitech.edu.cn/office/Academics/Undergraduate/Degree%20Programmes/2025%20Bachelor%20Degree%20Programs%20in%20EE.htm",
+            text="2025级本科生培养方案EE专业。电子信息工程专业。一、培养目标。二、学制、学位类型与要求。",
+        )
+    ]
+    sibling_chunks = [
+        {
+            "chunk_id": 2,
+            "document_id": 1,
+            "url": contexts[0].url,
+            "text": (
+                "专业必修课程板块 课程代码 课程名称 学时 学分 开课学期 "
+                "EE111 电路基础 * 64 4 一（2） "
+                "EE111L 电路基础实验 * 48 1 一（2）。"
+            ),
+        },
+        {
+            "chunk_id": 3,
+            "document_id": 1,
+            "url": contexts[0].url,
+            "text": "注：本课程设置仅作为推荐。加 “*” 号的课程为 UC Berkeley 课程。",
+        },
+    ]
+    model_path = tmp_path / "qwen-local"
+    model_path.mkdir()
+    _patch_generation_sequence(
+        monkeypatch,
+        [
+            "来源中未明确列出任何一门具体课程标注为 UC Berkeley 合作课程。 [1]",
+            '{"status": "insufficient_evidence", "answer": ""}',
+        ],
+    )
+    answerer = RagAnswerer(
+        StaticContextRetrieverWithSiblingChunks(contexts, sibling_chunks),
+        model_path=model_path,
+        device="cpu",
+    )  # type: ignore[arg-type]
+
+    result = answerer.answer(
+        "针对2025级电子信息工程专业（EE专业）本科生，修读由美国加州大学伯克利分校（UC Berkeley）"
+        "合作开设的专业必修课程，安排在哪个学年哪个学期推荐修读？这门课程的理论课和实验课课程代码分别是什么？",
+        mode="dense",
+        top_k=1,
+    )
+
+    assert result.status == "answered"
+    assert result.generation_path == "extractive_fallback"
+    assert result.answer == (
+        "标有“*”号的UC Berkeley合作必修课程为《电路基础》（含电路基础实验），"
+        "推荐修读时间为一（2）学期；理论课课程代码为EE111，实验课课程代码为EE111L。 [1]"
+    )
+
+
 def test_partial_contact_answer_falls_back_to_all_requested_teacher_profile_slots(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -2599,3 +2848,31 @@ def _context(*, rank: int, title: str, url: str, text: str) -> ContextItem:
         text=text,
         trace_ref=f"test:{rank}",
     )
+
+
+def _artifact_query_and_contexts(question_id: str) -> tuple[str, list[ContextItem]]:
+    artifact_path = Path(
+        "data/eval/generation_hybrid_qwen35_20260615T100250Z/"
+        "run_generation_hybrid_qwen35_20260615T100250Z.jsonl"
+    )
+    for line in artifact_path.read_text(encoding="utf-8").splitlines():
+        record = json.loads(line)
+        if record["id"] != question_id:
+            continue
+        contexts = [
+            ContextItem(
+                rank=context["rank"],
+                chunk_id=context["chunk_id"],
+                document_id=context["document_id"],
+                title=context["title"],
+                url=context["url"],
+                category=context["category"],
+                language=context["language"],
+                snippet=context["snippet"],
+                text=context["text"],
+                trace_ref=context["trace_ref"],
+            )
+            for context in record["retrieval"]["contexts"]
+        ]
+        return record["query"], contexts
+    raise AssertionError(f"{question_id} not found in {artifact_path}")

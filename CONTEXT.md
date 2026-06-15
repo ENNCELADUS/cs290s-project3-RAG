@@ -80,6 +80,18 @@ An answer-generation diagnostic where **Expected Source Hit@5** is true for retr
 answer either abstains as **Evidence-Insufficient** or fails **Cited Expected Source Hit**.
 _Avoid_: retrieval miss, source_hit@5
 
+**Evidence-Span Miss**:
+An answer-generation failure where the expected official source URL is present in retrieved top-k results, but the
+**Packed Context** span given to the generator does not include the exact supporting facts needed for the question.
+Same-document evidence-window selection may fix this without changing retrieval rankings or source-hit metrics.
+_Avoid_: retrieval miss, qrels miss
+
+**Required Evidence Slot**:
+A query-required entity-field-value fact that must appear in the **Generated Answer** when it is supported by cited
+official-source evidence. Examples include a professor's office, PhD school, research directions, a formula component,
+or a course row's code and recommended semester.
+_Avoid_: answer-key atom, loose judge atom
+
 ## Relationships
 
 - **Before Optimization** and **After Optimization** are the two conditions compared in the final report.
@@ -100,6 +112,10 @@ _Avoid_: retrieval miss, source_hit@5
   still maps to `is_correct=0` for final assignment labels.
 - **Answer Synthesis Miss** separates retrieval success from generation failure when expected official sources were
   retrieved but the final answer did not cite them.
+- **Evidence-Span Miss** is narrower than an **Answer Synthesis Miss**: the right URL was retrieved, but the answer
+  layer must select a better same-document evidence span before generation or source-derived fallback.
+- **Required Evidence Slot** checks belong to **Model-First Answer Recovery** and deterministic source-derived fallback;
+  they should not be implemented by loosening answer correctness or changing retrieval metrics.
 - Dense retrieval built on enriched index text is a diagnostic ceiling, not the official **Before Optimization** baseline,
   because enriched index text is one of the implemented optimization changes.
 

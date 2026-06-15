@@ -223,7 +223,7 @@ def _local_evidence_pattern(query: str) -> re.Pattern[str] | None:
     if any(term in query for term in ("选拔方式", "招生方式", "直博", "申请-考核制")):
         patterns.append(r"选拔方式|招生方式|直博|申请[-－—]考核制")
     if any(term in query for term in ("三选二", "本学科选修")) or ("2025级" in query and "ee" in lowered):
-        patterns.append(r"三选二|本学科选修|2025\s*级|电子信息工程|EE")
+        patterns.append(r"三选二|本学科选修|2025\s*级|电子信息工程|EE|UC\s*Berkeley|Berkeley|课程代码|开课学期|电路基础|\*")
     if any(term in query for term in ("录制成视频", "提前学习", "电力电子")):
         patterns.append(r"录制成视频|提前学习|电力电子")
     if not patterns:
